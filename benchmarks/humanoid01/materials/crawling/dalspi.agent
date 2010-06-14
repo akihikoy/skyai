@@ -1,0 +1,112 @@
+// agent file for motion learning task of manoi01 (common for disc-action behavior module)
+// using LSPI
+// source is based on crawling-disca.agent
+
+//TODO include crawling-cmn.agent
+
+module  MRemoveSignalArguments_TInt                            , exec_action
+module  MLSPI_TDiscreteAction                                  , behavior
+
+/// initialization process:
+
+/// start of episode process:
+connect  environment.slot_start_episode_finished        , behavior.slot_start_episode
+connect  environment.slot_start_episode_finished        , task.slot_start_episode
+
+/// start of time step process:
+
+/// end of time step process:
+
+/// learning signals:
+connect  behavior.signal_execute_action                 , exec_action.slot_in
+connect  exec_action.signal_out                         , rwd_accumulator.slot_reset
+connect  exec_action.signal_out                         , damage_reward.slot_reset
+
+connect  behavior.signal_end_of_action                  , logger_action_result.slot_log
+
+connect  environment.signal_end_of_episode              , behavior.slot_finish_episode
+connect  task.signal_end_of_episode                     , behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode                 , logger_eps_return.slot_log
+connect  logger_eps_return.slot_log_finished            , logger_action_result.slot_newline
+connect  logger_action_result.slot_newline_finished     , lmanager.slot_finish_episode
+
+
+/// I/O:
+connect  tr_ngnet.out_y                                 , behavior.in_feature
+connect  rwd_accumulator.out_sum                        , behavior.in_reward
+
+connect  behavior.out_return_in_episode                 , logger_eps_return.in_data2
+
+connect  behavior.out_td_error                          , logger_action_result.in_data_real
+connect  behavior.out_current_action_value              , logger_action_result.in_data_real
+
+
+/// parameter setting:
+
+behavior.config={
+    Gamma = 0.9
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 5
+    TauDecreasingFactor = 0.004
+
+    MaxDataSizePerDim = 25
+    LSPICycle = 5
+    LSTDQIterations = 1
+    NonzeroFeatureThreshold = 0.01
+  }
+
+
+////////////////////////////////////////////////////////////////////
+// the following code is copied from crawling/grid.agent
+// and slightly modified to fit the LSPI module
+////////////////////////////////////////////////////////////////////
+
+// agent file for motion learning task of manoi01
+
+//TODO include crawling-disca.agent
+
+module  MLCHolder_TRealVector                                  , direct_action
+module  MDiscretizer                                           , action_discretizer
+
+/// initialization process:
+connect  ngnet.slot_initialize_finished                 , action_discretizer.slot_initialize
+connect  action_discretizer.slot_initialize_finished    , behavior.slot_initialize
+
+/// start of episode process:
+
+/// start of time step process:
+connect  timer.signal_start_of_step_ud1                 , direct_action.slot_start_time_step
+
+/// end of time step process:
+connect  timer.signal_end_of_step_ud1                   , direct_action.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action                 , action_discretizer.slot_in
+connect  action_discretizer.signal_out                  , direct_action.slot_execute_action
+connect  direct_action.slot_execute_action_finished     , holder_action.slot_1
+
+// for crawling-cmn.agent:
+connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
+// for crawling-cmn2.agent:
+// connect  direct_action.signal_execute_command           , action_converter.slot_x
+// connect  action_converter.signal_y                      , environment.slot_execute_command_des_qd
+connect  direct_action.signal_end_of_action             , behavior.slot_finish_action
+
+
+/// I/O:
+connect  action_discretizer.out_set_size                , behavior.in_action_set_size
+
+
+/// parameter setting:
+
+action_discretizer.config ={
+    Min = (-0.261799, -0.261799, -0.261799, -0.261799, -0.261799)
+    Max = (0.261799, 0.261799, 0.261799, 0.261799, 0.261799)
+    Division = (3, 3, 3, 3, 3)
+  }
+direct_action.config ={
+    Interval = 0.1
+  }
+

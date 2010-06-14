@@ -1,0 +1,24 @@
+Usage:
+
+1. Build:
+  $ make
+
+2. Execute as follows:
+  $ ./rlbioloid.sh -agent m-c/cmn1.agent,m-c/disca.agent,m-c/dcob1.agent -outdir result/rl1/
+Some log files are created in result/rl1.
+NOTE: result/rl1 should be created by user before execution.
+
+3. Examples:
+
+* 5-DoF, Q(lambda)-learning, DCOB (action space), linear action value function (NGnet):
+./rlbioloid.sh -agent m-c/cmn1.agent,m-c/disca.agent,m-c/dcob1.agent -outdir result/rl1/
+
+* 2-DoF, Q(lambda)-learning, DCOB (action space), linear action value function (NGnet):
+./rlbioloid.sh -agent m-c/cmn2.agent,m-c/disca.agent,m-c/dcob2.agent -outdir result/rl1/
+
+* 3-DoF, Q(lambda)-learning, DCOB (action space), linear action value function (NGnet):
+./rlbioloid.sh -agent m-c/cmn3.agent,m-c/disca.agent,m-c/dcob3.agent -outdir result/rl1/
+
+* 5-DoF, Q(lambda)-learning, Grid action space, linear action value function (NGnet):
+./rlbioloid.sh -agent m-c/cmn1.agent,m-c/disca.agent,m-c/grid.agent -outdir result/rl1/
+

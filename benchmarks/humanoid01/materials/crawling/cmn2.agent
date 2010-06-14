@@ -1,0 +1,167 @@
+// agent file for motion learning task of manoi01 (common file)
+// NOTE: lmanager and environment must be defined in this file
+
+module  MBasicLearningManager                                  , lmanager
+module  MHumanoidEnvironment                                   , environment
+// module  MBasisFunctionsNGnet                                   , ngnet
+module  MBasisFunctionsDCOBNGnet                               , ngnet
+module  MMotionLearningTask                                    , task
+module  MUserEmittedTimer                                      , timer
+
+module  MRewardAccumulator                                     , rwd_accumulator
+module  MRewardAccumulator                                     , sum_reward
+module  MEmitOnce_TReal                                        , damage_reward
+
+module  MTimedResourceXX_TRealVector                           , tr_state
+module  MTimedResourceXY_TRealVector_TRealVector               , tr_ngnet
+module  MSimpleDataLogger2_TInt_TReal                          , logger_eps_return
+module  MUniversalDataLogger                                   , logger_action_result
+module  MHolder_TRealVector                                    , holder_action
+
+module  MLinearFunctionRv                                      , state_converter
+module  MLinearFunctionRv                                      , action_converter
+
+/// initialization process:
+connect  lmanager.signal_initialization                 , environment.slot_initialize
+connect  lmanager.signal_initialization                 , task.slot_initialize
+connect  lmanager.signal_initialization                 , ngnet.slot_initialize
+connect  lmanager.signal_initialization                 , logger_eps_return.slot_initialize
+connect  lmanager.signal_initialization                 , logger_action_result.slot_initialize
+
+/// start of episode process:
+connect  lmanager.signal_start_of_episode               , tr_ngnet.slot_reset
+connect  lmanager.signal_start_of_episode               , sum_reward.slot_reset
+connect  tr_ngnet.slot_reset_finished                   , tr_state.slot_reset
+connect  tr_state.slot_reset_finished                   , timer.slot_reset
+connect  timer.slot_reset_finished                      , environment.slot_start_episode
+
+/// start of time step process:
+connect  environment.signal_start_of_timestep           , timer.slot_start_step
+
+/// end of time step process:
+connect  environment.signal_end_of_timestep             , timer.slot_finish_step
+connect  timer.signal_end_of_step                       , task.slot_finish_time_step
+
+/// learning signals:
+connect  environment.signal_system_reward               , rwd_accumulator.slot_add
+connect  task.signal_task_reward                        , rwd_accumulator.slot_add
+connect  task.signal_damage_reward                      , damage_reward.slot_in
+connect  damage_reward.signal_out                       , rwd_accumulator.slot_add
+connect  rwd_accumulator.slot_add_finished              , sum_reward.slot_add
+
+connect  lmanager.signal_end_of_learning                , environment.slot_finish_loop
+
+
+/// I/O:
+connect  sum_reward.out_sum                             , task.in_sum_of_reward
+connect  environment.out_state_cc                       , state_converter.in_x
+connect  state_converter.out_y                          , tr_state.in_x
+connect  ngnet.out_f2                                   , tr_ngnet.in_converter
+connect  tr_state.out_x                                 , task.in_state
+connect  timer.out_disc_time                            , tr_ngnet.in_disc_time
+connect  timer.out_disc_time                            , tr_state.in_disc_time
+connect  tr_state.out_x                                 , tr_ngnet.in_x
+
+
+connect  lmanager.out_episode_number                    , logger_eps_return.in_data1
+
+connect  lmanager.out_episode_number                    , logger_action_result.in_data_int
+connect  timer.out_cont_time                            , logger_action_result.in_data_real
+connect  rwd_accumulator.out_last_accessed              , logger_action_result.in_data_real
+connect  holder_action.out_1                            , logger_action_result.in_data_real_vector
+
+
+/// parameter setting:
+
+lmanager.config ={
+    MaxEpisodeNumber = 1600
+    RandomSeed = "time"
+  }
+environment.config ={
+    FPS = 50.0
+    ControlConstraintKind = "cckNone"
+  }
+
+ngnet.config ={
+    NGnetFileName = "materials/ngnet.dat"
+    // NGnetFileName = "materials/ngnet_q3.dat"
+  }
+
+timer.config ={
+    Cycle1 = 0.005
+  }
+
+state_converter.config ={
+    Factor ={
+        resize(21, 47)
+        //     x  y  z  q  q  q  q  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5  6  v  v  v  w  w  w  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5  6
+        [0]=  (0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [1]=  (0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [2]=  (0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [3]=  (0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [4]=  (0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+        [5]=  (0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [6]=  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [7]=  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [8]=  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [9]=  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+        [10]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [11]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [12]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [13]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [14]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [15]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+        [16]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [17]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        [18]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0)
+        [19]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
+        [20]= (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0)
+      }
+  }
+action_converter.config ={
+    Factor ={
+        resize(17, 5)
+        //  j   0  1  2  3  4
+        [0]=  ( 0, 0, 0, 0, 0)
+
+        [1]=  ( 1, 0, 0, 0, 0)
+        [2]=  ( 0, 0, 0, 0, 0)
+        [3]=  ( 0, 1, 0, 0, 0)
+
+        [4]=  ( 1, 0, 0, 0, 0)
+        [5]=  ( 0, 0, 0, 0, 0)
+        [6]=  ( 0, 1, 0, 0, 0)
+
+        [7]=  ( 0, 0, 0, 0, 0)
+        [8]=  ( 0, 0, 1, 0, 0)
+        [9]=  ( 0, 0, 0, 1, 0)
+        [10]= ( 0, 0, 0, 0, 1)
+        [11]= ( 0, 0, 0, 0, 0)
+
+        [12]= ( 0, 0, 0, 0, 0)
+        [13]= ( 0, 0, 1, 0, 0)
+        [14]= ( 0, 0, 0, 1, 0)
+        [15]= ( 0, 0, 0, 0, 1)
+        [16]= ( 0, 0, 0, 0, 0)
+      }
+  }
+
+logger_eps_return.config ={
+    FileName = "XXXRESDIR/log-eps-ret.dat"
+  }
+
+logger_action_result.config ={
+    FileName = "XXXRESDIR/log-action-res.dat"
+    OrderOfColumns ={
+        ["lmanager.out_episode_number"]= 1
+        ["timer.out_cont_time"]= 2
+        ["rwd_accumulator.out_last_accessed"]= 4
+        ["behavior.out_td_error"]= 5
+        ["behavior.out_current_action_value"]= 6
+        ["holder_action.out_1"]= 8
+      }
+    PutBlankData = true
+  }

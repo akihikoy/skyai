@@ -1,0 +1,1 @@
+../scripts/humanoid01.sh

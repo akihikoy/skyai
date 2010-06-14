@@ -1,0 +1,34 @@
+
+// ngnet, lmanager must be defined before this file
+
+module  MMinMaxElementRv              , minmax_elem
+module  MUniversalDataLogger          , logger_ngnet
+
+/// initialization process:
+connect  lmanager.signal_initialization     , logger_ngnet.slot_initialize
+
+/// learning signals:
+connect  behavior.signal_end_of_action      , logger_ngnet.slot_log
+connect  behavior.signal_end_of_episode     , logger_ngnet.slot_newline
+
+/// I/O:
+connect  tr_ngnet.out_y                     , minmax_elem.in_1
+
+connect  lmanager.out_episode_number        , logger_ngnet.in_data_int
+connect  timer.out_cont_time                , logger_ngnet.in_data_real
+connect  minmax_elem.out_max_index          , logger_ngnet.in_data_int
+connect  minmax_elem.out_max_value          , logger_ngnet.in_data_real
+connect  tr_state.out_x                     , logger_ngnet.in_data_real_vector
+
+logger_ngnet.config ={
+    FileName = "XXXRESDIR/log-ngnet.dat"
+    OrderOfColumns ={
+        ["lmanager.out_episode_number"]= 1
+        ["timer.out_cont_time"]= 2
+        ["minmax_elem.out_max_index"]= 4
+        ["minmax_elem.out_max_value"]= 5
+        ["tr_state.out_x"]= 7
+      }
+    PutBlankData = true
+  }
+

@@ -1,0 +1,62 @@
+##-------------------------------------------------------------------------------------------
+#     Copyright (C) 2010  Akihiko Yamaguchi
+#
+#     This file is part of SkyAI.
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##-------------------------------------------------------------------------------------------
+LIBOBJS =
+CXX = g++
+AR = ar
+CXXFLAGS = -g -Wall -rdynamic -O2 -march=i686
+LDFLAGS  = $(CXXFLAGS)
+RMFLAGS  =  -vf
+##------------------------------------------------------------------
+BASEPREFIX := $(wildcard ~/prg)
+LIBLORA := $(wildcard ~/proj/skyai)/liblora
+##------------------------------------------------------------------
+LIBS += -I/usr/include -I$(LIBLORA)/include
+##------------------------------------------------------------------
+
+all : $(ARC)
+
+clean   :
+	@rm $(RMFLAGS) *.o *.a *.il $(ARC) $(EXTRA_CLEAN)
+	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
+
+$(ARC) : $(OBJS) $(LIBOBJS)
+	@(mkdir -p ../lib)
+	$(AR) r $(ARC) $(OBJS) $(LIBOBJS)
+	@(echo "$(ARC) is generated")
+
+# $(EXEC) : $(OBJS) $(LIBOBJS)
+# 	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+# 	@(echo "$(EXEC) is generated")
+
+%.o : %.cpp
+	$(CXX) $(LIBS) $(CXXFLAGS) -c $<
+
+DEPOPT  ?= -MM
+
+%.d: %.cpp
+	@(rm -f $@; \
+	$(CXX) $(DEPOPT) $(LIBS) $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	[ -s $@ ] || rm -f $@; \
+	rm -f $@.$$$$; \
+	)
+
+##------------------------------------------------------------------
+include $(OBJ:.o=.d) $(OBJS:.o=.d) $(objects:.o=.d) $(addsuffix .d, $(BINARY))
+##------------------------------------------------------------------

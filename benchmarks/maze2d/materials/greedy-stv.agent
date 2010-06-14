@@ -1,0 +1,36 @@
+// behavior module must be defined
+module  MStateValueCalculator1F                        , state_values
+module  MSimpleDataLogger2_TReal_TRealVector           , logger_state_values
+
+connect  lmanager.signal_initialization                ,logger_state_values.slot_initialize
+
+connect  behavior.signal_end_of_action                 ,state_values.slot_calculate
+connect  state_values.slot_calculate_finished          ,logger_state_values.slot_log
+
+connect  behavior.out_state_value                      ,state_values.in_state_value
+connect  tr_state.out_x                                ,state_values.in_state
+connect  ngnet.out_f2                                  ,state_values.in_state_to_feature
+
+connect  timer.out_cont_time                           ,logger_state_values.in_data1
+connect  state_values.out_state_values                 ,logger_state_values.in_data2
+
+
+/// parameter setting:
+behavior.config={
+    Alpha = 0.1
+    Tau = 1.0e-10
+  }
+
+lmanager.config ={
+    MaxEpisodeNumber = 1
+  }
+
+state_values.config={
+    Index = 0
+    Min = -1.0
+    Max = 1.0
+  }
+
+logger_state_values.config={
+    FileName = "XXXRESDIR/log-state-values.dat"
+  }

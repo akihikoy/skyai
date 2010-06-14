@@ -1,0 +1,155 @@
+// agent file for maze2d task
+// using linear function approximator and generic td learner
+// NOTE: lmanager and environment must be defined in this file
+// using MFittedQIterationSL_TContinuousState_TDiscreteAction
+
+module  MBasicLearningManager                                 , lmanager
+module  MMazeEnvironment                                      , environment
+module  MBasisFunctionsNGnet                                  , ngnet
+module  MAVFLinearDiscAction                                  , avf_linear
+module  MRadialActionSpace                                    , radial_action
+module  MNavigationTask                                       , task
+module  MRemoveSignalArguments_TInt                           , exec_action
+module  MRewardAccumulator                                    , rwd_accumulator
+module  MFittedQIterationSL_TContinuousState_TDiscreteAction  , behavior
+module  MTimedResourceXX_TRealVector                          , tr_state
+module  MTimedResourceXY_TRealVector_TRealVector              , tr_ngnet
+module  MUserEmittedTimer                                     , timer
+module  MSimpleDataLogger2_TInt_TReal                         , logger_eps_return
+module  MUniversalDataLogger                                  , logger_action_result
+module  MHolder_TInt                                          , holder_action
+
+/// initialization process:
+connect  lmanager.signal_initialization                ,environment.slot_initialize
+connect  lmanager.signal_initialization                ,task.slot_initialize
+connect  lmanager.signal_initialization                ,ngnet.slot_initialize
+connect  ngnet.slot_initialize_finished                ,radial_action.slot_initialize
+connect  ngnet.slot_initialize_finished                ,avf_linear.slot_initialize
+connect  radial_action.slot_initialize_finished        ,behavior.slot_initialize
+connect  lmanager.signal_initialization                ,logger_eps_return.slot_initialize
+connect  lmanager.signal_initialization                ,logger_action_result.slot_initialize
+
+/// start of episode process:
+connect  lmanager.signal_start_of_episode              ,tr_ngnet.slot_reset
+connect  tr_ngnet.slot_reset_finished                  ,tr_state.slot_reset
+connect  tr_state.slot_reset_finished                  ,timer.slot_reset
+connect  timer.slot_reset_finished                     ,environment.slot_start_episode
+connect  environment.slot_start_episode_finished       ,behavior.slot_start_episode
+connect  environment.slot_start_episode_finished       ,task.slot_start_episode
+connect  environment.slot_start_episode_finished       ,avf_linear.slot_reset
+
+/// start of time step process:
+connect  environment.signal_start_of_timestep          ,timer.slot_start_step
+connect  timer.signal_start_of_step                    ,radial_action.slot_start_time_step
+
+/// end of time step process:
+connect  environment.signal_end_of_timestep            ,timer.slot_finish_step
+connect  timer.signal_end_of_step                      ,task.slot_finish_time_step
+connect  task.slot_finish_time_step_finished           ,radial_action.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action                ,radial_action.slot_execute_action
+connect  behavior.signal_execute_action                ,exec_action.slot_in
+connect  behavior.signal_execute_action                ,holder_action.slot_1
+connect  exec_action.signal_out                        ,rwd_accumulator.slot_reset
+connect  radial_action.signal_execute_command          ,environment.slot_execute_command
+connect  radial_action.signal_end_of_action            ,behavior.slot_finish_action
+connect  behavior.signal_avf_add_to_parameter          ,avf_linear.slot_add_to_parameter
+connect  behavior.signal_end_of_action                 ,logger_action_result.slot_log
+
+connect  task.signal_goal_reward                       ,rwd_accumulator.slot_add
+connect  environment.signal_system_reward              ,rwd_accumulator.slot_add
+
+connect  environment.signal_end_of_episode             ,behavior.slot_finish_episode
+connect  task.signal_end_of_episode                    ,behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode                ,logger_eps_return.slot_log
+connect  logger_eps_return.slot_log_finished           ,logger_action_result.slot_newline
+connect  logger_action_result.slot_newline_finished    ,lmanager.slot_finish_episode
+
+/// I/O:
+connect  radial_action.out_action_set_size             ,avf_linear.in_action_set_size
+connect  rwd_accumulator.out_sum                       ,behavior.in_reward
+connect  environment.out_position                      ,tr_state.in_x
+connect  ngnet.out_f2                                  ,tr_ngnet.in_converter
+connect  tr_state.out_x                                ,task.in_position
+connect  timer.out_disc_time                           ,tr_ngnet.in_disc_time
+connect  timer.out_disc_time                           ,tr_state.in_disc_time
+connect  tr_state.out_x                                ,tr_ngnet.in_x
+
+connect  tr_ngnet.out_y                                ,behavior.in_state
+connect  tr_ngnet.out_y                                ,avf_linear.in_feature
+connect  lmanager.out_episode_number                   ,avf_linear.in_episode_number
+connect  avf_linear.out_evaluate                       ,behavior.in_avf_evaluate
+connect  avf_linear.out_greedy                         ,behavior.in_avf_greedy
+connect  avf_linear.out_select_action                  ,behavior.in_avf_select_action
+connect  avf_linear.out_create_parameter               ,behavior.in_avf_create_parameter
+connect  avf_linear.out_zero_parameter                 ,behavior.in_avf_zero_parameter
+
+connect  lmanager.out_episode_number                   ,logger_eps_return.in_data1
+connect  behavior.out_return_in_episode                ,logger_eps_return.in_data2
+
+connect  lmanager.out_episode_number                   ,logger_action_result.in_data_int
+connect  timer.out_cont_time                           ,logger_action_result.in_data_real
+connect  rwd_accumulator.out_last_accessed             ,logger_action_result.in_data_real
+connect  behavior.out_td_error                         ,logger_action_result.in_data_real
+connect  behavior.out_current_action_value             ,logger_action_result.in_data_real
+connect  tr_state.out_x                                ,logger_action_result.in_data_real_vector
+connect  holder_action.out_1                           ,logger_action_result.in_data_int
+
+
+/// parameter setting:
+
+lmanager.config ={
+    MaxEpisodeNumber = 2000
+  }
+
+task.config ={
+    MaxTime = 100
+  }
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.05
+    AlphaDecreasingFactor = 0.002
+    FQICycle = 10
+    MaxNumberOfQIteration = 1
+    MaxNumberOfSLIteration = 3
+    MinRewardDeviationRate = 0.1
+    SameSampleThreshold = 0.001
+    NumberOfUsedSamples = 0
+  }
+
+ngnet.config={
+    NGnetFileName = "materials/ngnet222g.dat"
+  }
+
+radial_action.config ={
+    NumOfDirs = 16
+  }
+
+avf_linear.config={
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+
+logger_eps_return.config={
+    FileName = "XXXRESDIR/log-eps-ret.dat"
+  }
+
+logger_action_result.config ={
+    FileName = "XXXRESDIR/log-action-res.dat"
+    OrderOfColumns ={
+        ["lmanager.out_episode_number"]= 1
+        ["timer.out_cont_time"]= 2
+        ["rwd_accumulator.out_last_accessed"]= 4
+        ["behavior.out_td_error"]= 5
+        ["behavior.out_current_action_value"]= 6
+        ["tr_state.out_x"]= 8
+        ["holder_action.out_1"]= 10
+      }
+    PutBlankData = true
+  }

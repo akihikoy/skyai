@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<!--
+    You'll find the "Writing a Kate Highlighting XML File HOWTO" at
+    http://kate.kde.org/doc/hlhowto.php
+    This is a template for the XML format used for syntax highlight descriptions
+    for the Kate text editor (http://kate.kde.org), which is part of the KDE
+    desktop environment (http://www.kde.org).
+
+    Use it as the base for your own syntax files.
+
+    Look at language.dtd for some documentation of the allowed elements and their attributes.
+    There is also a description of how to validate your syntax file.
+
+    You'll find the "Writing a Kate Highlighting XML File HOWTO" at
+    http://kate.kde.org/doc/hlhowto.php
+    -->
+
+<language version="1.00" kateversion="2.4" name="Agent Modules" section="Other" extensions="*.agent" mimetype="" author="akihiko" licence="GPL">
+  <highlighting>
+
+    <list name="kwList1">
+      <!--<item> module </item>-->
+      <!--<item> connect </item>-->
+    </list>
+
+    <list name="kwListAsign">
+      <item> group </item>
+      <item> str </item>
+      <item> end </item>
+      <item> strlist </item>
+      <item> strlistend </item>
+
+      <item> true </item>
+      <item> false </item>
+    </list>
+
+    <contexts>
+      <context attribute="Normal Text" lineEndContext="#pop" name="Normal Text" >
+        <keyword attribute="Keyword" context="#stay" String="kwList1" />
+        <IncludeRules context="Common Text" />
+        <DetectIdentifier attribute="Module"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Common Text" >
+        <!--<RegExpr attribute="Symbol" context="#stay" String="\bcf\."/>-->
+
+        <IncludeRules context="##Doxygen" />
+        <Detect2Chars attribute="Comment" context="LineComment" char="/" char1="/"/>
+        <!--<RegExpr attribute="Comment" context="BlockComment" String="/\*" beginRegion="BlockComment"/>-->
+
+        <!--<DetectChar attribute="Symbol" context="#stay" char="{" beginRegion="Section1"/>
+        <DetectChar attribute="Symbol" context="#stay" char="}" endRegion="Section1"/>-->
+
+        <StringDetect attribute="ExtSymbol" context="Module" String="module"/>
+        <StringDetect attribute="ExtSymbol" context="Connect" String="connect"/>
+
+        <DetectChar attribute="String" context="String" char="&quot;"/>
+        <Float attribute="Float" context="#stay">
+          <AnyChar String="fF" attribute="Float" context="#stay"/>
+        </Float>
+        <Int attribute="Decimal" context="#stay">
+        </Int>
+
+        <RegExpr attribute="ExtSymbol" context="Asign" String="=\s*\{" beginRegion="Asign" />
+
+        <DetectChar attribute="Symbol" context="Member" char="."/>
+
+        <AnyChar attribute="Symbol" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
+
+      </context>
+
+      <context attribute="String" lineEndContext="#pop" name="String">
+        <LineContinue attribute="String" context="#stay"/>
+        <HlCStringChar attribute="String Char" context="#stay"/>
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+      </context>
+
+      <context attribute="Comment" lineEndContext="#pop" name="LineComment">
+        <DetectSpaces />
+        <IncludeRules context="##Alerts" />
+      </context>
+
+      <!--<context attribute="Comment" lineEndContext="#stay" name="BlockComment">
+        <DetectSpaces />
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="BlockComment"/>
+        <IncludeRules context="##Alerts" />
+      </context>-->
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Module">
+        <DetectSpaces />
+        <AnyChar attribute="ExtSymbol" context="ModuleInstance" String=","/>
+        <DetectIdentifier attribute="ModuleType"/>
+      </context>
+      <context attribute="Normal Text" lineEndContext="#pop" name="ModuleInstance">
+        <DetectSpaces />
+        <DetectIdentifier attribute="Module"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Connect">
+        <DetectSpaces />
+        <AnyChar attribute="ExtSymbol" context="#stay" String=","/>
+        <DetectChar attribute="Symbol" context="Member" char="."/>
+        <DetectIdentifier attribute="Module"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Member">
+        <DetectSpaces />
+        <DetectIdentifier attribute="SubModule" context="#pop"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#stay" name="Asign">
+        <DetectSpaces />
+        <keyword attribute="Keyword" context="#stay" String="kwListAsign" />
+        <DetectChar attribute="ExtSymbol" context="#pop" char="}" endRegion="Asign"/>
+        <IncludeRules context="Common Text" />
+      </context>
+
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Normal Text"     defStyleNum="dsNormal"/>
+      <itemData name="Keyword"         defStyleNum="dsKeyword"/>
+      <itemData name="ModuleType"      defStyleNum="dsNormal" color="#085"/>
+      <itemData name="Module"          defStyleNum="dsNormal" color="#058"/>
+      <itemData name="SubModule"       defStyleNum="dsNormal" color="#053"/>
+      <itemData name="Symbol"          defStyleNum="dsNormal" color="#850"/>
+      <itemData name="ExtSymbol"       defStyleNum="dsNormal" color="#0AF" bold="1"/>
+      <!--<itemData name="URL"             defStyleNum="dsNormal" color="#00F" underline="1"/>-->
+      <itemData name="Comment"         defStyleNum="dsComment"/>
+      <itemData name="String"          defStyleNum="dsString"/>
+      <itemData name="String Char"     defStyleNum="dsChar"/>
+      <itemData name="Float"           defStyleNum="dsFloat"/>
+      <itemData name="Decimal"         defStyleNum="dsDecVal"/>
+    </itemDatas>
+
+  </highlighting>
+  <general>
+    <keywords casesensitive="0" />
+
+    <comments>
+      <comment name="singleLine" start="// " position="afterwhitespace" />
+      <!--<comment name="multiLine" start="/*" end="*/" />-->
+    </comments>
+
+  </general>
+</language>
+<!-- kate: space-indent on; indent-width 2; replace-tabs on; indent-mode xml; -->
