@@ -25,6 +25,9 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/small_classes.h>
+#include <lora/type_gen.h>
+#include <lora/stl_math.h>
+#include <lora/rand.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -33,9 +36,11 @@ using namespace std;
 // using namespace boost;
 //-------------------------------------------------------------------------------------------
 
+
 //===========================================================================================
 // class TOptionParser
 //===========================================================================================
+
 /*private*/void TOptionParser::parse_from_arglist (int argc, const char *const*const argv)
 {
   for (int i(0); i<argc; ++i)
@@ -150,6 +155,7 @@ void TOptionParser::PrintUsed (std::ostream &os, const std::string &prefix)
 //===========================================================================================
 // class TNBase
 //===========================================================================================
+
 void TNBase::assign (ValueType val)
 {
   std::fill(nbase_.begin(),nbase_.end(),0);
@@ -182,9 +188,11 @@ std::ostream& operator<< (std::ostream &lhs, const TNBase &rhs)
 }
 //-------------------------------------------------------------------------------------------
 
+
 //===========================================================================================
 // class TNxBase
 //===========================================================================================
+
 bool TNxBase::Assign (ValueType val)
 {
   std::fill(Begin(),End(),0);
@@ -217,6 +225,159 @@ std::ostream& operator<< (std::ostream &lhs, const TNxBase &rhs)
     lhs<<", "<<rhs[i];
   lhs<<")";
   return lhs;
+}
+//-------------------------------------------------------------------------------------------
+
+
+
+//===========================================================================================
+// class TBubbleSet
+//===========================================================================================
+
+TBubbleSet::TRealVector TBubbleSet::Center(int index) const
+{
+  if (GenSize(cmin_)==GenSize(scale_))  return VectorElemMult(bubble_set_[index].Center,scale_);
+  else  return  bubble_set_[index].Center;
+}
+//-------------------------------------------------------------------------------------------
+
+void TBubbleSet::SetCenterMax (const TRealVector &cmax)
+{
+  cmax_=cmax;
+  scaled_cmax_=cmax;
+  if (GenSize(scaled_cmax_)==GenSize(scale_))
+    VectorElemDivAssign(scaled_cmax_,scale_);
+}
+void TBubbleSet::SetCenterMin (const TRealVector &cmin)
+{
+  cmin_=cmin;
+  scaled_cmin_=cmin;
+  if (GenSize(scaled_cmin_)==GenSize(scale_))
+    VectorElemDivAssign(scaled_cmin_,scale_);
+}
+void TBubbleSet::SetScale (const TRealVector &scale)
+{
+  scale_=scale;
+  if (GenSize(cmax_)==GenSize(scale_))  {scaled_cmax_=cmax_; VectorElemDivAssign(scaled_cmax_,scale_);}
+  if (GenSize(cmin_)==GenSize(scale_))  {scaled_cmin_=cmin_; VectorElemDivAssign(scaled_cmin_,scale_);}
+}
+//-------------------------------------------------------------------------------------------
+
+void TBubbleSet::GenerateRandomly (int N, const TReal &init_radius)
+{
+  LASSERT1op1(GenSize(scaled_cmin_),==,GenSize(scaled_cmax_));
+  int dim(GenSize(scaled_cmin_));
+  bubble_set_.resize(N);
+
+  radius_= init_radius;
+  radius_spd_ = 0.0l;
+  radius_total_force_ = 0.0l;
+
+  for (std::vector<TBubble>::iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+  {
+    GenResize(itr->Center,dim);
+    GenResize(itr->Velocity,dim);
+    GenResize(itr->TotalForce,dim);
+    GenerateRandomVector(itr->Center,scaled_cmin_,scaled_cmax_);
+    SetZero(itr->Velocity);
+    SetZero(itr->TotalForce);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+TReal TBubbleSet::Step (const TReal &time_step)
+{
+  // clear total force:
+  SetZero(radius_total_force_);
+  for (std::vector<TBubble>::iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+    SetZero(itr->TotalForce);
+
+  // calculate total force:
+  int i(0);
+  TRealVector diff(GenSize(scaled_cmin_));
+  TRealVector force(GenSize(scaled_cmin_));
+  for (std::vector<TBubble>::iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr,++i)
+  {
+    // contact force from the other bubbles:
+    for (std::vector<TBubble>::iterator itr2(bubble_set_.begin()+i); itr2!=last; ++itr2)
+    {
+      if (itr==itr2)  continue;
+      diff= itr2->Center - itr->Center;
+      TReal distance= GetNorm(diff);
+      if (distance<2.0l*radius_)  // overlapping
+      {
+        force= diff*(spring_k_*(2.0l*radius_-distance)/distance);
+        itr->TotalForce  -= force;
+        itr2->TotalForce += force;
+        radius_total_force_= std::max(radius_total_force_, spring_k_*(2.0l*radius_-distance));
+      }
+    }
+    // contact force from boundaries:
+    TReal f;
+    TypeExt<TRealVector>::const_iterator imax(GenBegin(scaled_cmax_)), imin(GenBegin(scaled_cmin_));
+    TypeExt<TRealVector>::iterator  fitr(GenBegin(itr->TotalForce));
+    for (TypeExt<TRealVector>::const_iterator celem_itr(GenBegin(itr->Center)),celem_last(GenEnd(itr->Center));
+        celem_itr!=celem_last; ++celem_itr,++fitr,++imax,++imin)
+    {
+      if ((f=(*imin+radius_)-*celem_itr) > 0.0l)
+      {
+        f*= spring_k_;
+        *fitr += f;
+        radius_total_force_= std::max(radius_total_force_, f);
+      }
+      if ((f=*celem_itr-(*imax-radius_)) > 0.0l)
+      {
+        f*= spring_k_;
+        *fitr -= f;
+        radius_total_force_= std::max(radius_total_force_, f);
+      }
+    }
+  }
+  radius_total_force_= radius_internal_force_ - radius_total_force_;
+
+  // integrate:
+  // TReal spd_norm_sum(0.0l);
+  // TReal acc_norm_sum(0.0l);
+  TReal acc_norm_max(0.0l);
+  radius_total_force_+= -radius_dumping_*radius_spd_;
+  radius_ += time_step * radius_spd_;
+  radius_spd_ += time_step * radius_total_force_ / radius_mass_;
+  // spd_norm_sum+= Square(radius_spd_);
+  // acc_norm_sum+= Square(radius_total_force_ / radius_mass_);
+  acc_norm_max= std::max(acc_norm_max, real_fabs(radius_total_force_ / radius_mass_));
+  for (std::vector<TBubble>::iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+  {
+    WeightedAdd (itr->TotalForce, -bubble_dumping_, itr->Velocity);
+    WeightedAdd (itr->Center, time_step, itr->Velocity);
+    WeightedAdd (itr->Velocity, time_step/bubble_mass_, itr->TotalForce);
+    // spd_norm_sum+= GetNormSq(itr->Velocity);
+    // acc_norm_sum+= Square(1.0l/bubble_mass_)*GetNormSq(itr->TotalForce);
+    acc_norm_max= std::max(acc_norm_max, 1.0l/bubble_mass_*GetNorm(itr->TotalForce));
+  }
+
+  // constraints:
+  if (radius_<0.0l)  radius_= 0.0l;
+  // for (std::vector<TBubble>::iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+    // ConstrainVector (itr->Center,scaled_cmin_,scaled_cmax_);
+
+  // return real_sqrt(spd_norm_sum);
+  // return real_sqrt(acc_norm_sum);
+  return acc_norm_max;
+}
+//-------------------------------------------------------------------------------------------
+
+void TBubbleSet::PrintCenters (std::ostream &os) const
+{
+  if (GenSize(cmin_)==GenSize(scale_))
+  {
+    for (std::vector<TBubble>::const_iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+      os<< GenPrint(VectorElemMult(itr->Center,scale_)) <<std::endl;
+  }
+  else
+  {
+    for (std::vector<TBubble>::const_iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+      os<< GenPrint(itr->Center) <<std::endl;
+  }
 }
 //-------------------------------------------------------------------------------------------
 

@@ -113,10 +113,10 @@ private:
   T   clear_val;
   bool use_clear_val;
 public:
-  TMovingAverageFilter()  : index(0), use_clear_val(false) {};
-  TMovingAverageFilter(int n)  : index(0), use_clear_val(false) { Initialize(n); };
-  TMovingAverageFilter(int n, const T &clv) : index(0), clear_val(&clv), use_clear_val(true) { Initialize(n); };
-  void SetClearVal (const T &clv)  { clear_val=clv; use_clear_val=true; };
+  TMovingAverageFilter()  : index(0), use_clear_val(false) {}
+  TMovingAverageFilter(int n)  : index(0), use_clear_val(false) { Initialize(n); }
+  TMovingAverageFilter(int n, const T &clv) : index(0), clear_val(&clv), use_clear_val(true) { Initialize(n); }
+  void SetClearVal (const T &clv)  { clear_val=clv; use_clear_val=true; }
   void Initialize (int n)
     {
       buffer.resize(n);
@@ -133,13 +133,13 @@ public:
           *itr = clear_val;
         current = clear_val;
       }
-    };
-  void Initialize (int n, const T &clv)  { SetClearVal(clv); Initialize(n); };
+    }
+  void Initialize (int n, const T &clv)  { SetClearVal(clv); Initialize(n); }
   void Initialize (int n, const T &clv, const T &init_val)
     {
       Initialize (n, init_val);
       SetClearVal (clv);
-    };
+    }
   T Step (const T &val)
     {
       buffer[index] = val;
@@ -148,7 +148,7 @@ public:
       for(typename std::vector<T>::iterator itr(buffer.begin());itr!=buffer.end();++itr)
         res += *itr;
       return (current = res / static_cast<TReal>(buffer.size()));
-    };
+    }
   T Value (void) const
     {
       // T res; if(!use_clear_val) SetZero(res); else res=clear_val;
@@ -156,12 +156,12 @@ public:
       //   res += *itr;
       // return res / static_cast<T>(buffer.size());
       return current;
-    };
-  T operator()(const T &val)  { return Step(val); };
-  T operator()(void) const { return Value(); };
-  T LastLowData (void) const { return buffer[(index==0)?(buffer.size()-1):(index-1)]; };
+    }
+  T operator()(const T &val)  { return Step(val); }
+  T operator()(void) const { return Value(); }
+  T LastLowData (void) const { return buffer[(index==0)?(buffer.size()-1):(index-1)]; }
   T PrevLowData (int n) const  //! return previous low data n < 0.  \note PrevLowData(0)==LastLowData()
-      { while (index-1+n < 0) n+=buffer.size(); return buffer[index-1+n]; };
+      { while (index-1+n < 0) n+=buffer.size(); return buffer[index-1+n]; }
 };
 //-------------------------------------------------------------------------------------------
 
@@ -256,10 +256,10 @@ class dout
 private:
   std::ostream &os1, &os2;
 public:
-  explicit dout (std::ostream &v_os1, std::ostream &v_os2) : os1(v_os1), os2(v_os2) {};
+  explicit dout (std::ostream &v_os1, std::ostream &v_os2) : os1(v_os1), os2(v_os2) {}
   template <typename T>
-  dout& operator<< (const T     &rhs)  { os1 << rhs;  os2 << rhs; return *this; };
-  dout& operator<< (std::ostream& (*pf)(std::ostream&))  { pf(os1); pf(os2); return *this; };
+  dout& operator<< (const T     &rhs)  { os1 << rhs;  os2 << rhs; return *this; }
+  dout& operator<< (std::ostream& (*pf)(std::ostream&))  { pf(os1); pf(os2); return *this; }
     /*!<  Interface for manipulators, such as \c std::endl and \c std::setw
       For more information, see ostream header */
 };
@@ -272,12 +272,12 @@ class TOptionParser
 {
 private:
   struct t_cell
-  {
-    std::string val;
-    bool accessed;
-    t_cell (void) : val(""), accessed(false) {};
-    t_cell (const std::string &s) : val(s), accessed(false) {};
-  };
+    {
+      std::string val;
+      bool accessed;
+      t_cell (void) : val(""), accessed(false) {}
+      t_cell (const std::string &s) : val(s), accessed(false) {}
+    };
   std::map <std::string, t_cell> opt;  //!< options whose format is '-optname optvalue'
   std::list <std::string>  used_opt;  //!< accessed options
   void parse_from_arglist (int argc, const char *const*const argv); //!< parse from arguments
@@ -286,7 +286,7 @@ public:
   std::list <std::string>  Floating;  /*!< options whose format is 'optname' (i.e. singular)
                                           if using such options and PrintNotAccessed, clear Floating
                                           before executing PrintNotAccessed */
-  TOptionParser (int argc, const char *const*const argv)  {parse_from_arglist(argc-1,argv+1);};
+  TOptionParser (int argc, const char *const*const argv)  {parse_from_arglist(argc-1,argv+1);}
 
   /*!\brief parse from a string
     \note option are separated by white spaces;
@@ -301,7 +301,7 @@ public:
         used_opt.push_back(key);
       opt[key].accessed=true;
       return opt[key].val;
-    };
+    }
 
   //!\brief return the value of an option whose key is equal to the given key.  if the key does not exist, return sdefault
   const std::string& operator() (const std::string& key, const std::string& sdefault=std::string(""))
@@ -311,7 +311,7 @@ public:
       if (opt.find(key)==opt.end()) return sdefault;
       opt[key].accessed=true;
       return opt[key].val;
-    };
+    }
 
   //! \brief print unaccessed options, \return if there is no unaccessed options, return false, else true
   bool PrintNotAccessed (std::ostream &os=std::cerr, const std::string &prefix=std::string("  "), bool including_floating=true);
@@ -368,12 +368,12 @@ private:
     {
       for (std::vector<bool>::iterator itr(table.begin()); itr!=table.end(); ++itr)
         *itr = a;
-    };
+    }
 public:
-  TInitializer(void)  {};
-  void Clear (void)  { table.clear(); };
-  void Init (void)  { set_all(true); };
-  void NotInit (void)  { set_all(false); };
+  TInitializer(void)  {}
+  void Clear (void)  { table.clear(); }
+  void Init (void)  { set_all(true); }
+  void NotInit (void)  { set_all(false); }
 
   //! \note user_code must be initialized by -1 at first time
   bool operator() (int &user_code, bool unset_init=true)
@@ -391,7 +391,7 @@ public:
         table[user_code] = !unset_init;
       }
       return res;
-    };
+    }
 };
 //-------------------------------------------------------------------------------------------
 
@@ -433,7 +433,7 @@ private:
         if (*idigit<N_)  return;
         *idigit= 0;
       }
-    };
+    }
 public:
   TNBase (void) :
       N_           (0),
@@ -442,7 +442,7 @@ public:
       decimal_     (0),
       decimal_max_ (0),
       err_         (true)
-    {};
+    {}
   TNBase (const ValueType &n, const ValueType &Ndigits) :
       N_           (0),
       digits_      (0),
@@ -452,7 +452,7 @@ public:
       err_         (true)
     {
       Init(n, Ndigits);
-    };
+    }
   void Init (const ValueType &n, const ValueType &Ndigits)
     {
       N_= n;
@@ -461,16 +461,16 @@ public:
       nbase_.resize(digits_);
       decimal_max_= ipow(N_,Ndigits)-1;
       assign(0);
-    };
+    }
 
-  const ValueType& N (void) const {return N_;};
-  const ValueType& Digits (void) const {return digits_;};
-  const ValueType& DecimalMax (void) const {return decimal_max_;};
+  const ValueType& N (void) const {return N_;}
+  const ValueType& Digits (void) const {return digits_;}
+  const ValueType& DecimalMax (void) const {return decimal_max_;}
 
-  const TNBase& operator= (const ValueType& rhs)  {assign(rhs); return *this;};
-  const TNBase& operator++ (void) {increment(); return *this;};
-  const ValueType& operator[] (const ValueType &i) const {return nbase_[i];};
-  operator ValueType() const {return decimal_;};
+  const TNBase& operator= (const ValueType& rhs)  {assign(rhs); return *this;}
+  const TNBase& operator++ (void) {increment(); return *this;}
+  const ValueType& operator[] (const ValueType &i) const {return nbase_[i];}
+  operator ValueType() const {return decimal_;}
 };
 std::ostream& operator<< (std::ostream &lhs, const TNBase &rhs);
 //-------------------------------------------------------------------------------------------
@@ -504,14 +504,14 @@ private:
   SetType    d, size;
 public:
 
-  TNxBase (void) : decimal_(0), decimal_overflow_(0) {};
+  TNxBase (void) : decimal_(0), decimal_overflow_(0) {}
 
   template <typename InputIterator>
   TNxBase (InputIterator sizefirst, InputIterator sizelast)
       : decimal_(0), decimal_overflow_(0)
     {
       Init<InputIterator>(sizefirst,sizelast);
-    };
+    }
 
   template <typename InputIterator>
   void Init (InputIterator sizefirst, InputIterator sizelast)
@@ -525,29 +525,29 @@ public:
       }
       d.resize (size.size());
       Init();
-    };
+    }
   void Init (void)
-    {decimal_=0; std::fill(Begin(),End(),0);};
+    {decimal_=0; std::fill(Begin(),End(),0);}
 
-  const SetType&          Nx (void) const {return size;};
-  ValueType               Digits (void) const {return size.size();};
-  ValueType               DecimalOverflow (void) const {return decimal_overflow_;};
+  const SetType&          Nx (void) const {return size;}
+  ValueType               Digits (void) const {return size.size();}
+  ValueType               DecimalOverflow (void) const {return decimal_overflow_;}
 
-  Iterator                Begin(void)       {return d.begin();};
-  ConstIterator           Begin(void) const {return d.begin();};
-  ReverseIterator         RBegin(void)       {return d.rbegin();};
-  ConstReverseIterator    RBegin(void) const {return d.rbegin();};
-  Iterator                End(void)       {return d.end();};
-  ConstIterator           End(void) const {return d.end();};
-  ReverseIterator         REnd(void)       {return d.rend();};
-  ConstReverseIterator    REnd(void) const {return d.rend();};
-  // Reference               operator[] (int i)       {return d[i];};
-  ConstReference          operator[] (int i) const {return d[i];};
+  Iterator                Begin(void)       {return d.begin();}
+  ConstIterator           Begin(void) const {return d.begin();}
+  ReverseIterator         RBegin(void)       {return d.rbegin();}
+  ConstReverseIterator    RBegin(void) const {return d.rbegin();}
+  Iterator                End(void)       {return d.end();}
+  ConstIterator           End(void) const {return d.end();}
+  ReverseIterator         REnd(void)       {return d.rend();}
+  ConstReverseIterator    REnd(void) const {return d.rend();}
+  // Reference               operator[] (int i)       {return d[i];}
+  ConstReference          operator[] (int i) const {return d[i];}
 
-  Iterator                SizeBegin(void)       {return size.begin();};
-  ConstIterator           SizeBegin(void) const {return size.begin();};
-  Iterator                SizeEnd(void)       {return size.end();};
-  ConstIterator           SizeEnd(void) const {return size.end();};
+  Iterator                SizeBegin(void)       {return size.begin();}
+  ConstIterator           SizeBegin(void) const {return size.begin();}
+  Iterator                SizeEnd(void)       {return size.end();}
+  ConstIterator           SizeEnd(void) const {return size.end();}
 
   bool Cont (void) const
     {
@@ -555,7 +555,7 @@ public:
       if (d.back()>=size.back())
         return false;
       else return true;
-    };
+    }
   bool Increment (void)
     {
       ++decimal_; if(decimal_>=decimal_overflow_) {decimal_=decimal_overflow_;}
@@ -567,14 +567,14 @@ public:
         else *itr=0;
       }
       return Cont();
-    };
-  bool Step (void)  {return Increment();};
+    }
+  bool Step (void)  {return Increment();}
 
   bool Assign (ValueType val);
 
-  const TNxBase& operator= (const ValueType& rhs)  {Assign(rhs); return *this;};
-  const TNxBase& operator++ (void) {Increment(); return *this;};
-  operator ValueType() const {return decimal_;};
+  const TNxBase& operator= (const ValueType& rhs)  {Assign(rhs); return *this;}
+  const TNxBase& operator++ (void) {Increment(); return *this;}
+  operator ValueType() const {return decimal_;}
 };
 std::ostream& operator<< (std::ostream &lhs, const TNxBase &rhs);
 //-------------------------------------------------------------------------------------------
@@ -1123,6 +1123,106 @@ protected:
 
 };  // TListPQueue
 //-------------------------------------------------------------------------------------------
+
+
+
+//===========================================================================================
+/*!  allocate bubbles (hyper-shperes) of the same radius as widely and largely as possible
+
+  sample:
+  \code
+  TBubbleSet bubbles;
+
+  TBubbleSet::TRealVector scale(3, 1.0);  GenAt(scale,1)=2.0;
+  bubbles.SetScale(scale);
+  bubbles.SetCenterMin(TBubbleSet::TRealVector(3, -1.0));
+  bubbles.SetCenterMax(TBubbleSet::TRealVector(3, 1.0));
+
+  TReal time_step= 0.1l;
+  bubbles.GenerateRandomly(20, 0.1l);
+  TReal first_acc(bubbles.Step(time_step));
+  TMovingAverageFilter<TReal>  acc_avr;
+  acc_avr.Initialize(100,0.0l,first_acc);
+  do
+  {
+    acc_avr(bubbles.Step(time_step));
+  } while (acc_avr()>0.0002l*first_acc);
+
+  bubbles.PrintCenters(cout);
+  cout<<"Radius= "<< bubbles.Radius()<<endl;
+  \endcode
+
+*/
+class TBubbleSet
+//===========================================================================================
+{
+public:
+
+  // typedef ColumnVector TRealVector;
+  typedef std::vector<TReal> TRealVector;
+
+  TBubbleSet()
+    :
+      spring_k_              (1.0l),
+      bubble_dumping_        (2.0l),
+      radius_dumping_        (10.0l),
+      bubble_mass_           (5.0l),
+      radius_mass_           (5.0l),
+      radius_internal_force_ (0.1l)
+    {}
+
+  int Size() const {return bubble_set_.size();}
+  const TReal& Radius() const {return radius_;}
+  TRealVector Center(int index) const;
+
+  // accessors:
+  const TRealVector& CenterMax () const {return cmax_;}
+  const TRealVector& CenterMin () const {return cmin_;}
+  const TRealVector& Scale     () const {return scale_;}
+
+  void SetCenterMax (const TRealVector &cmax);
+  void SetCenterMin (const TRealVector &cmin);
+  void SetScale (const TRealVector &scale);
+
+  const TReal& SpringK             () const {return spring_k_              ;}
+  const TReal& BubbleDumping       () const {return bubble_dumping_        ;}
+  const TReal& RadiusDumping       () const {return radius_dumping_        ;}
+  const TReal& BubbleMass          () const {return bubble_mass_           ;}
+  const TReal& RadiusMass          () const {return radius_mass_           ;}
+  const TReal& RadiusInternalForce () const {return radius_internal_force_ ;}
+  void SetSpringK             (const TReal &v)  {spring_k_              = v;}
+  void SetBubbleDumping       (const TReal &v)  {bubble_dumping_        = v;}
+  void SetRadiusDumping       (const TReal &v)  {radius_dumping_        = v;}
+  void SetBubbleMass          (const TReal &v)  {bubble_mass_           = v;}
+  void SetRadiusMass          (const TReal &v)  {radius_mass_           = v;}
+  void SetRadiusInternalForce (const TReal &v)  {radius_internal_force_ = v;}
+
+  void GenerateRandomly (int N, const TReal &init_radius);
+  TReal Step (const TReal &time_step=0.1l);
+
+  void PrintCenters (std::ostream &os=std::cout) const;
+
+private:
+
+  struct TBubble
+    {
+      TRealVector Center;
+      TRealVector Velocity;
+      TRealVector TotalForce;
+    };
+
+  TRealVector cmin_, cmax_, scale_;
+  TRealVector scaled_cmin_, scaled_cmax_;
+  TReal spring_k_, bubble_dumping_, radius_dumping_;
+  TReal bubble_mass_, radius_mass_;
+  TReal radius_internal_force_;
+
+  std::vector<TBubble>  bubble_set_;
+  TReal radius_, radius_spd_, radius_total_force_;
+
+};
+//-------------------------------------------------------------------------------------------
+
 
 
 //-------------------------------------------------------------------------------------------

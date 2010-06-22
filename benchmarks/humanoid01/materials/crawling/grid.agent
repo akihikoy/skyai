@@ -42,7 +42,5 @@ action_discretizer.config ={
     Max = (0.261799, 0.261799, 0.261799, 0.261799, 0.261799)
     Division = (3, 3, 3, 3, 3)
   }
-direct_action.config ={
-    Interval = 0.1
-  }
+direct_action.config ={Interval = 0.1;}
 

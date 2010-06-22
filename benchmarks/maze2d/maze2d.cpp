@@ -631,13 +631,13 @@ int main(int argc, char**argv)
   if (ConvertFromStr<bool>(option("available_mods","false")))
   {
     LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules();
+    TModuleManager::ShowAllModules(option("show_conf"));
     return 0;
   }
   if (ConvertFromStr<bool>(option("show_mods","false")))
   {
     LMESSAGE("agent's modules:");
-    agent.ShowAllModules("",cout);
+    agent.ShowAllModules(option("show_conf"),cout);
     return 0;
   }
   if (ConvertFromStr<bool>(option("dot_mod","false")))

@@ -24,8 +24,9 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/modules_std/avf_wire_fitting_smpl.h>
-#include <lora/stl_ext.h>
 #include <skyai/modules_std/bits/discaction_selection.h>
+#include <lora/stl_ext.h>
+#include <lora/stl_math.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

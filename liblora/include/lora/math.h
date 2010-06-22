@@ -99,16 +99,14 @@ inline void VectorUpdate (FwdItr1 first1, const FwdItr1 &last1, FwdItr2 first2, 
 //-------------------------------------------------------------------------------------------
 
 //! lhs += w*rhs
-template <typename T, typename _real_type>
-inline const T& WeightedAdd (T &lhs, const _real_type &w, const T &rhs)
-{
-  lhs.WeightedAdd (w, rhs);
-  return lhs;
-}
-#define SPECIALIZER(_type1,_type2)  \
+//! generic definition is in stl_math.h
+template <typename t_vector1, typename t_real_type, typename t_vector2>
+inline const t_vector1& WeightedAdd (t_vector1 &lhs, const t_real_type &w, const t_vector2 &rhs);
+
+#define SPECIALIZER(x_type1,x_type2)  \
   template <>  \
-  inline const _type1& WeightedAdd (_type1 &lhs, const _type2 &w, const _type1 &rhs)  \
-    {lhs += static_cast<_type1>(w*rhs); return lhs;}
+  inline const x_type1& WeightedAdd (x_type1 &lhs, const x_type2 &w, const x_type1 &rhs)  \
+    {lhs += static_cast<x_type1>(w*rhs); return lhs;}
 SPECIALIZER(float,float)
 SPECIALIZER(double,double)
 SPECIALIZER(double,long double)

@@ -49,6 +49,7 @@
 #include <lora/octave_str.h>
 #include <lora/small_classes.h>
 #include <lora/stl_math.h>
+#include <lora/type_gen_oct.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

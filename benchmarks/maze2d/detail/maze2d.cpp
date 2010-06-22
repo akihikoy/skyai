@@ -26,6 +26,8 @@
 #define maze2d_h
 //-------------------------------------------------------------------------------------------
 #include <lora/octave.h>
+#include <lora/stl_math.h>
+#include <lora/type_gen_oct.h>
 #include <fstream>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -237,7 +239,7 @@ public:
     {
       oldstate_ = state_;
       if (GetNorm(u)>MAX_POWER)
-        u = Normalize(u) * MAX_POWER;
+        u = GetNormalized(u) * MAX_POWER;
       ColumnVector dx = u + Wind(state_);
       bool contact_with_wall (false);
       for (std::vector<TWall>::const_iterator itr(walls_.begin()); itr!=walls_.end(); ++itr)

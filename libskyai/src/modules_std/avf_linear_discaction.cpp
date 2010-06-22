@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------------------------
 #include <skyai/modules_std/avf_linear_discaction.h>
 #include <lora/stl_ext.h>
+#include <lora/stl_math.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

@@ -569,7 +569,8 @@ public:
   //! DEBUG FUNCTION
   void ShowAllConnections (std::ostream &os=std::cerr) const;
 
-  //! TEST (export to a graph description language)
+  /*! TEST: export module structure to a graph description language.
+        Draw by graphviz - fdp (e.g. fdp -Tsvg FOO.dot -o BAR.svg) */
   void ExportToDOT (std::ostream &os=std::cout) const;
 
 

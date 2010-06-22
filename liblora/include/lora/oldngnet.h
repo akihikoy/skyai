@@ -27,6 +27,8 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/math.h>
 #include <lora/stl_ext.h>
+#include <lora/stl_math.h>
+#include <lora/type_gen_oct.h>
 #include <lora/octave.h>
 #include <lora/octave_str.h>
 #include <lora/setting_file.h> // for TNGnetConfiguration

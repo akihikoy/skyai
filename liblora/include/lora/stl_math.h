@@ -25,12 +25,16 @@
 #ifndef loco_rabbits_stl_math_h
 #define loco_rabbits_stl_math_h
 //-------------------------------------------------------------------------------------------
-#include <lora/common.h>
+#include <lora/type_gen.h>
 #include <vector>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+// extension for numerical vectors
+//===========================================================================================
 
 template <typename T>
 const std::vector<T>& operator+= (std::vector<T> &lhs, const std::vector<T> &rhs)
@@ -118,6 +122,120 @@ inline std::vector<T1> operator/ (const std::vector<T1> &lhs, const T2 &rhs)
   return res;
 }
 //-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// generic vector calculations
+//===========================================================================================
+
+//! lhs += w*rhs
+//! generic definition is in stl_math.h
+template <typename t_vector1, typename t_real_type, typename t_vector2>
+inline const t_vector1& WeightedAdd (t_vector1 &lhs, const t_real_type &w, const t_vector2 &rhs)
+{
+  LASSERT1op1(GenSize(lhs),==,GenSize(rhs));
+  typename TypeExt<t_vector2>::const_iterator ritr= GenBegin(rhs);
+  for (typename TypeExt<t_vector1>::iterator litr=GenBegin(lhs),llast=GenEnd(lhs); litr!=llast; ++litr,++ritr)
+    *litr+= w*(*ritr);
+  return lhs;
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_vector>
+inline typename TypeExt<t_vector>::value_type  GetNormSq (const t_vector &w)
+{
+  typename TypeExt<t_vector>::value_type res;  SetZero(res);
+  for (typename TypeExt<t_vector>::const_iterator first(GenBegin(w)),last(GenEnd(w)); first!=last; ++first)
+    res += Square(*first);
+  return res;
+}
+
+template <typename t_vector>
+inline typename TypeExt<t_vector>::value_type  GetNorm (const t_vector &w)
+{
+  return real_sqrt(GetNormSq(w));
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_vector>
+inline void Normalize (t_vector &vec)
+{
+  vec /= GetNorm(vec);
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_vector>
+inline t_vector GetNormalized (const t_vector &vec)
+{
+  t_vector res(vec);
+  Normalize(res);
+  return  res;
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_vec1, typename t_vec2>
+void ConstrainVector (t_vec1 &vec, const t_vec2 &min, const t_vec2 &max)
+{
+  LASSERT1op1(GenSize(vec),==,GenSize(max));
+  LASSERT1op1(GenSize(vec),==,GenSize(min));
+  typename TypeExt<t_vec2>::const_iterator imax(GenBegin(max)), imin(GenBegin(min));
+  for (typename TypeExt<t_vec1>::iterator itr(GenBegin(vec)),last(GenEnd(vec)); itr!=last; ++itr,++imax,++imin)
+    *itr= ApplyRange(*itr,*imin,*imax);
+}
+//-------------------------------------------------------------------------------------------
+
+//!\brief calculate x[i]*=y[i] for all i
+template <typename t_vec1, typename t_vec2>
+const t_vec1& VectorElemMultAssign (t_vec1 &lhs, const t_vec2 &rhs)
+{
+  LASSERT1op1(GenSize(lhs),==,GenSize(rhs));
+  typename TypeExt<t_vec1>::const_iterator rhs_itr(GenBegin(rhs));
+  for (typename TypeExt<t_vec1>::iterator lhs_itr(GenBegin(lhs)),lhs_last(GenEnd(lhs)); lhs_itr!=lhs_last; ++lhs_itr,++rhs_itr)
+    (*lhs_itr)*= (*rhs_itr);
+  return lhs;
+}
+//!\brief calculate res[i]=x[i]*y[i] for all i
+template <typename t_vec1, typename t_vec2>
+inline t_vec1 VectorElemMult (const t_vec1 &lhs, const t_vec2 &rhs)
+{
+  t_vec1 res(lhs);
+  return VectorElemMultAssign (res,rhs);
+}
+//-------------------------------------------------------------------------------------------
+
+//!\brief calculate x[i]/=y[i] for all i
+template <typename t_vec1, typename t_vec2>
+const t_vec1& VectorElemDivAssign (t_vec1 &lhs, const t_vec2 &rhs)
+{
+  LASSERT1op1(GenSize(lhs),==,GenSize(rhs));
+  typename TypeExt<t_vec2>::const_iterator rhs_itr(GenBegin(rhs));
+  for (typename TypeExt<t_vec1>::iterator lhs_itr(GenBegin(lhs)),lhs_last(GenEnd(lhs)); lhs_itr!=lhs_last; ++lhs_itr,++rhs_itr)
+    (*lhs_itr)/= (*rhs_itr);
+  return lhs;
+}
+//!\brief calculate res[i]=x[i]/y[i] for all i
+template <typename t_vec1, typename t_vec2>
+inline t_vec1 VectorElemDiv (const t_vec1 &lhs, const t_vec2 &rhs)
+{
+  t_vec1 res(lhs);
+  return VectorElemDivAssign (res,rhs);
+}
+//-------------------------------------------------------------------------------------------
+
+
+//! need to include lora/rand.h to use
+template <typename t_vec1, typename t_vec2>
+void GenerateRandomVector (t_vec1 &vec, const t_vec2 &min, const t_vec2 &max)
+{
+  LASSERT1op1(GenSize(vec),==,GenSize(max));
+  LASSERT1op1(GenSize(vec),==,GenSize(min));
+  typename TypeExt<t_vec2>::const_iterator imax(GenBegin(max)), imin(GenBegin(min));
+  for (typename TypeExt<t_vec1>::iterator itr(GenBegin(vec)),last(GenEnd(vec)); itr!=last; ++itr,++imax,++imin)
+    *itr= Rand(*imin,*imax);
+    // *itr= (*imin+*imax)*0.5+Rand(0.01);//Rand(*imin,*imax);
+}
+//-------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits

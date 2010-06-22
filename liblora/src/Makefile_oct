@@ -21,6 +21,7 @@ OBJS= octave.o              \
       octave_str.o          \
       ctrl_tools.o          \
       oldngnet.o            \
+      type_gen_oct.o        \
       variable_space_oct.o
 ##------------------------------------------------------------------
 # for Octave

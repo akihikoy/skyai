@@ -28,6 +28,7 @@
 #include <lora/octave.h>
 #include <lora/octave_str.h>
 #include <lora/type_gen.h>
+#include <lora/type_gen_oct.h>
 #include <lora/variable_space_oct.h>
 #include <vector>
 //-------------------------------------------------------------------------------------------

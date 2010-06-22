@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------------------------
 #include <skyai/base.h>
 #include <lora/string.h>
+#include <lora/small_classes.h>
 #include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -69,7 +70,17 @@ const std::string  TPortInterface::UniqueCode() const
 
 /*static*/void TModuleInterface::ParseShowConfOption (const std::string &option, TModuleInterface::TShowConf &conf)
 {
-  //!\todo parse \p option to obtain conf (use liblora::TOptionParser??)
+  TOptionParser poption(option);
+  #define PARSER(x_member,x_opt)  \
+    if(poption(x_opt) !="") conf.x_member = ConvertFromStr<bool>(poption(x_opt))
+  PARSER(ShowInstanceName       , "in" );
+  PARSER(ShowUniqueCode         , "uc" );
+  PARSER(ShowParamsConfig       , "prc");
+  PARSER(ShowParamsMemory       , "prm");
+  PARSER(ShowPorts              , "p"  );
+  PARSER(ShowPortsConnection    , "pc" );
+  PARSER(ShowPortsMaxConnection , "pmc");
+  #undef PARSER
 }
 //-------------------------------------------------------------------------------------------
 
@@ -385,7 +396,8 @@ static inline std::string port_name_to_disp_style (const std::string &name)
 }
 //-------------------------------------------------------------------------------------------
 
-//! TEST (export to a graph description language)
+/*! TEST: export module structure to a graph description language.
+      Draw by graphviz - fdp (e.g. fdp -Tsvg FOO.dot -o BAR.svg) */
 void TAgent::ExportToDOT (std::ostream &os) const
 {
   const std::string indent("  ");

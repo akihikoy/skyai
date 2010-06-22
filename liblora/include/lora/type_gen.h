@@ -25,7 +25,7 @@
 #ifndef loco_rabbits_type_gen_h
 #define loco_rabbits_type_gen_h
 //-------------------------------------------------------------------------------------------
-#include <lora/octave.h>
+#include <lora/common.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -54,28 +54,6 @@ struct TypeExt <const t_type>
   typedef typename TypeExt<t_type>::const_reference    const_reference;
 };
 
-/*!\brief type extension class specialized for ColumnVector */
-template <>
-struct TypeExt<ColumnVector>
-{
-  typedef double            value_type;
-  typedef double*           iterator;
-  typedef const double*     const_iterator;
-  typedef double&           reference;
-  typedef const double&     const_reference;
-};
-
-/*!\brief type extension class specialized for RowVector */
-template <>
-struct TypeExt<RowVector>
-{
-  typedef double            value_type;
-  typedef double*           iterator;
-  typedef const double*     const_iterator;
-  typedef double&           reference;
-  typedef const double&     const_reference;
-};
-
 //-------------------------------------------------------------------------------------------
 
 /* generic functions */
@@ -92,24 +70,42 @@ template <typename t_type> inline void  GenResize (t_type &x, int s, const typen
 
 //-------------------------------------------------------------------------------------------
 
-/* specialization for liboctave ColumnVector and RowVector */
+/*! generic stream operator.
 
-#define OCT_SPECIALIZER(x_type)  \
-  template<> inline TypeExt<x_type>::iterator GenBegin (x_type &x)              {return OctBegin(x);}    \
-  template<> inline TypeExt<x_type>::const_iterator GenBegin (const x_type &x)  {return OctBegin(x);}    \
-  template<> inline TypeExt<x_type>::iterator GenEnd (x_type &x)                {return OctEnd(x);}      \
-  template<> inline TypeExt<x_type>::const_iterator GenEnd (const x_type &x)    {return OctEnd(x);}      \
-  template<> inline TypeExt<x_type>::reference GenAt (x_type &x,int i)                {return x(i);}    \
-  template<> inline TypeExt<x_type>::const_reference GenAt (const x_type &x,int i)    {return *(OctBegin(x)+i);}  \
-  template<> inline int   GenSize (const x_type &x)  {return x.length();}                                    \
-  template<> inline void  GenResize (x_type &x, int s)      {return x.resize(s);}                                   \
-  template<> inline void  GenResize (x_type &x, int s, const double &vfill)  {return x.resize(s,vfill);}
-OCT_SPECIALIZER(ColumnVector)
-OCT_SPECIALIZER(RowVector)
-#undef OCT_SPECIALIZER
+  usage:
+  \code
+    #include <lora/stl_ext.h>  // for PrintContainer
+    ...
+    ColumnVector x;
+    ...
+    std::cout<<"x= "<<GenPrint(x)<<std::endl
+  \endcode
+*/
 
+template <typename t_type>
+struct TGenPrint
+{
+  const t_type &Entity;
+  const std::string Delim;
+  TGenPrint(const t_type &v_entity, const std::string &v_delim)
+    : Entity(v_entity), Delim(v_delim) {}
+};
+// TGenPrint generator:
+template <typename t_type>
+TGenPrint<t_type>  GenPrint(const t_type &v_entity, const std::string &v_delim=" ")
+  {return TGenPrint<t_type>(v_entity,v_delim);}
+
+// forward declaration:
+template <typename t_fwd_iterator>
+inline void PrintContainer (t_fwd_iterator first, t_fwd_iterator last, std::ostream &os, const std::string &delim);
+
+template <typename t_type>
+std::ostream& operator<< (std::ostream &lhs, const TGenPrint<t_type> &rhs)
+{
+  PrintContainer(GenBegin(rhs.Entity), GenEnd(rhs.Entity), lhs, rhs.Delim);
+  return lhs;
+}
 //-------------------------------------------------------------------------------------------
-
 
 
 //-------------------------------------------------------------------------------------------

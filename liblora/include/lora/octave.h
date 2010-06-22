@@ -31,24 +31,10 @@
 #ifndef loco_rabbits_octave_h
 #define loco_rabbits_octave_h
 //-------------------------------------------------------------------------------------------
-#include <octave/config.h>
-#include <octave/dColVector.h>
-#include <octave/dRowVector.h>
-#include <octave/dMatrix.h>
-#include <octave/mx-m-dm.h>
-//-------------------------------------------------------------------------------------------
-#ifdef PACKAGE_BUGREPORT
-  #undef PACKAGE_BUGREPORT
-  #undef PACKAGE_NAME
-  #undef PACKAGE_STRING
-  #undef PACKAGE_TARNAME
-  #undef PACKAGE_VERSION
-#endif
-//-------------------------------------------------------------------------------------------
+#include <lora/octave_fwd.h>
 #include <cmath>
 #include <vector>
 #include <lora/math.h>
-// #include <boost/random.hpp>
 #include <lora/rand.h>
 #include <cstring> // for memcpy
 #include <boost/function.hpp>  // TODO it is better not to include it (heavy)
@@ -58,28 +44,6 @@ namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 
 // void initialize_liboctave (void);
-//-------------------------------------------------------------------------------------------
-
-template <typename OctArray>
-inline typename OctArray::element_type*  OctBegin (OctArray &ar)
-{
-  return ar.fortran_vec();
-}
-template <typename OctArray>
-inline const typename OctArray::element_type*  OctBegin (const OctArray &ar)
-{
-  return ar.fortran_vec();
-}
-template <typename OctArray>
-inline typename OctArray::element_type*  OctEnd (OctArray &ar)
-{
-  return ar.fortran_vec()+ar.length();
-}
-template <typename OctArray>
-inline const typename OctArray::element_type*  OctEnd (const OctArray &ar)
-{
-  return ar.fortran_vec()+ar.length();
-}
 //-------------------------------------------------------------------------------------------
 
 //!\brief Generator of ColumnVector, RowVector
@@ -95,26 +59,28 @@ oct_type  OctGen2 (int rows, int cols, ...);
 
 inline const ColumnVector& operator*= (ColumnVector &lhs, const double &rhs)
 {
-  // const int N (lhs.length());
-  // for (int i(0); i<N; ++i)
-  //   lhs(i)*= rhs;
-  // following code is faster more than twice:
-  const int N (lhs.length());
-  double *ptr= OctBegin(lhs);
-  for (int i(0); i<N; ++i,++ptr)
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
     *ptr*= rhs;
   return lhs;
 }
 inline const RowVector& operator*= (RowVector &lhs, const double &rhs)
 {
-  // const int N (lhs.length());
-  // for (int i(0); i<N; ++i)
-  //   lhs(i)*= rhs;
-  // following code is faster more than twice:
-  const int N (lhs.length());
-  double *ptr= OctBegin(lhs);
-  for (int i(0); i<N; ++i,++ptr)
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
     *ptr*= rhs;
+  return lhs;
+}
+//-------------------------------------------------------------------------------------------
+
+inline const ColumnVector& operator/= (ColumnVector &lhs, const double &rhs)
+{
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
+    *ptr/= rhs;
+  return lhs;
+}
+inline const RowVector& operator/= (RowVector &lhs, const double &rhs)
+{
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
+    *ptr/= rhs;
   return lhs;
 }
 //-------------------------------------------------------------------------------------------
@@ -139,23 +105,6 @@ inline const lhs_type& CopyOctArray (lhs_type &lhs, const rhs_type &rhs)
 }
 //-------------------------------------------------------------------------------------------
 
-//!\brief calculate  lhs= lhs + w*rhs
-//!\note this is a specialization of a template declared in lora/math.h
-template <typename _real_type>
-inline const ColumnVector& WeightedAdd (ColumnVector &lhs, const _real_type &w, const ColumnVector &rhs)
-{
-  const int N (lhs.length());
-  if(N!=rhs.length())
-    {LERROR("size nonconformant in vector operation: lhs.length()= "
-      <<N<<", rhs.size()= "<<rhs.length()); lexit(df);}
-  double *ptrl= OctBegin(lhs);
-  const double *ptrr= OctBegin(rhs);
-  for (int i(0); i<N; ++i,++ptrl,++ptrr)
-    *ptrl+= w*(*ptrr);
-  return lhs;
-}
-//-------------------------------------------------------------------------------------------
-
 #define OCT_INVERSE(mat) OctErrorInverse(mat,__LINE__,__FILE__)
 inline Matrix OctErrorInverse(const Matrix &mat, int line_num, const char* file_name)
 {
@@ -176,6 +125,12 @@ inline void SetZero (ColumnVector &val)
   std::fill(OctBegin(val),OctEnd(val),0.0l);  // fast
   // val=ColumnVector(val.length(),0.0l);  // for huge dimensional val, this is faster
 }
+template<>  // specialization of the template
+inline void SetZero (RowVector &val)
+{
+  std::fill(OctBegin(val),OctEnd(val),0.0l);  // fast
+  // val=ColumnVector(val.length(),0.0l);  // for huge dimensional val, this is faster
+}
 template<>
 inline void SetZero (Matrix &val)
 {
@@ -188,6 +143,11 @@ inline void SetZero (Matrix &val)
 
 template<>  // specialization of the template
 inline void SetOne (ColumnVector &val)
+{
+  std::fill(OctBegin(val),OctEnd(val),1.0l);  // fast
+}
+template<>  // specialization of the template
+inline void SetOne (RowVector &val)
 {
   std::fill(OctBegin(val),OctEnd(val),1.0l);  // fast
 }
@@ -247,30 +207,6 @@ inline double TraceSq( const Matrix &M )
 }
 //-------------------------------------------------------------------------------------------
 
-
-template <typename octtype>
-inline double GetNormSq (const octtype &w)
-{
-  double res(0.0l);
-  for (const double *first(OctBegin(w)),*const last(OctEnd(w)); first!=last; ++first)
-    res += Square(*first);
-  return res;
-}
-
-template <class octtype>  // T should be ColumnVector or RowVector
-inline double GetNorm (const octtype &w)
-{
-  return std::sqrt(GetNormSq<octtype>(w));
-}
-//-------------------------------------------------------------------------------------------
-
-template <class T>  // T should be ColumnVector or RowVector
-inline T Normalize (const T &vec)
-{
-  return vec / GetNorm(vec);
-}
-//-------------------------------------------------------------------------------------------
-
 inline ColumnVector CrossCV3( const ColumnVector &a, const ColumnVector &b )
 {
   ColumnVector ret(3);
@@ -281,7 +217,8 @@ inline ColumnVector CrossCV3( const ColumnVector &a, const ColumnVector &b )
 }
 //-------------------------------------------------------------------------------------------
 
-inline Matrix GetWedge (const  ColumnVector &w)
+template <typename t_oct_vec>
+inline Matrix GetWedge (const  t_oct_vec &w)
 {
   Matrix wedge(3,3);
   wedge(0,0)=0.0;    wedge(0,1)=-w(2);  wedge(0,2)=w(1);
@@ -291,8 +228,10 @@ inline Matrix GetWedge (const  ColumnVector &w)
 }
 //-------------------------------------------------------------------------------------------
 
-//! w should be ColumnVector(3)
-inline Matrix Rodrigues (const ColumnVector &w, const double &dt)
+//! w should be ColumnVector(3) or RowVector(3)
+//! include lora/stl_math.h to use
+template <typename t_oct_vec>
+inline Matrix Rodrigues (const t_oct_vec &w, const double &dt)
 {
   double norm_w = GetNorm(w), th = norm_w * dt;
   Matrix w_wedge(3,3);
@@ -302,10 +241,12 @@ inline Matrix Rodrigues (const ColumnVector &w, const double &dt)
 //-------------------------------------------------------------------------------------------
 
 //!\brief return rotation matrix that rotates theta around a
-//! \note if a is already normalized, use Rodrigues, instead
-inline Matrix RotateAroundAxis (const ColumnVector &a, const double &theta)
+//! \note if a is already normalized, use Rodrigues rather than this function
+//! include lora/stl_math.h to use
+template <typename t_oct_vec>
+inline Matrix RotateAroundAxis (const t_oct_vec &a, const double &theta)
 {
-  return Rodrigues (Normalize(a), theta);
+  return Rodrigues (GetNormalized(a), theta);
 }
 //-------------------------------------------------------------------------------------------
 

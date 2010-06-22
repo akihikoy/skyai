@@ -640,6 +640,7 @@ void ODEDS_StepLoop (int ds_pause)
 int main(int argc, char**argv)
 {
   TOptionParser option(argc,argv);
+  option["notex"]; option["noshadow"]; option["noshadows"]; option["pause"];  // these options are used by ODE
   string outdir= option("outdir", "result/");
   bool console_mode= ConvertFromStr<bool>(option("console","false"));
 
@@ -665,13 +666,13 @@ int main(int argc, char**argv)
   if (ConvertFromStr<bool>(option("available_mods","false")))
   {
     LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules();
+    TModuleManager::ShowAllModules(option("show_conf"));
     return 0;
   }
   if (ConvertFromStr<bool>(option("show_mods","false")))
   {
     LMESSAGE("agent's modules:");
-    agent.ShowAllModules("",cout);
+    agent.ShowAllModules(option("show_conf"),cout);
     return 0;
   }
   if (ConvertFromStr<bool>(option("dot_mod","false")))
