@@ -3,6 +3,7 @@
     \brief   liblora - parser for variable-space  (implement header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    May.17, 2010-
+    \date    Jun.24, 2010    Bug fixed for FillAllComposite ([@]={...})
 
     Copyright (C) 2010  Akihiko Yamaguchi
 
@@ -47,6 +48,66 @@ namespace var_space
 {
 //-------------------------------------------------------------------------------------------
 
+class TExtForwardIterator;
+
+//! extended TVariable class to treat fill-all
+class TExtVariable
+{
+public:
+  enum TKind {kUnknown=0,kSingle,kArray};
+  TExtVariable () : kind_(kUnknown)  {}
+  TExtVariable (TKind k) : kind_(k)  {}
+  TExtVariable (TVariable v_var) : kind_(kSingle), entity_(v_var)  {}
+  TExtVariable (TExtForwardIterator &first, TExtForwardIterator &last);
+
+  void DirectAssign (const TVariable &value);
+  void SetMember (const TVariable &id, const TVariable &value);
+  TExtVariable GetMember (const TVariable &id);
+  void FunctionCall (const TIdentifier &id, TVariableList &argv);
+  void DirectCall (TVariableList &argv);
+  TExtVariable Push (void);
+  void GetBegin (TExtForwardIterator &res);
+  void GetEnd (TExtForwardIterator &res);
+
+private:
+
+  TKind                  kind_;
+  TVariable              entity_;
+  std::list<TVariable>   array_;
+
+  friend class TExtForwardIterator;
+
+};
+//-------------------------------------------------------------------------------------------
+
+//! extended TVariable class to treat fill-all
+class TExtForwardIterator
+{
+public:
+  enum TKind {kUnknown=0,kSingle,kArray};
+
+  TExtForwardIterator() : kind_(kUnknown) {}
+
+  TExtVariable& operator*(void)  {i_dereference_(); return dereferenced_;}
+  TExtVariable* operator->(void)  {i_dereference_(); return &dereferenced_;}
+  const TExtForwardIterator& operator++(void);
+  const TExtForwardIterator& operator--(void);
+  bool operator==(const TExtForwardIterator &rhs) const;
+  bool operator!=(const TExtForwardIterator &rhs) const {return !operator==(rhs);}
+
+private:
+  TKind                          kind_;
+  TForwardIterator               entity_;
+  std::list<TForwardIterator>    array_;
+
+  TExtVariable                   dereferenced_;
+  void i_dereference_();
+
+  friend class TExtVariable;
+
+};
+//-------------------------------------------------------------------------------------------
+
 
 template <typename t_iterator>
 class TParserAgent
@@ -85,12 +146,7 @@ public:
   void FunctionCall (t_iterator first, t_iterator last);
 
 private:
-  std::list<TVariable>  variable_stack_;
-  enum TContext {cGlobal=0, cCompositeMemberAssign, cCompositeFillAll};
-  std::list<TContext>  context_stack_;
-  std::list<std::string>  id_stack_;
-  bool error_;
-  int  line_num_;
+
 
   //! \todo FIXME: very inefficient code
   struct TLiteral
@@ -120,6 +176,14 @@ private:
         }
     };
   typedef std::list<TLiteral> TLiteralList;
+
+
+  std::list<TExtVariable>  variable_stack_;
+  enum TContext {cGlobal=0, cCompositeMemberAssign, cCompositeFillAll};
+  std::list<TContext>  context_stack_;
+  std::list<std::string>  id_stack_;
+  bool error_;
+  int  line_num_;
 
   TLiteralList literal_stack_;
   bool in_literal_list_;
@@ -230,7 +294,7 @@ boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, t_
   line_num_= 1;
   in_literal_list_= false;
   TCodeParser<t_iterator> parser(*this);
-  variable_stack_.push_back(var);
+  variable_stack_.push_back(TExtVariable(var));
   parse_info<t_iterator> res= parse(first, last, parser);
   //*dbg*/std::cerr<<"id-stack: ";while(!id_stack_.empty()) {std::cerr<<" "<<id_stack_.back();id_stack_.pop_back();} std::cerr<<std::endl;
 
@@ -255,7 +319,7 @@ void XCLASS::StartSubParse (TVariable &var, int line_num)
   error_= false;
   line_num_= line_num;
   in_literal_list_= false;
-  variable_stack_.push_back(var);
+  variable_stack_.push_back(TExtVariable(var));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -288,6 +352,7 @@ void XCLASS::EndOfLine (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::CloseByBrace (t_iterator first, t_iterator last)
 {
+  LASSERT(!variable_stack_.empty());
   LASSERT(!context_stack_.empty());
   switch(context_stack_.back())
   {
@@ -298,21 +363,6 @@ void XCLASS::CloseByBrace (t_iterator first, t_iterator last)
   case cCompositeFillAll:
     variable_stack_.pop_back();
     context_stack_.pop_back();
-    /*fill by first element*/{
-      TForwardIterator ifirst,itr,ilast;
-      LASSERT(!variable_stack_.empty());
-      VAR_ERR_CATCHER_S
-      variable_stack_.back().GetBegin(ifirst);
-      variable_stack_.back().GetEnd(ilast);
-      if (ifirst==ilast)  break;
-      variable_stack_.back().GetBegin(itr);
-      VAR_ERR_CATCHER_E
-
-      CONV_ERR_CATCHER_S
-      for (++itr; itr!=ilast; ++itr)
-        itr->DirectAssign(*ifirst);
-      CONV_ERR_CATCHER_E
-    }
     break;
   default:
     LERROR("(l."<<line_num_<<") invalid `}'");
@@ -460,7 +510,7 @@ void XCLASS::CompositeAssignToMemberS (t_iterator first, t_iterator last)
   LASSERT(!variable_stack_.empty());
   std::string identifier(id_stack_.back());  id_stack_.pop_back();
 
-  TVariable  member;
+  TExtVariable  member;
   VAR_ERR_CATCHER_S
   member= variable_stack_.back().GetMember(TVariable(identifier));
   VAR_ERR_CATCHER_E
@@ -489,7 +539,7 @@ void XCLASS::ElementalCompositeAssignToMemberS (t_iterator first, t_iterator las
   LASSERT(!variable_stack_.empty());
   TLiteral key= literal_stack_.back();  literal_stack_.pop_back();
 
-  TVariable  member;
+  TExtVariable  member;
   VAR_ERR_CATCHER_S
   member= variable_stack_.back().GetMember(key.ToVariable());
   VAR_ERR_CATCHER_E
@@ -515,7 +565,7 @@ void XCLASS::PushComposite (t_iterator first, t_iterator last)
 {
   LASSERT(!variable_stack_.empty());
 
-  TVariable  new_var;
+  TExtVariable  new_var;
   VAR_ERR_CATCHER_S
   new_var= variable_stack_.back().Push();
   VAR_ERR_CATCHER_E
@@ -531,7 +581,7 @@ void XCLASS::FillAllPrimitive (t_iterator first, t_iterator last)
   LASSERT(!variable_stack_.empty());
   TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
   TVariable  var_value (value.ToVariable());
-  TForwardIterator itr,ilast;
+  TExtForwardIterator itr,ilast;
 
   VAR_ERR_CATCHER_S
   variable_stack_.back().GetBegin(itr);
@@ -548,23 +598,14 @@ TEMPLATE_DEC
 void XCLASS::FillAllComposite (t_iterator first, t_iterator last)
 {
   LASSERT(!variable_stack_.empty());
-  TForwardIterator itr,ilast;
+  TExtForwardIterator itr,ilast;
 
   VAR_ERR_CATCHER_S
   variable_stack_.back().GetBegin(itr);
   variable_stack_.back().GetEnd(ilast);
   VAR_ERR_CATCHER_E
 
-  if(itr==ilast)
-  {
-    LWARNING("(l."<<line_num_<<") there is no elements. a new element is pushed (this feature is deprecated!)");
-
-    VAR_ERR_CATCHER_S
-    variable_stack_.back().Push();
-    variable_stack_.back().GetBegin(itr);
-    VAR_ERR_CATCHER_E
-  }
-  variable_stack_.push_back(*itr);
+  variable_stack_.push_back(TExtVariable(itr,ilast));
   context_stack_.push_back(cCompositeFillAll);
 }
 

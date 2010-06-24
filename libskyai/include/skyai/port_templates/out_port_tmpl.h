@@ -90,6 +90,7 @@ public:
 
   TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
   TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
+  TConnectedPortIterator  ConnectedPortFind (const std::string &unique_code) const  {return port_connector_.FindByUniqueCode(unique_code);}
 
 protected:
 

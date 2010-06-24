@@ -85,8 +85,9 @@ task.config ={
   }
 
 ngnet.config ={
-    NGnetFileName = "materials/ngnet.dat"
+    // NGnetFileName = "materials/ngnet.dat"
     // NGnetFileName = "materials/ngnet_q3.dat"
+    NGnetFileName = "materials/ngnet_bq01.dat"
   }
 
 timer.config ={

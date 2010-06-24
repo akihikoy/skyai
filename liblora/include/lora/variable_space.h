@@ -269,6 +269,16 @@ public:
 
   TForwardIterator() : entity_(NULL) {}
 
+  /*!\note do not define a complete copy-constructor because this class includes
+      a memory allocated dynamically.
+      the following one gives a copy-constructor which works only when entity_ is NULL.
+      this is defined so that we can std::list< TForwardIterator >, or something like that. */
+  TForwardIterator(const TForwardIterator &rhs) : entity_(NULL)
+    {
+      if (rhs.entity_!=NULL)
+        {VAR_SPACE_ERR_EXIT("copy constructor of TForwardIterator works only when entity_ is NULL");}
+    }
+
   ~TForwardIterator()  {free_entity();}
 
   template <typename t_var>
@@ -283,10 +293,10 @@ public:
 
   TVariable& operator*(void)  {dereferenced_=f_dereference_(entity_); return dereferenced_;}
   TVariable* operator->(void)  {dereferenced_=f_dereference_(entity_); return &dereferenced_;}
-  void operator++(void)  {f_increment_(entity_);}
-  void operator--(void)  {f_decrement_(entity_);}
-  bool operator==(const TForwardIterator &rhs)  {return f_is_equal_to_(entity_,rhs.entity_);}
-  bool operator!=(const TForwardIterator &rhs)  {return !f_is_equal_to_(entity_,rhs.entity_);}
+  const TForwardIterator& operator++(void)  {f_increment_(entity_); return *this;}
+  const TForwardIterator& operator--(void)  {f_decrement_(entity_); return *this;}
+  bool operator==(const TForwardIterator &rhs) const {return f_is_equal_to_(entity_,rhs.entity_);}
+  bool operator!=(const TForwardIterator &rhs) const {return !f_is_equal_to_(entity_,rhs.entity_);}
 
   TVariable& Key(void)
     {
@@ -297,9 +307,8 @@ public:
 
 protected:
 
-  /*!\note do not define a copy constructor and operator= because this class includes
+  /*!\note do not define an operator= because this class includes
       a memory allocated dynamically. */
-  TForwardIterator(const TForwardIterator&);
   const TForwardIterator& operator= (const TForwardIterator&);
 
   /*!\brief specialize this object for a type which you want to treat as a TForwardIterator

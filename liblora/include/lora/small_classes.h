@@ -1163,6 +1163,7 @@ public:
 
   TBubbleSet()
     :
+      margin_ratio_          (1.0l),
       spring_k_              (1.0l),
       bubble_dumping_        (2.0l),
       radius_dumping_        (10.0l),
@@ -1184,12 +1185,16 @@ public:
   void SetCenterMin (const TRealVector &cmin);
   void SetScale (const TRealVector &scale);
 
+  const TReal& MarginRatio         () const {return margin_ratio_          ;}
   const TReal& SpringK             () const {return spring_k_              ;}
   const TReal& BubbleDumping       () const {return bubble_dumping_        ;}
   const TReal& RadiusDumping       () const {return radius_dumping_        ;}
   const TReal& BubbleMass          () const {return bubble_mass_           ;}
   const TReal& RadiusMass          () const {return radius_mass_           ;}
   const TReal& RadiusInternalForce () const {return radius_internal_force_ ;}
+
+  //! margin-ratio is in [0,1].  if 1: each sphere cannot overlap the boundary, 0: each center can be on the boundary
+  void SetMarginRatio         (const TReal &v)  {margin_ratio_          = v;}
   void SetSpringK             (const TReal &v)  {spring_k_              = v;}
   void SetBubbleDumping       (const TReal &v)  {bubble_dumping_        = v;}
   void SetRadiusDumping       (const TReal &v)  {radius_dumping_        = v;}
@@ -1213,6 +1218,7 @@ private:
 
   TRealVector cmin_, cmax_, scale_;
   TRealVector scaled_cmin_, scaled_cmax_;
+  TReal margin_ratio_;
   TReal spring_k_, bubble_dumping_, radius_dumping_;
   TReal bubble_mass_, radius_mass_;
   TReal radius_internal_force_;

@@ -321,6 +321,142 @@ protected:
 
 
 //===========================================================================================
+//!\brief Configurations of MWeightedMixer
+class TWeightedMixerConfigurations
+//===========================================================================================
+{
+public:
+
+  struct TElement
+    {
+      TString  PortCode ;  //!< unique code of port connected to in_real_vectors
+      TInt     Element  ;  //!< element index of the input vector of PortCode
+      TReal    Weight   ;  //!< output weight
+      TElement()
+        :
+          PortCode  (""),
+          Element   (-1),
+          Weight    (1.0l)
+        {}
+    };
+
+  std::vector<TElement>  MixingTable;  //!< mixing configuration of each element of the output vector (out_mixed)
+
+  TWeightedMixerConfigurations (var_space::TVariableMap &mmap)
+    // :
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( MixingTable   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+namespace var_space{
+  void Register (TWeightedMixerConfigurations::TElement &x, TVariableMap &mmap)
+  {
+    #define ADD(x_member)  AddToVarMap(mmap, #x_member, x.x_member)
+    ADD( PortCode  );
+    ADD( Element   );
+    ADD( Weight    );
+    #undef ADD
+  }
+}
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief create a vector mixing some input vectors */
+class MWeightedMixer
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface   TParent;
+  typedef MWeightedMixer     TThis;
+  SKYAI_MODULE_NAMES(MWeightedMixer)
+
+  MWeightedMixer (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      conf_             (TParent::param_box_config_map()),
+      slot_initialize   (*this),
+      in_real_vectors   (*this),
+      out_mixed         (*this)
+    {
+      add_slot_port (slot_initialize  );
+      add_in_port   (in_real_vectors  );
+      add_out_port  (out_mixed        );
+    }
+
+protected:
+
+  TWeightedMixerConfigurations  conf_;
+
+  //!\brief construct port_iterator_map_
+  MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
+
+  //!\brief input vectors (real)
+  MAKE_IN_PORT_SPECIFIC(in_real_vectors, const TRealVector& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
+
+  // TODO: add following port:
+  // MAKE_IN_PORT_SPECIFIC(in_int_vectors, const TIntVector& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
+
+  MAKE_OUT_PORT(out_mixed, const TRealVector&, (void), (), TThis);
+
+
+  struct TElement
+    {
+      GET_PORT_TYPE(in_real_vectors)::TConnectedPortIterator  CItr;
+      TInt     Element  ;
+      TReal    Weight   ;
+      TElement() : Element(-1), Weight(1.0l) {}
+    };
+
+  std::vector<TElement>  mixing_table_;  //! hold the mixing configuration of each element of the output vector (out_mixed)
+
+  mutable TRealVector output_;
+
+
+  void slot_initialize_exec (void)
+    {
+      mixing_table_.clear();
+      mixing_table_.resize(conf_.MixingTable.size());
+      output_.resize(conf_.MixingTable.size());
+
+      std::vector<TElement>::iterator  mixt_itr(mixing_table_.begin());
+      for (std::vector<TWeightedMixerConfigurations::TElement>::const_iterator
+            conf_itr(conf_.MixingTable.begin()),conf_last(conf_.MixingTable.end());
+              conf_itr!=conf_last; ++conf_itr,++mixt_itr)
+      {
+        GET_PORT_TYPE(in_real_vectors)::TConnectedPortIterator iv_citr= in_real_vectors.ConnectedPortFind (conf_itr->PortCode);
+        if (iv_citr==in_real_vectors.ConnectedPortEnd())
+        {
+          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<in_real_vectors.UniqueCode());
+          lexit(df);
+        }
+        mixt_itr->CItr= iv_citr;
+        mixt_itr->Element= conf_itr->Element;
+        mixt_itr->Weight= conf_itr->Weight;
+      }
+    }
+
+  const TRealVector& out_mixed_get (void) const
+    {
+      TypeExt<TRealVector>::iterator out_itr(GenBegin(output_));
+      for (std::vector<TElement>::const_iterator mixt_itr(mixing_table_.begin()),mixt_last(mixing_table_.end());
+            mixt_itr!=mixt_last; ++mixt_itr,++out_itr)
+      {
+        (*out_itr)= mixt_itr->Weight * GenAt(in_real_vectors.GetCurrent(mixt_itr->CItr),mixt_itr->Element);
+      }
+      return output_;
+    }
+
+};  // end of MWeightedMixer
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 /*!\brief remove the arguments of an input signal and emit it
     \todo implement a "signature style" rather than \p t_arg1 */
 template <typename t_arg1>

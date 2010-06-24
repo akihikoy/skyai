@@ -41,6 +41,8 @@ SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNonzeroElements,TRealVector)
 SKYAI_ADD_MODULE(MNonzeroElements_TIntVector)
 SKYAI_ADD_MODULE(MNonzeroElements_TRealVector)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MWeightedMixer)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TIntVector)

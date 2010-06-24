@@ -74,7 +74,7 @@ connect  holder_action.out_1                            , logger_action_result.i
 /// parameter setting:
 
 lmanager.config ={
-    MaxEpisodeNumber = 1600
+    MaxEpisodeNumber = 30000
     RandomSeed = "time"
   }
 environment.config ={
@@ -85,6 +85,7 @@ environment.config ={
 ngnet.config ={
     NGnetFileName = "materials/ngnet.dat"
     // NGnetFileName = "materials/ngnet_q3.dat"
+    // NGnetFileName = "materials/ngnet_bq01.dat"
   }
 
 timer.config ={

@@ -231,8 +231,11 @@ void GenerateRandomVector (t_vec1 &vec, const t_vec2 &min, const t_vec2 &max)
   LASSERT1op1(GenSize(vec),==,GenSize(min));
   typename TypeExt<t_vec2>::const_iterator imax(GenBegin(max)), imin(GenBegin(min));
   for (typename TypeExt<t_vec1>::iterator itr(GenBegin(vec)),last(GenEnd(vec)); itr!=last; ++itr,++imax,++imin)
-    *itr= Rand(*imin,*imax);
+  {
+    if (*imin==*imax) *itr= *imin;
+    else              *itr= Rand(*imin,*imax);
     // *itr= (*imin+*imax)*0.5+Rand(0.01);//Rand(*imin,*imax);
+  }
 }
 //-------------------------------------------------------------------------------------------
 

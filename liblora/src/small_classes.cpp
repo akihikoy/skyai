@@ -319,20 +319,27 @@ TReal TBubbleSet::Step (const TReal &time_step)
     for (TypeExt<TRealVector>::const_iterator celem_itr(GenBegin(itr->Center)),celem_last(GenEnd(itr->Center));
         celem_itr!=celem_last; ++celem_itr,++fitr,++imax,++imin)
     {
-      if ((f=(*imin+radius_)-*celem_itr) > 0.0l)
+      if (*imin==*imax)
       {
-        f*= spring_k_;
-        *fitr += f;
-        radius_total_force_= std::max(radius_total_force_, f);
+        // do nothing (zero force)
       }
-      if ((f=*celem_itr-(*imax-radius_)) > 0.0l)
+      else
       {
-        f*= spring_k_;
-        *fitr -= f;
-        radius_total_force_= std::max(radius_total_force_, f);
+        if ((f=(*imin+margin_ratio_*radius_)-*celem_itr) > 0.0l)
+        {
+          f*= spring_k_;
+          *fitr += f;
+          radius_total_force_= std::max(radius_total_force_, f);
+        }
+        if ((f=*celem_itr-(*imax-margin_ratio_*radius_)) > 0.0l)
+        {
+          f*= spring_k_;
+          *fitr -= f;
+          radius_total_force_= std::max(radius_total_force_, f);
+        }
       }
-    }
-  }
+    }  // end of calc: contact force from boundaries
+  }  // end of calc: total force
   radius_total_force_= radius_internal_force_ - radius_total_force_;
 
   // integrate:

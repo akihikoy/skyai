@@ -118,6 +118,13 @@ struct TPortConnector
       for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
         if (!f(*itr))  break;
     }
+
+  /*!\brief find a connected port whose UniqueCode is unique_code */
+  typename TConnectedPortSet::const_iterator FindByUniqueCode (const std::string &unique_code) const
+    {
+      for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
+        if (*itr && (*itr)->UniqueCode()==unique_code)  return itr;
+    }
 };
 //-------------------------------------------------------------------------------------------
 
