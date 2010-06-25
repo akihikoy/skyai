@@ -28,10 +28,10 @@ connect  dcob.signal_execute_command                    , bftrans.slot_execute_a
 connect  bftrans.slot_execute_action_finished           , holder_action.slot_1
 
 // for crawling/cmn.agent:
-// connect  bftrans.signal_execute_command                 , environment.slot_execute_command_des_q
+connect  bftrans.signal_execute_command                 , environment.slot_execute_command_des_q
 // for crawling/cmn2.agent:
-connect  bftrans.signal_execute_command                 , action_converter.slot_x
-connect  action_converter.signal_y                      , environment.slot_execute_command_des_q
+// connect  bftrans.signal_execute_command                 , action_converter.slot_x
+// connect  action_converter.signal_y                      , environment.slot_execute_command_des_q
 
 connect  bftrans.signal_end_of_action                   , behavior.slot_finish_action
 

@@ -19,6 +19,7 @@
 ARC = ../lib/liblora.a
 OBJS= common.o              \
       bioloid.o             \
+      cast.o                \
       file.o                \
       math.o                \
       rand.o                \

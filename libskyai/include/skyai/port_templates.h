@@ -124,6 +124,7 @@ struct TPortConnector
     {
       for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
         if (*itr && (*itr)->UniqueCode()==unique_code)  return itr;
+      return ConnectedPorts.end();
     }
 };
 //-------------------------------------------------------------------------------------------

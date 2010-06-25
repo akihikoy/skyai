@@ -321,6 +321,61 @@ protected:
 
 
 //===========================================================================================
+/*!\brief convert a vector to a scalar (extract a first element) */
+template <typename t_vector>
+class MVectorToScalar
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface               TParent;
+  typedef typename TypeExt<t_vector>
+                          ::value_type   TScalar;
+  typedef MVectorToScalar                TThis;
+  SKYAI_MODULE_NAMES(MVectorToScalar)
+
+  MVectorToScalar (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_vector         (*this),
+      out_scalar        (*this)
+    {
+      add_in_port   (in_vector   );
+      add_out_port  (out_scalar  );
+    }
+
+protected:
+
+  mutable TScalar scalar_;
+
+  //!\brief input the current state
+  MAKE_IN_PORT(in_vector, const t_vector& (void), TThis);
+
+  MAKE_OUT_PORT(out_scalar, const TScalar&, (void), (), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+
+  GET_FROM_IN_PORT(vector, const t_vector&, (void), ())
+
+  #undef GET_FROM_IN_PORT
+
+  const TScalar& out_scalar_get () const
+    {
+      LASSERT1op1(GenSize(get_vector()),==,1);
+      scalar_= GenAt(get_vector(),0);
+      return scalar_;
+    }
+
+};  // end of MVectorToScalar
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 //!\brief Configurations of MWeightedMixer
 class TWeightedMixerConfigurations
 //===========================================================================================
@@ -1677,6 +1732,9 @@ protected:
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TRealVector)
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TReal)
