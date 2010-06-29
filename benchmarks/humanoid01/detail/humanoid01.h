@@ -198,10 +198,10 @@ inline TReal getGoalRewardJump6 (const TReal &dt, const TReal &init_head_height)
 }
 
 //! reward for forward moving task
-inline TReal getGoalRewardMove3 (void)
+inline TReal getGoalRewardMove3 (const TReal &forward_reward_gain, const TReal &sideward_penalty_gain)
 {
   TReal r= body[BASELINK_INDEX].getLinearVel()[0];
-  r= 0.01l*r - 0.1l*Square(body[BASELINK_INDEX].getPosition()[1]);
+  r= forward_reward_gain*r - sideward_penalty_gain*Square(body[BASELINK_INDEX].getPosition()[1]);
   return r;
 }
 //! reward for forward moving task

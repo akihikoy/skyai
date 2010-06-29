@@ -54,6 +54,17 @@ struct TypeExt<RowVector>
   typedef double&           reference;
   typedef const double&     const_reference;
 };
+
+/*!\brief type extension class specialized for Matrix */
+template <>
+struct TypeExt<Matrix>
+{
+  typedef double            value_type;
+  typedef double*           iterator;
+  typedef const double*     const_iterator;
+  typedef double&           reference;
+  typedef const double&     const_reference;
+};
 //-------------------------------------------------------------------------------------------
 
 /* specialization for liboctave ColumnVector and RowVector */
@@ -63,10 +74,16 @@ struct TypeExt<RowVector>
   template<> inline TypeExt<x_type>::const_iterator GenBegin (const x_type &x)  {return OctBegin(x);}    \
   template<> inline TypeExt<x_type>::iterator GenEnd (x_type &x)                {return OctEnd(x);}      \
   template<> inline TypeExt<x_type>::const_iterator GenEnd (const x_type &x)    {return OctEnd(x);}      \
+  template<> inline int   GenSize (const x_type &x)  {return x.length();}
+OCT_SPECIALIZER(ColumnVector)
+OCT_SPECIALIZER(RowVector)
+OCT_SPECIALIZER(Matrix)
+#undef OCT_SPECIALIZER
+
+#define OCT_SPECIALIZER(x_type)  \
   template<> inline TypeExt<x_type>::reference GenAt (x_type &x,int i)                {return x(i);}    \
   template<> inline TypeExt<x_type>::const_reference GenAt (const x_type &x,int i)    {return *(OctBegin(x)+i);}  \
-  template<> inline int   GenSize (const x_type &x)  {return x.length();}                                    \
-  template<> inline void  GenResize (x_type &x, int s)      {return x.resize(s);}                                   \
+  template<> inline void  GenResize (x_type &x, int s)      {return x.resize(s);}                                 \
   template<> inline void  GenResize (x_type &x, int s, const double &vfill)  {return x.resize(s,vfill);}
 OCT_SPECIALIZER(ColumnVector)
 OCT_SPECIALIZER(RowVector)

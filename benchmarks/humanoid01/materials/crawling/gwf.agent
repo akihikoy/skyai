@@ -88,7 +88,7 @@ avf_wire_fitting.config={
 // for direct action space
 
 module  MLCHolder_TRealVector                                  , direct_action
-module  MConstMultiplierRv                                     , action_multiplier
+module  MConstMultiplier_TRealVector_TRealVector               , action_multiplier
 
 /// initialization process:
 
@@ -101,8 +101,8 @@ connect  timer.signal_start_of_step_ud1                 , direct_action.slot_sta
 connect  timer.signal_end_of_step_ud1                   , direct_action.slot_finish_time_step
 
 /// learning signals:
-connect  behavior.signal_execute_action                 , action_multiplier.slot_in
-connect  action_multiplier.signal_out                   , direct_action.slot_execute_action
+connect  behavior.signal_execute_action                 , action_multiplier.slot_x
+connect  action_multiplier.signal_y                     , direct_action.slot_execute_action
 connect  direct_action.slot_execute_action_finished     , holder_action.slot_1
 connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
 connect  direct_action.signal_end_of_action             , behavior.slot_finish_action

@@ -31,33 +31,14 @@ using namespace std;
 
 
 //-------------------------------------------------------------------------------------------
-// SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMinMaxElement,TIntVector)
-// SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMinMaxElement,TRealVector)
-// SKYAI_ADD_MODULE(MMinMaxElement_TIntVector)
-SKYAI_ADD_MODULE(MMinMaxElementRv)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorMixer,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorMixer,TRealVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorMixer,TBoolVector)
+SKYAI_ADD_MODULE(MVectorMixer_TIntVector)
+SKYAI_ADD_MODULE(MVectorMixer_TRealVector)
+SKYAI_ADD_MODULE(MVectorMixer_TBoolVector)
 //-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNonzeroElements,TIntVector)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNonzeroElements,TRealVector)
-SKYAI_ADD_MODULE(MNonzeroElements_TIntVector)
-SKYAI_ADD_MODULE(MNonzeroElements_TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorToScalar,TIntVector)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorToScalar,TRealVector)
-SKYAI_ADD_MODULE(MVectorToScalar_TIntVector)
-SKYAI_ADD_MODULE(MVectorToScalar_TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_ADD_MODULE(MWeightedMixer)
-//-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TInt)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TReal)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TIntVector)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TRealVector)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TComposite1)
-SKYAI_ADD_MODULE(MRemoveSignalArguments_TInt)
-SKYAI_ADD_MODULE(MRemoveSignalArguments_TReal)
-SKYAI_ADD_MODULE(MRemoveSignalArguments_TIntVector)
-SKYAI_ADD_MODULE(MRemoveSignalArguments_TRealVector)
-SKYAI_ADD_MODULE(MRemoveSignalArguments_TComposite1)
+SKYAI_ADD_MODULE(MWeightedMixerRv)
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MSignalDistributor0)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSignalDistributor1,TInt)
@@ -95,8 +76,6 @@ SKYAI_ADD_MODULE(MReturnToSameModule10_TReal)
 SKYAI_ADD_MODULE(MReturnToSameModule10_TIntVector)
 SKYAI_ADD_MODULE(MReturnToSameModule10_TRealVector)
 //-------------------------------------------------------------------------------------------
-SKYAI_ADD_MODULE(MRewardAccumulator)
-//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSimpleAccumulator,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSimpleAccumulator,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSimpleAccumulator,TIntVector)
@@ -105,9 +84,6 @@ SKYAI_ADD_MODULE(MSimpleAccumulator_TInt)
 SKYAI_ADD_MODULE(MSimpleAccumulator_TReal)
 SKYAI_ADD_MODULE(MSimpleAccumulator_TIntVector)
 SKYAI_ADD_MODULE(MSimpleAccumulator_TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
-SKYAI_ADD_MODULE(MEmitOnce_TReal)
 //-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MHolder,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MHolder,TRealVector)
@@ -122,8 +98,6 @@ SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MCompositHolder2,TInt,TInt)
 SKYAI_ADD_MODULE(MCompositHolder2_TInt_TRealVector)
 SKYAI_ADD_MODULE(MCompositHolder2_TRealVector_TRealVector)
 SKYAI_ADD_MODULE(MCompositHolder2_TInt_TInt)
-//-------------------------------------------------------------------------------------------
-SKYAI_ADD_MODULE(MConstMultiplierRv)
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MDiscretizer)
 //-------------------------------------------------------------------------------------------

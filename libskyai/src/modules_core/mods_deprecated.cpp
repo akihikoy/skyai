@@ -1,8 +1,8 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    linear_functions.cpp
-    \brief   libskyai - linear function modules  (source)
+/*! \file    mods_deprecated.cpp
+    \brief   libskyai - deprecated modules kept for backward compatibility
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Feb.04, 2010-
+    \date    Jun.28, 2010
 
     Copyright (C) 2010  Akihiko Yamaguchi
 
@@ -22,7 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#include <skyai/modules_core/linear_functions.h>
+#include <skyai/modules_core/mods_deprecated.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -30,6 +30,12 @@ using namespace std;
 // using namespace boost;
 
 
+//-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MMinMaxElementRv)
+//-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MRewardAccumulator)
+//-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MConstMultiplierRv)
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MLinearFunctionRv)
 //-------------------------------------------------------------------------------------------

@@ -167,7 +167,9 @@ public:
       signal_end_of_timestep      (*this),
       signal_system_reward        (*this),
       signal_end_of_episode       (*this),
-      out_state_cc                (*this)
+      out_state_cc                (*this),
+      out_base_state              (*this),
+      out_joint_state             (*this)
     {
       add_slot_port   (slot_initialize            );
       add_slot_port   (slot_start_episode         );
@@ -180,6 +182,8 @@ public:
       add_signal_port (signal_system_reward       );
       add_signal_port (signal_end_of_episode      );
       add_out_port    (out_state_cc               );
+      add_out_port    (out_base_state             );
+      add_out_port    (out_joint_state            );
     }
 
   void StepLoop (int ds_pause=0)
@@ -280,6 +284,7 @@ protected:
   TRealVector         tq_input_;
   mutable TContinuousState  tmp_state_;
   mutable TContinuousState  tmp_jangle_;
+  mutable TContinuousState  tmp_base_state_, tmp_joint_state_;
 
   bool   executing_;
   bool   console_mode_;
@@ -290,10 +295,10 @@ protected:
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
 
-  //! u: desired joint angle
+  //! u: desired joint angle (using the controller's constraint mode)
   MAKE_SLOT_PORT(slot_execute_command_des_q, void, (const TRealVector &u), (u), TThis);
 
-  //! u: desired displacement of the joint angle
+  //! u: desired displacement of the joint angle (using the controller's constraint mode)
   MAKE_SLOT_PORT(slot_execute_command_des_qd, void, (const TRealVector &u), (u), TThis);
 
   MAKE_SLOT_PORT(slot_step_loop, void, (void), (), TThis);
@@ -310,6 +315,12 @@ protected:
 
   //!\brief output state according to the controller's constraint mode
   MAKE_OUT_PORT(out_state_cc, const TContinuousState&, (void), (), TThis);
+
+  //! output base link state (position, pose, and their velocities) according to the controller's constraint mode
+  MAKE_OUT_PORT(out_base_state, const TContinuousState&, (void), (), TThis);
+
+  //! output joint state (angles and angular velocities) according to the controller's constraint mode
+  MAKE_OUT_PORT(out_joint_state, const TContinuousState&, (void), (), TThis);
 
 
   virtual void slot_initialize_exec (void)
@@ -404,6 +415,22 @@ protected:
       return tmp_state_;
     }
 
+  virtual const TContinuousState& out_base_state_get() const
+    {
+      using namespace humanoid_controller;
+      GenResize(tmp_base_state_,BASE_STATE_DIM);
+      getBaseState(tmp_base_state_);
+      return tmp_base_state_;
+    }
+
+  virtual const TContinuousState& out_joint_state_get() const
+    {
+      using namespace humanoid_controller;
+      GenResize(tmp_joint_state_,JOINT_STATE_DIM);
+      getJointState(tmp_joint_state_);
+      return tmp_joint_state_;
+    }
+
 };  // end of MHumanoidEnvironment
 //-------------------------------------------------------------------------------------------
 
@@ -437,12 +464,19 @@ public:
   TSingleReward            SumOfRmin;  //!< if sum of reward in an episode is less than this value, episode is terminated
   TContinuousTime          MaxTime;
 
+  // parameters for mltkMove:
+  TReal                    ForwardRewardGain   ;
+  TReal                    SidewardPenaltyGain ;
+
+
   TMotionLearningTaskConfigurations (var_space::TVariableMap &mmap)
     :
       TaskKind             (mltkMove),
       FinishVelocityNorm   (1.0l),
       SumOfRmin            (-40.0l),
-      MaxTime              (20.0l)
+      MaxTime              (20.0l),
+      ForwardRewardGain    (0.01l),
+      SidewardPenaltyGain  (0.1l)
     {
       Register(mmap);
     }
@@ -453,6 +487,9 @@ public:
       ADD( FinishVelocityNorm     );
       ADD( SumOfRmin              );
       ADD( MaxTime                );
+
+      ADD( ForwardRewardGain      );
+      ADD( SidewardPenaltyGain    );
       #undef ADD
     }
 };
@@ -538,7 +575,7 @@ protected:
             task_reward= getGoalRewardJump6(dt, init_head_height_);
             if (task_reward>DBL_TINY)  is_jumped_=true;
             break;
-          case mltkMove        : task_reward= getGoalRewardMove3();    break;
+          case mltkMove        : task_reward= getGoalRewardMove3(conf_.ForwardRewardGain, conf_.SidewardPenaltyGain);  break;
           case mltkMoveA       : task_reward= getGoalRewardMove4();    break;
           // case mltkStandup     : break;
           case mltkForwardroll : task_reward= getGoalRewardForwardroll1(dt); break;

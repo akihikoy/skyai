@@ -82,6 +82,7 @@ environment.config ={
     // QuickStepIterationNum = 10
   }
 task.config ={
+    // SidewardPenaltyGain = 0.0
   }
 
 ngnet.config ={

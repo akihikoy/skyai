@@ -27,6 +27,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space.h>
 //-------------------------------------------------------------------------------------------
+#include <lora/cast.h>
 #include <lora/string.h>
 #include <lora/stl_ext.h>  // for list_itr_at
 //-------------------------------------------------------------------------------------------
@@ -72,55 +73,6 @@ namespace var_space
 
 
 //===========================================================================================
-// cast definitions between primitive types
-//===========================================================================================
-
-//!\brief cast policy for primitive types
-template <typename t_to, typename t_from>
-struct TVarSpaceCastPolicy
-{
-  static inline t_to F (const t_from &from)
-  {
-    return static_cast<t_to>(from);
-  }
-};
-
-template <typename t_to, typename t_from>
-inline t_to var_space_cast (const t_from &from)
-{
-  return TVarSpaceCastPolicy<t_to, t_from>::F(from);
-}
-
-template <typename t_from>
-struct TVarSpaceCastPolicy <std::string, t_from>
-{
-  static inline std::string F (const t_from &from)
-  {
-    return ConvertToStr<t_from>(from);
-  }
-};
-template <typename t_to>
-struct TVarSpaceCastPolicy <t_to, std::string>
-{
-  static inline t_to F (const std::string &from)
-  {
-    return ConvertFromStr<t_to>(from);
-  }
-};
-
-template <>
-struct TVarSpaceCastPolicy <std::string, std::string>
-{
-  static inline std::string F (const std::string &from)
-  {
-    return from;
-  }
-};
-
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
 // function object generators
 //===========================================================================================
 
@@ -132,13 +84,13 @@ struct TVarSpaceCastPolicy <std::string, std::string>
 template <typename t_from, typename t_to>
 void converter_generator_pr(const t_from *from, t_to &to)
 {
-  to= var_space_cast<t_to>(*from);
+  to= lora_cast<t_to>(*from);
 }
 //!\brief generators of f_primitive_set_by_*
 template <typename t_from, typename t_to>
 void converter_generator_rp(const t_from &from, t_to *to)
 {
-  *to= var_space_cast<t_to>(from);
+  *to= lora_cast<t_to>(from);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -148,7 +100,7 @@ void primitive_direct_assign_generator(t_var *x, TVariableMap &, const TVariable
 {
   t_as tmp;
   var.PrimitiveGetAs<t_as>(tmp);
-  *x= var_space_cast<t_var>(tmp);
+  *x= lora_cast<t_var>(tmp);
 }
 //-------------------------------------------------------------------------------------------
 

@@ -26,10 +26,8 @@
 #define skyai_utility_h
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
-#include <lora/stl_ext.h>   // for max_element_index, min_element_index
 #include <lora/stl_math.h>   // for operator+ for TIntVector
 #include <lora/small_classes.h>   // for TGridGenerator
-#include <lora/string_list_ext.h>   // for saving/loading map
 #include <lora/variable_space_impl.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -42,7 +40,7 @@ namespace loco_rabbits
 //===========================================================================================
 
 //-------------------------------------------------------------------------------------------
-namespace utility_detail
+namespace skyai_utility_detail
 {
 //-------------------------------------------------------------------------------------------
 
@@ -124,260 +122,142 @@ template <> inline void ApplyConstraintMin (TRealVector &value, const TRealVecto
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------
-}  // end of utility_detail
+}  // end of skyai_utility_detail
 //-------------------------------------------------------------------------------------------
 
 
-//===========================================================================================
-/*!\brief get a max/min element value/index of an input vector */
-// template <typename t_arg1>
-class MMinMaxElementRv
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface     TParent;
-  // typedef t_arg1               TArgument1;
-  typedef MMinMaxElementRv     TThis;
-  SKYAI_MODULE_NAMES(MMinMaxElementRv)
-
-  MMinMaxElementRv (const std::string &v_instance_name)
-    : TParent           (v_instance_name),
-      in_1              (*this),
-      out_max           (*this),
-      out_max_value     (*this),
-      out_max_index     (*this),
-      out_min           (*this),
-      out_min_value     (*this),
-      out_min_index     (*this)
-    {
-      add_in_port   (in_1          );
-      add_out_port  (out_max       );
-      add_out_port  (out_max_value );
-      add_out_port  (out_max_index );
-      add_out_port  (out_min       );
-      add_out_port  (out_min_value );
-      add_out_port  (out_min_index );
-    }
-
-protected:
-
-  mutable TReal  tmp_value_; //!< \warning problematic for multithread mode
-  mutable TInt  tmp_index_; //!< \warning ditto
-
-  //!\brief input the current state
-  MAKE_IN_PORT(in_1, const TRealVector& (void), TThis);
-
-  MAKE_OUT_PORT(out_max, void, (TReal &value, TInt &index), (value,index), TThis);
-  MAKE_OUT_PORT(out_max_value, const TReal&, (void), (), TThis);
-  MAKE_OUT_PORT(out_max_index, const TInt&, (void), (), TThis);
-
-  MAKE_OUT_PORT(out_min, void, (TReal &value, TInt &index), (value,index), TThis);
-  MAKE_OUT_PORT(out_min_value, const TReal&, (void), (), TThis);
-  MAKE_OUT_PORT(out_min_index, const TInt&, (void), (), TThis);
-
-  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
-    x_return_type  get_##x_in x_arg_list const                                                  \
-      {                                                                                         \
-        if (in_##x_in.ConnectionSize()==0)                                                      \
-          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
-        return in_##x_in.GetFirst x_param_list;                                                 \
-      }
-
-  GET_FROM_IN_PORT(1, const TRealVector&, (void), ())
-
-  #undef GET_FROM_IN_PORT
-
-  void  out_max_get (TReal &value, TInt &index) const
-    {
-      index= max_element_index(GenBegin(get_1()),GenEnd(get_1()));
-      value= GenAt(get_1(),index);
-    }
-  const TReal&  out_max_value_get (void) const
-    {
-      tmp_value_= *std::max_element(GenBegin(get_1()),GenEnd(get_1()));
-      return tmp_value_;
-    }
-  const TInt&  out_max_index_get (void) const
-    {
-      tmp_index_= max_element_index(GenBegin(get_1()),GenEnd(get_1()));
-      return tmp_index_;
-    }
-
-  void  out_min_get (TReal &value, TInt &index) const
-    {
-      index= min_element_index(GenBegin(get_1()),GenEnd(get_1()));
-      value= GenAt(get_1(),index);
-    }
-  const TReal&  out_min_value_get (void) const
-    {
-      tmp_value_= *std::min_element(GenBegin(get_1()),GenEnd(get_1()));
-      return tmp_value_;
-    }
-  const TInt&  out_min_index_get (void) const
-    {
-      tmp_index_= min_element_index(GenBegin(get_1()),GenEnd(get_1()));
-      return tmp_index_;
-    }
-
-};  // end of MMinMaxElementRv
-//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
-//!\brief Configurations of MNonzeroElements
-template <typename t_value>
-class TNonzeroElementsConfigurations
+//!\brief Configurations of MVectorMixer
+class TVectorMixerConfigurations
 //===========================================================================================
 {
 public:
 
-  typename TypeExt<t_value>::value_type    Threshold;
+  struct TElement
+    {
+      TString  PortCode ;  //!< unique code of port connected to in_vectors
+      TInt     Element  ;  //!< element index of the input vector of PortCode
+      TElement()
+        :
+          PortCode  (""),
+          Element   (-1)
+        {}
+    };
 
-  TNonzeroElementsConfigurations (var_space::TVariableMap &mmap)
-    :
-      Threshold(0.0l)
+  std::vector<TElement>  MixingTable;  //!< mixing configuration of each element of the output vector (out_mixed)
+
+  TVectorMixerConfigurations (var_space::TVariableMap &mmap)
+    // :
     {
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( Threshold      );
+      ADD( MixingTable   );
       #undef ADD
     }
 };
 //-------------------------------------------------------------------------------------------
+namespace var_space{
+  void Register (TVectorMixerConfigurations::TElement &x, TVariableMap &mmap)
+  {
+    #define ADD(x_member)  AddToVarMap(mmap, #x_member, x.x_member)
+    ADD( PortCode  );
+    ADD( Element   );
+    #undef ADD
+  }
+}
+//-------------------------------------------------------------------------------------------
 //===========================================================================================
-/*!\brief get nonzero elements */
-template <typename t_value>
-class MNonzeroElements
+/*!\brief create a vector mixing some input vectors */
+template <typename t_vector>
+class MVectorMixer
     : public TModuleInterface
 //===========================================================================================
 {
 public:
-  typedef TModuleInterface     TParent;
-  // typedef t_arg1               TArgument1;
-  typedef MNonzeroElements     TThis;
-  SKYAI_MODULE_NAMES(MNonzeroElements)
+  typedef TModuleInterface   TParent;
+  typedef MVectorMixer       TThis;
+  SKYAI_MODULE_NAMES(MVectorMixer)
 
-  MNonzeroElements (const std::string &v_instance_name)
+  MVectorMixer (const std::string &v_instance_name)
     : TParent           (v_instance_name),
       conf_             (TParent::param_box_config_map()),
-      in_1              (*this),
-      out_value         (*this),
-      out_count         (*this)
+      slot_initialize   (*this),
+      in_vectors        (*this),
+      out_mixed         (*this)
     {
-      add_in_port   (in_1       );
-      add_out_port  (out_value  );
-      add_out_port  (out_count  );
+      add_slot_port (slot_initialize  );
+      add_in_port   (in_vectors  );
+      add_out_port  (out_mixed        );
     }
 
 protected:
 
-  TNonzeroElementsConfigurations<t_value>  conf_;
+  TVectorMixerConfigurations  conf_;
 
-  mutable TInt count_;
-  mutable t_value nonzero_;
+  //!\brief construct port_iterator_map_
+  MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
 
-  //!\brief input the current state
-  MAKE_IN_PORT(in_1, const t_value& (void), TThis);
+  //!\brief input vectors
+  MAKE_IN_PORT_SPECIFIC(in_vectors, const t_vector& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
 
-  MAKE_OUT_PORT(out_value, const t_value&, (void), (), TThis);
+  MAKE_OUT_PORT(out_mixed, const t_vector&, (void), (), TThis);
 
-  MAKE_OUT_PORT(out_count, const TInt&, (void), (), TThis);
+  struct TElement
+    {
+      typename GET_PORT_TYPE(in_vectors)::TConnectedPortIterator  CItr;
+      TInt     Element  ;
+      TElement() : Element(-1)  {}
+    };
 
-  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
-    x_return_type  get_##x_in x_arg_list const                                                  \
-      {                                                                                         \
-        if (in_##x_in.ConnectionSize()==0)                                                      \
-          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
-        return in_##x_in.GetFirst x_param_list;                                                 \
+  std::vector<TElement>  mixing_table_;  //! hold the mixing configuration of each element of the output vector (out_mixed)
+
+  mutable t_vector output_;
+
+  void slot_initialize_exec (void)
+    {
+      mixing_table_.clear();
+      mixing_table_.resize(conf_.MixingTable.size());
+      GenResize(output_, conf_.MixingTable.size());
+
+      typename std::vector<TElement>::iterator  mixt_itr(mixing_table_.begin());
+      for (std::vector<TVectorMixerConfigurations::TElement>::const_iterator
+            conf_itr(conf_.MixingTable.begin()),conf_last(conf_.MixingTable.end());
+              conf_itr!=conf_last; ++conf_itr,++mixt_itr)
+      {
+        typename GET_PORT_TYPE(in_vectors)::TConnectedPortIterator iv_citr= in_vectors.ConnectedPortFind (conf_itr->PortCode);
+        if (iv_citr==in_vectors.ConnectedPortEnd())
+        {
+          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<in_vectors.UniqueCode());
+          lexit(df);
+        }
+        mixt_itr->CItr= iv_citr;
+        mixt_itr->Element= conf_itr->Element;
       }
-
-  GET_FROM_IN_PORT(1, const t_value&, (void), ())
-
-  #undef GET_FROM_IN_PORT
-
-  const t_value&  out_value_get (void) const
-    {
-      GenResize(nonzero_,out_count_get());
-      typename TypeExt<t_value>::iterator  nzitr(GenBegin(nonzero_));
-      for (typename TypeExt<t_value>::const_iterator itr(GenBegin(get_1())), end(GenEnd(get_1())); itr!=end; ++itr)
-        if (*itr>conf_.Threshold || *itr<-conf_.Threshold)  {*nzitr= *itr; ++nzitr;}
-      return nonzero_;
     }
 
-  const TInt&  out_count_get (void) const
+  const t_vector& out_mixed_get (void) const
     {
-      count_= 0;
-      for (typename TypeExt<t_value>::const_iterator itr(GenBegin(get_1())), end(GenEnd(get_1())); itr!=end; ++itr)
-        if (*itr>conf_.Threshold || *itr<-conf_.Threshold)  ++count_;
-      return count_;
+      typename TypeExt<t_vector>::iterator out_itr(GenBegin(output_));
+      for (typename std::vector<TElement>::const_iterator mixt_itr(mixing_table_.begin()),mixt_last(mixing_table_.end());
+            mixt_itr!=mixt_last; ++mixt_itr,++out_itr)
+      {
+        (*out_itr)= GenAt(in_vectors.GetCurrent(mixt_itr->CItr),mixt_itr->Element);
+      }
+      return output_;
     }
 
-};  // end of MNonzeroElements
+};  // end of MVectorMixer
 //-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
-/*!\brief convert a vector to a scalar (extract a first element) */
-template <typename t_vector>
-class MVectorToScalar
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface               TParent;
-  typedef typename TypeExt<t_vector>
-                          ::value_type   TScalar;
-  typedef MVectorToScalar                TThis;
-  SKYAI_MODULE_NAMES(MVectorToScalar)
-
-  MVectorToScalar (const std::string &v_instance_name)
-    : TParent           (v_instance_name),
-      in_vector         (*this),
-      out_scalar        (*this)
-    {
-      add_in_port   (in_vector   );
-      add_out_port  (out_scalar  );
-    }
-
-protected:
-
-  mutable TScalar scalar_;
-
-  //!\brief input the current state
-  MAKE_IN_PORT(in_vector, const t_vector& (void), TThis);
-
-  MAKE_OUT_PORT(out_scalar, const TScalar&, (void), (), TThis);
-
-  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
-    x_return_type  get_##x_in x_arg_list const                                                  \
-      {                                                                                         \
-        if (in_##x_in.ConnectionSize()==0)                                                      \
-          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
-        return in_##x_in.GetFirst x_param_list;                                                 \
-      }
-
-  GET_FROM_IN_PORT(vector, const t_vector&, (void), ())
-
-  #undef GET_FROM_IN_PORT
-
-  const TScalar& out_scalar_get () const
-    {
-      LASSERT1op1(GenSize(get_vector()),==,1);
-      scalar_= GenAt(get_vector(),0);
-      return scalar_;
-    }
-
-};  // end of MVectorToScalar
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-//!\brief Configurations of MWeightedMixer
-class TWeightedMixerConfigurations
+//!\brief Configurations of MWeightedMixerRv
+class TWeightedMixerRvConfigurations
 //===========================================================================================
 {
 public:
@@ -397,7 +277,7 @@ public:
 
   std::vector<TElement>  MixingTable;  //!< mixing configuration of each element of the output vector (out_mixed)
 
-  TWeightedMixerConfigurations (var_space::TVariableMap &mmap)
+  TWeightedMixerRvConfigurations (var_space::TVariableMap &mmap)
     // :
     {
       Register(mmap);
@@ -411,7 +291,7 @@ public:
 };
 //-------------------------------------------------------------------------------------------
 namespace var_space{
-  void Register (TWeightedMixerConfigurations::TElement &x, TVariableMap &mmap)
+  void Register (TWeightedMixerRvConfigurations::TElement &x, TVariableMap &mmap)
   {
     #define ADD(x_member)  AddToVarMap(mmap, #x_member, x.x_member)
     ADD( PortCode  );
@@ -423,16 +303,16 @@ namespace var_space{
 //-------------------------------------------------------------------------------------------
 //===========================================================================================
 /*!\brief create a vector mixing some input vectors */
-class MWeightedMixer
+class MWeightedMixerRv
     : public TModuleInterface
 //===========================================================================================
 {
 public:
   typedef TModuleInterface   TParent;
-  typedef MWeightedMixer     TThis;
-  SKYAI_MODULE_NAMES(MWeightedMixer)
+  typedef MWeightedMixerRv   TThis;
+  SKYAI_MODULE_NAMES(MWeightedMixerRv)
 
-  MWeightedMixer (const std::string &v_instance_name)
+  MWeightedMixerRv (const std::string &v_instance_name)
     : TParent           (v_instance_name),
       conf_             (TParent::param_box_config_map()),
       slot_initialize   (*this),
@@ -446,7 +326,7 @@ public:
 
 protected:
 
-  TWeightedMixerConfigurations  conf_;
+  TWeightedMixerRvConfigurations  conf_;
 
   //!\brief construct port_iterator_map_
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
@@ -477,10 +357,10 @@ protected:
     {
       mixing_table_.clear();
       mixing_table_.resize(conf_.MixingTable.size());
-      output_.resize(conf_.MixingTable.size());
+      GenResize(output_, conf_.MixingTable.size());
 
       std::vector<TElement>::iterator  mixt_itr(mixing_table_.begin());
-      for (std::vector<TWeightedMixerConfigurations::TElement>::const_iterator
+      for (std::vector<TWeightedMixerRvConfigurations::TElement>::const_iterator
             conf_itr(conf_.MixingTable.begin()),conf_last(conf_.MixingTable.end());
               conf_itr!=conf_last; ++conf_itr,++mixt_itr)
       {
@@ -507,44 +387,9 @@ protected:
       return output_;
     }
 
-};  // end of MWeightedMixer
+};  // end of MWeightedMixerRv
 //-------------------------------------------------------------------------------------------
 
-
-//===========================================================================================
-/*!\brief remove the arguments of an input signal and emit it
-    \todo implement a "signature style" rather than \p t_arg1 */
-template <typename t_arg1>
-class MRemoveSignalArguments
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface        TParent;
-  typedef MRemoveSignalArguments  TThis;
-  SKYAI_MODULE_NAMES(MRemoveSignalArguments)
-
-  MRemoveSignalArguments (const std::string &v_instance_name)
-    : TParent        (v_instance_name),
-      slot_in        (*this),
-      signal_out     (*this)
-    {
-      add_slot_port   (slot_in    );
-      add_signal_port (signal_out );
-    }
-
-protected:
-
-  MAKE_SLOT_PORT(slot_in, void, (const t_arg1 &a), (a), TThis);
-  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
-
-  virtual void slot_in_exec (const t_arg1 &a)
-    {
-      signal_out.ExecAll();
-    }
-
-};  // end of MRemoveSignalArguments
-//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -644,7 +489,7 @@ protected:
 
   override void slot_reset_exec (void)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       MakeLowerPortsIndexConnectionIteratorMap (signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
@@ -689,7 +534,7 @@ protected:
 
   override void slot_reset_exec (void)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       MakeLowerPortsIndexConnectionIteratorMap (signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
@@ -801,7 +646,7 @@ protected:
 
   override void slot_reset_exec (void)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
@@ -846,7 +691,7 @@ protected:
 
   override void slot_reset_exec (void)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
@@ -890,7 +735,7 @@ protected:
 
   override void slot_reset_exec (void)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
@@ -996,71 +841,6 @@ protected:
 
 
 //===========================================================================================
-/*!\brief reward accumulator
-    \todo TODO: replace by MSimpleAccumulator\<TReal\> */
-class MRewardAccumulator
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface    TParent;
-  typedef MRewardAccumulator  TThis;
-  SKYAI_MODULE_NAMES(MRewardAccumulator)
-
-  MRewardAccumulator (const std::string &v_instance_name)
-    : TParent           (v_instance_name),
-      sum_              (0.0l),
-      last_accessed_    (0.0l),
-      slot_reset        (*this),
-      slot_add          (*this),
-      out_sum           (*this),
-      out_last_accessed (*this)
-    {
-      add_slot_port (slot_reset        );
-      add_slot_port (slot_add          );
-      add_out_port  (out_sum           );
-      add_out_port  (out_last_accessed );
-    }
-
-protected:
-
-  TSingleReward  sum_;
-  mutable TSingleReward  last_accessed_;
-
-  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
-
-  MAKE_SLOT_PORT(slot_add, void, (const TSingleReward &r), (r), TThis);
-
-  MAKE_OUT_PORT(out_sum, const TSingleReward&, (void), (), TThis);
-  MAKE_OUT_PORT(out_last_accessed, const TSingleReward&, (void), (), TThis);
-
-
-  virtual void slot_reset_exec (void)
-    {
-      sum_= 0.0l;
-    }
-
-  virtual void slot_add_exec (const TSingleReward &r)
-    {
-      sum_+= r;
-    }
-
-  virtual const TSingleReward& out_sum_get (void) const
-    {
-      last_accessed_= sum_;
-      return sum_;
-    }
-
-  virtual const TSingleReward& out_last_accessed_get (void) const
-    {
-      return last_accessed_;
-    }
-
-};  // end of MRewardAccumulator
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
 //!\brief Configurations of MSimpleAccumulator
 template <typename t_value>
 class TSimpleAccumulatorConfigurations
@@ -1072,12 +852,15 @@ public:
 
   bool          UsingMaxConstraint;
   bool          UsingMinConstraint;
-  t_value       Min;
   t_value       Max;
+  t_value       Min;
 
   TSimpleAccumulatorConfigurations (var_space::TVariableMap &mmap)
-    // :
+    :
+      UsingMaxConstraint (false),
+      UsingMinConstraint (false)
     {
+      SetZero(Zero);
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
@@ -1086,8 +869,8 @@ public:
       ADD( Zero                 );
       ADD( UsingMaxConstraint   );
       ADD( UsingMinConstraint   );
-      ADD( Min                  );
       ADD( Max                  );
+      ADD( Min                  );
       #undef ADD
     }
 };
@@ -1110,12 +893,14 @@ public:
       slot_reset        (*this),
       slot_add          (*this),
       signal_sum        (*this),
-      out_sum           (*this)
+      out_sum           (*this),
+      out_last_accessed (*this)
     {
       add_slot_port  (slot_reset        );
       add_slot_port  (slot_add          );
       add_signal_port(signal_sum        );
       add_out_port   (out_sum           );
+      add_out_port   (out_last_accessed );
     }
 
 protected:
@@ -1123,6 +908,7 @@ protected:
   TSimpleAccumulatorConfigurations<t_value>  conf_;
 
   t_value  sum_;
+  mutable t_value  last_accessed_;
 
   MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
 
@@ -1131,16 +917,18 @@ protected:
   MAKE_SIGNAL_PORT(signal_sum, void (const t_value &x), TThis);
 
   MAKE_OUT_PORT(out_sum, const t_value&, (void), (), TThis);
+  MAKE_OUT_PORT(out_last_accessed, const t_value&, (void), (), TThis);
 
 
   virtual void slot_reset_exec (void)
     {
       sum_= conf_.Zero;
+      last_accessed_= conf_.Zero;
     }
 
   virtual void slot_add_exec (const t_value &x)
     {
-      using namespace utility_detail;
+      using namespace skyai_utility_detail;
       sum_+= x;
       if (conf_.UsingMaxConstraint)  ApplyConstraintMax (sum_, conf_.Max);
       if (conf_.UsingMinConstraint)  ApplyConstraintMin (sum_, conf_.Min);
@@ -1149,62 +937,18 @@ protected:
 
   virtual const t_value& out_sum_get (void) const
     {
+      last_accessed_= sum_;
       return sum_;
+    }
+
+  virtual const t_value& out_last_accessed_get (void) const
+    {
+      return last_accessed_;
     }
 
 };  // end of MSimpleAccumulator
 //-------------------------------------------------------------------------------------------
 
-
-//===========================================================================================
-/*!\brief emit the first signal caught at slot_in since reset
-    \todo implement a "signature style" rather than \p t_arg1 */
-template <typename t_arg1>
-class MEmitOnce
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface    TParent;
-  typedef MEmitOnce           TThis;
-  SKYAI_MODULE_NAMES(MEmitOnce)
-
-  MEmitOnce (const std::string &v_instance_name)
-    : TParent        (v_instance_name),
-      emitted_       (false),
-      slot_reset     (*this),
-      slot_in        (*this),
-      signal_out     (*this)
-    {
-      add_slot_port   (slot_reset );
-      add_slot_port   (slot_in    );
-      add_signal_port (signal_out );
-    }
-
-protected:
-
-  bool emitted_;
-
-  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
-  MAKE_SLOT_PORT(slot_in, void, (const t_arg1 &a1), (a1), TThis);
-  MAKE_SIGNAL_PORT(signal_out, void (const t_arg1 &), TThis);
-
-  virtual void slot_reset_exec (void)
-    {
-      emitted_= false;
-    }
-
-  virtual void slot_in_exec (const t_arg1 &a1)
-    {
-      if (!emitted_)
-      {
-        signal_out.ExecAll(a1);
-        emitted_= true;
-      }
-    }
-
-};  // end of MEmitOnce
-//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -1353,84 +1097,6 @@ protected:
     }
 
 };  // end of MCompositHolder2
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-class TConstMultiplierRvConfigurations
-//===========================================================================================
-{
-public:
-
-  TRealVector       Factor;
-
-  TConstMultiplierRvConfigurations(var_space::TVariableMap &mmap)
-    // :
-    {
-      Register(mmap);
-    }
-  void Register (var_space::TVariableMap &mmap)
-    {
-      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( Factor     );
-      #undef ADD
-    }
-};
-//-------------------------------------------------------------------------------------------
-//===========================================================================================
-/*!\brief multiplier which emits a signal with the parameter of an input signal multiplied by Factor */
-class MConstMultiplierRv
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface     TParent;
-  typedef MConstMultiplierRv   TThis;
-  SKYAI_MODULE_NAMES(MConstMultiplierRv)
-
-  MConstMultiplierRv (const std::string &v_instance_name)
-    : TParent         (v_instance_name),
-      conf_           (TParent::param_box_config_map()),
-      slot_in         (*this),
-      signal_out      (*this)
-    {
-      add_slot_port   (slot_in          );
-      add_signal_port (signal_out       );
-    }
-
-  virtual ~MConstMultiplierRv() {}
-
-protected:
-
-  TConstMultiplierRvConfigurations  conf_;
-
-  TRealVector      out_;
-
-  MAKE_SLOT_PORT(slot_in, void, (const TRealVector &in), (in), TThis);
-
-  MAKE_SIGNAL_PORT(signal_out, void (const TRealVector &), TThis);
-
-  void slot_in_exec (const TRealVector &in)
-    {
-      out_.resize (GenSize(in));
-      TypeExt<TRealVector>::const_iterator iitr(GenBegin(in)), ilastitr(GenEnd(in)), fitr(GenBegin(conf_.Factor));
-      if (GenSize(conf_.Factor)==GenSize(in))
-      {
-        for (TypeExt<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr,++fitr)
-          (*oitr)= (*iitr) * (*fitr);
-      }
-      else if (GenSize(conf_.Factor)==1)
-      {
-        for (TypeExt<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr)
-          (*oitr)= (*iitr) * (*fitr);
-      }
-      else
-        {LERROR("size disagreement!"); LDBGVAR(GenSize(conf_.Factor)); LDBGVAR(GenSize(in)); lexit(df);}
-
-      signal_out.ExecAll (out_);
-    }
-
-};  // end of MConstMultiplierRv
 //-------------------------------------------------------------------------------------------
 
 
@@ -1727,20 +1393,9 @@ protected:
 
 
 //-------------------------------------------------------------------------------------------
-// SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMinMaxElement,TIntVector)
-// SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMinMaxElement,TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TIntVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TIntVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TInt)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TReal)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TIntVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TRealVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TComposite1)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TBoolVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSignalDistributor1,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSignalDistributor1,TReal)
@@ -1765,8 +1420,6 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MHolder,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MHolder,TRealVector)
