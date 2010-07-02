@@ -923,7 +923,7 @@ protected:
   virtual void slot_reset_exec (void)
     {
       sum_= conf_.Zero;
-      last_accessed_= conf_.Zero;
+      // do not do here: last_accessed_= conf_.Zero;
     }
 
   virtual void slot_add_exec (const t_value &x)

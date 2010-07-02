@@ -209,6 +209,16 @@ inline bool bodies_contact_with_ground (int index, const float &sensitivity=0.1f
   if (!_bodies_contact_with_ground_LPF.isInitialized())  {LERROR("_bodies_contact_with_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
   return _bodies_contact_with_ground_LPF()[index]>sensitivity;
 }
+inline void bodies_contact_with_ground (std::vector<bool> &result, const float &sensitivity=0.1f)
+{
+  if (!use_contact_LPF)  {LERROR("bodies_contact_with_ground is invalid when use_contact_LPF is false"); exit(1);}
+  if (!_bodies_contact_with_ground_LPF.isInitialized())  {LERROR("_bodies_contact_with_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
+  const std::vector<float>  &lpf (_bodies_contact_with_ground_LPF());
+  result.resize(lpf.size());
+  std::vector<float>::const_iterator lpf_itr(lpf.begin());
+  for (std::vector<bool>::iterator res_itr(result.begin()),res_last(result.end()); res_itr!=res_last; ++res_itr,++lpf_itr)
+    (*res_itr)= (*lpf_itr > sensitivity);
+}
 inline bool bodies_contact_wot_ground (int index, const float &sensitivity=0.1f)
 {
   if (!use_contact_LPF)  {LERROR("bodies_contact_with_ground is invalid when use_contact_LPF is false"); exit(1);}

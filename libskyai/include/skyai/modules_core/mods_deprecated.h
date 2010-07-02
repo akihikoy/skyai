@@ -264,7 +264,7 @@ protected:
 
   void slot_in_exec (const TRealVector &in)
     {
-DEPRECATED_MSG("MConstMultiplierRv", "MMConstMultiplier_TRealVector_TRealVector");
+DEPRECATED_MSG("MConstMultiplierRv", "MConstMultiplier_TRealVector_TRealVector");
       out_.resize (GenSize(in));
       TypeExt<TRealVector>::const_iterator iitr(GenBegin(in)), ilastitr(GenEnd(in)), fitr(GenBegin(conf_.Factor));
       if (GenSize(conf_.Factor)==GenSize(in))
@@ -339,7 +339,7 @@ protected:
 
   override void function (const TInput &x, TOutput &y) const
     {
-DEPRECATED_MSG("MLinearFunctionRv", "MMConstMultiplier_TRealMatrix_TRealVector");
+DEPRECATED_MSG("MLinearFunctionRv", "MConstMultiplier_TRealMatrix_TRealVector");
       y= conf_.Factor * x;
     }
 

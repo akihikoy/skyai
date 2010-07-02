@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------
 /*! \file    lc_pd.cpp
-    \brief   libskyai - PC-controller  (source)
+    \brief   libskyai - PD-controller  (source)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Feb.09, 2010-
 

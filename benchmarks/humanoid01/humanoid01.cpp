@@ -169,7 +169,8 @@ public:
       signal_end_of_episode       (*this),
       out_state_cc                (*this),
       out_base_state              (*this),
-      out_joint_state             (*this)
+      out_joint_state             (*this),
+      out_contact_with_ground     (*this)
     {
       add_slot_port   (slot_initialize            );
       add_slot_port   (slot_start_episode         );
@@ -184,6 +185,7 @@ public:
       add_out_port    (out_state_cc               );
       add_out_port    (out_base_state             );
       add_out_port    (out_joint_state            );
+      add_out_port    (out_contact_with_ground    );
     }
 
   void StepLoop (int ds_pause=0)
@@ -285,6 +287,7 @@ protected:
   mutable TContinuousState  tmp_state_;
   mutable TContinuousState  tmp_jangle_;
   mutable TContinuousState  tmp_base_state_, tmp_joint_state_;
+  mutable TBoolVector       tmp_contact_with_ground_;
 
   bool   executing_;
   bool   console_mode_;
@@ -322,6 +325,7 @@ protected:
   //! output joint state (angles and angular velocities) according to the controller's constraint mode
   MAKE_OUT_PORT(out_joint_state, const TContinuousState&, (void), (), TThis);
 
+  MAKE_OUT_PORT(out_contact_with_ground, const TBoolVector&, (void), (), TThis);
 
   virtual void slot_initialize_exec (void)
     {
@@ -429,6 +433,13 @@ protected:
       GenResize(tmp_joint_state_,JOINT_STATE_DIM);
       getJointState(tmp_joint_state_);
       return tmp_joint_state_;
+    }
+
+  virtual const TBoolVector& out_contact_with_ground_get() const
+    {
+      GenResize(tmp_contact_with_ground_,BODY_NUM);
+      bodies_contact_with_ground (tmp_contact_with_ground_);
+      return tmp_contact_with_ground_;
     }
 
 };  // end of MHumanoidEnvironment

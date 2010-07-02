@@ -1206,6 +1206,7 @@ public:
   TReal Step (const TReal &time_step=0.1l);
 
   void PrintCenters (std::ostream &os=std::cout) const;
+  void PrintRadiusCenters (std::ostream &os=std::cout) const;
 
 private:
 

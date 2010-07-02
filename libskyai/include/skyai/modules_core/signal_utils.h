@@ -33,43 +33,6 @@ namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 
 
-
-//===========================================================================================
-/*!\brief remove the arguments of an input signal and emit it
-    \todo implement a "signature style" rather than \p t_arg1 */
-template <typename t_arg1>
-class MRemoveSignalArguments
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface                TParent;
-  typedef MRemoveSignalArguments<t_arg1>  TThis;
-  SKYAI_MODULE_NAMES(MRemoveSignalArguments)
-
-  MRemoveSignalArguments (const std::string &v_instance_name)
-    : TParent        (v_instance_name),
-      slot_in        (*this),
-      signal_out     (*this)
-    {
-      add_slot_port   (slot_in    );
-      add_signal_port (signal_out );
-    }
-
-protected:
-
-  MAKE_SLOT_PORT(slot_in, void, (const t_arg1 &a), (a), TThis);
-  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
-
-  virtual void slot_in_exec (const t_arg1 &a)
-    {
-      signal_out.ExecAll();
-    }
-
-};  // end of MRemoveSignalArguments
-//-------------------------------------------------------------------------------------------
-
-
 //===========================================================================================
 /*!\brief emit the first signal caught at slot_in since reset
     \todo implement a "signature style" rather than \p t_arg1 */
@@ -118,6 +81,77 @@ protected:
     }
 
 };  // end of MEmitOnce
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+/*!\brief emit if the argument of slot_in is true */
+class MEmitIf
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface    TParent;
+  typedef MEmitIf             TThis;
+  SKYAI_MODULE_NAMES(MEmitIf)
+
+  MEmitIf (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      slot_in        (*this),
+      signal_out     (*this)
+    {
+      add_slot_port   (slot_in    );
+      add_signal_port (signal_out );
+    }
+
+protected:
+
+  MAKE_SLOT_PORT(slot_in, void, (const TBool &b), (b), TThis);
+  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
+
+  virtual void slot_in_exec (const TBool &b)
+    {
+      if (b)
+        signal_out.ExecAll();
+    }
+
+};  // end of MEmitIf
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+/*!\brief remove the arguments of an input signal and emit it
+    \todo implement a "signature style" rather than \p t_arg1 */
+template <typename t_arg1>
+class MRemoveSignalArguments
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface                TParent;
+  typedef MRemoveSignalArguments<t_arg1>  TThis;
+  SKYAI_MODULE_NAMES(MRemoveSignalArguments)
+
+  MRemoveSignalArguments (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      slot_in        (*this),
+      signal_out     (*this)
+    {
+      add_slot_port   (slot_in    );
+      add_signal_port (signal_out );
+    }
+
+protected:
+
+  MAKE_SLOT_PORT(slot_in, void, (const t_arg1 &a), (a), TThis);
+  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
+
+  virtual void slot_in_exec (const t_arg1 &a)
+    {
+      signal_out.ExecAll();
+    }
+
+};  // end of MRemoveSignalArguments
 //-------------------------------------------------------------------------------------------
 
 
@@ -221,29 +255,37 @@ protected:
 
 
 //-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TRealVector)
+//-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MRemoveSignalArguments,TComposite1)
 //-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TInt)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TIntVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TRealVector)
-//-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TInt,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TInt,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TInt,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TInt,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TInt,TBool)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TReal,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TReal,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TReal,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TReal,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TReal,TBool)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TBool,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TBool,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TBool,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TBool,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TBool,TBool)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TBool)
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------

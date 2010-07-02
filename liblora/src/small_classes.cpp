@@ -388,6 +388,20 @@ void TBubbleSet::PrintCenters (std::ostream &os) const
 }
 //-------------------------------------------------------------------------------------------
 
+void TBubbleSet::PrintRadiusCenters (std::ostream &os) const
+{
+  if (GenSize(cmin_)==GenSize(scale_))
+  {
+    for (std::vector<TBubble>::const_iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+      os<< radius_ << " " << GenPrint(VectorElemMult(itr->Center,scale_)) <<std::endl;
+  }
+  else
+  {
+    for (std::vector<TBubble>::const_iterator itr(bubble_set_.begin()),last(bubble_set_.end()); itr!=last; ++itr)
+      os<< radius_ << " " << GenPrint(itr->Center) <<std::endl;
+  }
+}
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------
