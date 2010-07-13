@@ -144,7 +144,13 @@ connect  timer.signal_end_of_step_ud1                   , direct_action.slot_fin
 connect  behavior.signal_execute_action                 , action_multiplier.slot_in
 connect  action_multiplier.signal_out                   , direct_action.slot_execute_action
 connect  direct_action.slot_execute_action_finished     , holder_action.slot_1
-connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
+
+// for crawling-cmn.agent:
+// connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
+// for crawling-cmn2.agent:
+connect  direct_action.signal_execute_command           , action_converter.slot_x
+connect  action_converter.signal_y                      , environment.slot_execute_command_des_qd
+
 connect  direct_action.signal_end_of_action             , behavior.slot_finish_action
 
 /// I/O:

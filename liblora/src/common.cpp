@@ -112,14 +112,23 @@ void SaveArguments (int argc, char const*const*argv, std::ostream &os)
 }
 //-------------------------------------------------------------------------------------------
 
+
+namespace loco_rabbits_detail
+{
+  static bool AlwaysYes (false);
+  static bool AlwaysNo (false);
+  static bool AlwaysCancel(false);
+}
+//-------------------------------------------------------------------------------------------
+
 bool AskYesNo (std::ostream &os)
 {
 #define _alwaysY "alY"
 #define _alwaysN "alN"
+  using namespace loco_rabbits_detail;
   const char *prompt= "  (y|n|"_alwaysY"|"_alwaysN"|?) > ";
-  static bool alwaysYes(false), alwaysNo(false);
-  if (alwaysYes)      {std::cerr<<prompt<<"yes"<<std::endl; return true;}
-  else if (alwaysNo)  {std::cerr<<prompt<<"no"<<std::endl; return false;}
+  if (AlwaysYes)      {std::cerr<<prompt<<"yes"<<std::endl; return true;}
+  else if (AlwaysNo)  {std::cerr<<prompt<<"no"<<std::endl; return false;}
   string str;
   while(1)
   {
@@ -127,8 +136,8 @@ bool AskYesNo (std::ostream &os)
     std::cin>>str;
     if (str[0]=='y' || str[0]=='Y')       return true;
     else if (str[0]=='n' || str[0]=='N')  return false;
-    else if (str==_alwaysY) {alwaysYes= true; return true;}
-    else if (str==_alwaysN) {alwaysNo = true; return false;}
+    else if (str==_alwaysY) {AlwaysYes= true; return true;}
+    else if (str==_alwaysN) {AlwaysNo = true; return false;}
     else if (str[0]=='?')
     {
       std::cerr
@@ -151,11 +160,11 @@ TResYesNoCancel AskYesNoCancel (std::ostream &os)
 #define _alwaysY "alY"
 #define _alwaysN "alN"
 #define _alwaysC "alC"
+  using namespace loco_rabbits_detail;
   const char *prompt= "  (y|n|c|"_alwaysY"|"_alwaysN"|"_alwaysC"|?) > ";
-  static bool alwaysYes(false), alwaysNo(false), alwaysCancel(false);
-  if (alwaysYes)          {std::cerr<<prompt<<"yes"   <<std::endl; return ryncYes;}
-  else if (alwaysNo)      {std::cerr<<prompt<<"no"    <<std::endl; return ryncNo;}
-  else if (alwaysCancel)  {std::cerr<<prompt<<"cancel"<<std::endl; return ryncCancel;}
+  if (AlwaysYes)          {std::cerr<<prompt<<"yes"   <<std::endl; return ryncYes;}
+  else if (AlwaysNo)      {std::cerr<<prompt<<"no"    <<std::endl; return ryncNo;}
+  else if (AlwaysCancel)  {std::cerr<<prompt<<"cancel"<<std::endl; return ryncCancel;}
   string str;
   while(1)
   {
@@ -164,14 +173,15 @@ TResYesNoCancel AskYesNoCancel (std::ostream &os)
     if (str[0]=='y' || str[0]=='Y')       return ryncYes;
     else if (str[0]=='n' || str[0]=='N')  return ryncNo;
     else if (str[0]=='c' || str[0]=='C')  return ryncCancel;
-    else if (str==_alwaysY) {alwaysYes    = true; return ryncYes;}
-    else if (str==_alwaysN) {alwaysNo     = true; return ryncNo;}
-    else if (str==_alwaysC) {alwaysCancel = true; return ryncCancel;}
+    else if (str==_alwaysY) {AlwaysYes    = true; return ryncYes;}
+    else if (str==_alwaysN) {AlwaysNo     = true; return ryncNo;}
+    else if (str==_alwaysC) {AlwaysCancel = true; return ryncCancel;}
     else if (str[0]=='?')
     {
       std::cerr
         <<"    y   : answer \"yes\""<<std::endl
         <<"    n   : answer \"no\""<<std::endl
+        <<"    c   : answer \"cancel\""<<std::endl
         <<"    alY : always answer \"yes\" (be careful to choose)"<<std::endl
         <<"    alN : always answer \"no\" (be careful to choose)"<<std::endl
         <<"    alC : always answer \"cancel\" (be careful to choose)"<<std::endl

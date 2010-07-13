@@ -26,6 +26,8 @@
 #include <lora/string.h>
 #include <lora/small_classes.h>
 #include <boost/bind.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -67,6 +69,92 @@ const std::string  TPortInterface::UniqueCode() const
 //===========================================================================================
 // class TModuleInterface
 //===========================================================================================
+
+TPortInterface* TModuleInterface::PortPtr (const std::string &v_name)
+{
+#define X_SEARCH_PORT(x_type,x_set_name)                                    \
+  {                                                                         \
+    TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);  \
+    if(item!=x_set_name.end())  return  (item->second);                     \
+  }
+  X_SEARCH_PORT(TOutPortInterface        , out_ports_    )
+  X_SEARCH_PORT(TInPortInterface         , in_ports_     )
+  X_SEARCH_PORT(TSignalPortInterface     , signal_ports_ )
+  X_SEARCH_PORT(TSlotPortInterface       , slot_ports_   )
+#undef X_SEARCH_PORT
+  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+TPortInterface&  TModuleInterface::Port (const std::string &v_name)
+{
+  TPortInterface *p= PortPtr(v_name);
+  if(p)  return *p;
+  LERROR("module "<<ModuleUniqueCode()<<" does not have the specified port "<<v_name);
+  lexit(df); return dummy_return<TPortInterface>::value();
+}
+//-------------------------------------------------------------------------------------------
+
+#define X_SEARCH_PORT(x_type,x_set_name,x_error_msg)                               \
+    TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);         \
+    if(item!=x_set_name.end())  return *(item->second);                            \
+    LERROR(x_error_msg);                                                           \
+    lexit(df); return dummy_return<x_type>::value();
+
+//!\brief access an out-port by its name
+TOutPortInterface&  TModuleInterface::OutPort (const std::string &v_name)
+{
+  X_SEARCH_PORT(TOutPortInterface, out_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified out-port "<<v_name)
+}
+//!\brief access an out-port (const) by its name
+const TOutPortInterface&  TModuleInterface::OutPort (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TOutPortInterface, out_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified out-port "<<v_name)
+}
+
+//!\brief access an in-port by its name
+TInPortInterface&  TModuleInterface::InPort (const std::string &v_name)
+{
+  X_SEARCH_PORT(TInPortInterface, in_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified in-port "<<v_name)
+}
+//!\brief access an in-port (const) by its name
+const TInPortInterface&  TModuleInterface::InPort (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TInPortInterface, in_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified in-port "<<v_name)
+}
+
+//!\brief access a signal-port by its name
+TSignalPortInterface&  TModuleInterface::SignalPort (const std::string &v_name)
+{
+  X_SEARCH_PORT(TSignalPortInterface, signal_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified signal-port "<<v_name)
+}
+//!\brief access a signal-port (const) by its name
+const TSignalPortInterface&  TModuleInterface::SignalPort (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TSignalPortInterface, signal_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified signal-port "<<v_name)
+}
+
+//!\brief access a slot-port by its name
+TSlotPortInterface&  TModuleInterface::SlotPort (const std::string &v_name)
+{
+  X_SEARCH_PORT(TSlotPortInterface, slot_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified slot-port "<<v_name)
+}
+//!\brief access a slot-port (const) by its name
+const TSlotPortInterface&  TModuleInterface::SlotPort (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TSlotPortInterface, slot_ports_,
+      "module "<<ModuleUniqueCode()<<" does not have the specified slot-port "<<v_name)
+}
+
+#undef X_SEARCH_PORT
+//-------------------------------------------------------------------------------------------
 
 /*static*/void TModuleInterface::ParseShowConfOption (const std::string &option, TModuleInterface::TShowConf &conf)
 {
@@ -124,17 +212,57 @@ void TModuleInterface::ShowModule (const std::string &option, std::ostream &os) 
 }
 //-------------------------------------------------------------------------------------------
 
+#define PORT_EXISTING_CHECK(x_port) \
+    do{if (PortPtr(x_port.Name())!=NULL)  \
+      {LERROR("in module "<<ModuleUniqueCode()<<", port "<<x_port.Name()<<" already exists"); lexit(df);}}while(0)
+/*protected*/void TModuleInterface::add_out_port (TOutPortInterface &v_port)
+{
+  PORT_EXISTING_CHECK(v_port);
+  out_ports_[v_port.Name()]= &v_port;
+}
+/*protected*/void TModuleInterface::add_in_port (TInPortInterface &v_port)
+{
+  PORT_EXISTING_CHECK(v_port);
+  in_ports_[v_port.Name()]= &v_port;
+}
+
+/*protected*/void TModuleInterface::add_signal_port (TSignalPortInterface &v_port)
+{
+  PORT_EXISTING_CHECK(v_port);
+  signal_ports_[v_port.Name()]= &v_port;
+}
+/*protected*/void TModuleInterface::add_slot_port (TSlotPortInterface &v_port)
+{
+  PORT_EXISTING_CHECK(v_port);
+  slot_ports_[v_port.Name()]= &v_port;
+  // [-- for signal forwarding
+  if (v_port.ForwardingSinalPortBase().Name() != SKYAI_DISABLED_FWD_PORT_NAME)
+  {
+    PORT_EXISTING_CHECK(v_port.ForwardingSinalPortBase());
+    signal_ports_[v_port.ForwardingSinalPortBase().Name()]= &(v_port.ForwardingSinalPortBase());
+  }
+  // for signal forwarding  --]
+}
+#undef PORT_EXISTING_CHECK
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 // class TAgent
 //===========================================================================================
 
-//! clear all modules (memories are freed)
+//! clear all modules and path_list_ (memories are freed)
 void TAgent::Clear()
 {
   for(TModuleSet::iterator itr(modules_.begin()), ilast(modules_.end()); itr!=ilast; ++itr)
-    {if(itr->second){delete itr->second;} itr->second=NULL;}
+  {
+    if(itr->second)  {delete itr->second;}
+    itr->second=NULL;
+  }
   modules_.clear();
+
+  if(path_list_)  delete path_list_;
+  path_list_= NULL;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -171,6 +299,7 @@ TModuleInterface&  TAgent::AddModule (const std::string &v_module_class, const s
   TModuleInterface *p= module_generator(v_instance_name);
   // TModuleInterface *p= TModuleManager::Generator(v_module_class)(v_instance_name);
   modules_[v_instance_name]= p;
+  p->SetAgent(*this);
   return *p;
 }
 //-------------------------------------------------------------------------------------------
@@ -242,20 +371,6 @@ void TAgent::Disconnect(
 }
 //-------------------------------------------------------------------------------------------
 
-
-void TAgent::SetAllModuleMode (const TModuleInterface::TModuleMode &mm)
-{
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
-    mod_itr->second->SetModuleMode (mm);
-}
-//-------------------------------------------------------------------------------------------
-
-void TAgent::SetDebugStream (std::ostream &os)
-{
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
-    mod_itr->second->SetDebugStream (os);
-}
-//-------------------------------------------------------------------------------------------
 
 /*!\brief for each module, apply the function f */
 void TAgent::ForEachModule (boost::function<bool(TModuleInterface* module)> f)
@@ -332,6 +447,80 @@ void TAgent::ForEachConnection (boost::function<bool(const TPortInterface* from_
   }
 }
 //-------------------------------------------------------------------------------------------
+
+// NOTE: the following member functions are defined in parser.cpp
+// bool TAgent::LoadFromFile (const std::string &filename, bool *is_last, std::list<std::string> *included_list);
+// bool TAgent::SaveToFile (const std::string &filename) const;
+
+/*!\brief add dir_name (native format path) to the path-list */
+void TAgent::AddPath (const std::string &dir_name)
+{
+  using namespace boost::filesystem;
+  if (path_list_==NULL)  path_list_= new std::list<path>;
+
+  path_list_->push_back (complete(path(dir_name,native)));
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief add dir_list (list of native format path) to the path-list */
+void TAgent::AddPathList (const std::list<std::string> &dir_list)
+{
+  using namespace boost::filesystem;
+  if (path_list_==NULL)  path_list_= new std::list<path>;
+
+  for (std::list<std::string>::const_iterator itr(dir_list.begin()),last(dir_list.end()); itr!=last; ++itr)
+    path_list_->push_back (complete(path(*itr,native)));
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief search filename from the path-list, return the native path */
+std::string TAgent::SearchFileName (const std::string &filename) const
+{
+  using namespace boost::filesystem;
+  path  file_path(filename,native), complete_path;
+  if (file_path.is_complete())
+  {
+    if (exists(file_path))  return file_path.file_string();
+    return "";
+  }
+
+  if (exists(complete_path= complete(file_path)))  return complete_path.file_string();
+
+  if (path_list_==NULL)  return "";
+
+  for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
+    if (exists(complete_path= (*itr)/file_path))
+      return complete_path.file_string();
+  return "";
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
+std::string TAgent::GetDataFileName (const std::string &filename) const
+{
+  using namespace boost::filesystem;
+  if (filename=="")  return complete(path(conf_.DataDir,native)).file_string();
+
+  path  file_path(filename,native), data_dir_path(conf_.DataDir,native);
+  return complete(data_dir_path/file_path).file_string();
+}
+//-------------------------------------------------------------------------------------------
+
+
+void TAgent::SetAllModuleMode (const TModuleInterface::TModuleMode &mm)
+{
+  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+    mod_itr->second->SetModuleMode (mm);
+}
+//-------------------------------------------------------------------------------------------
+
+void TAgent::SetDebugStream (std::ostream &os)
+{
+  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+    mod_itr->second->SetDebugStream (os);
+}
+//-------------------------------------------------------------------------------------------
+
 
 void TAgent::ShowAllModules (const std::string &option, std::ostream &os) const
 {

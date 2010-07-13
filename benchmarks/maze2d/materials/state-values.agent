@@ -32,7 +32,7 @@ state_values.config={
   }
 
 logger_state_values.config={
-    FilePrefix = "XXXRESDIR/state-values.dat"
+    FilePrefix = "state-values.dat"
   }
 
 action_values.config={
@@ -42,5 +42,5 @@ action_values.config={
   }
 
 logger_action_values.config={
-    FilePrefix = "XXXRESDIR/action-values.dat"
+    FilePrefix = "action-values.dat"
   }

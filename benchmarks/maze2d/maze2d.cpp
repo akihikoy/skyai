@@ -24,10 +24,10 @@
 //-------------------------------------------------------------------------------------------
 #include "detail/maze2d.cpp"
 #include <skyai/skyai.h>
+#include <skyai/utility.h>
 #include <skyai/modules_core/learning_manager.h>
 #include <skyai/interfaces/action_space.h>
 #include <lora/small_classes.h>
-#include <skyai/parser.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -607,61 +607,16 @@ using namespace loco_rabbits;
 int main(int argc, char**argv)
 {
   TOptionParser option(argc,argv);
-  string outdir= option("outdir", "result/");
 
   TAgent  agent;
-
-  if (option("agent")=="")
-    {LERROR("fatal! -agent option is needed."); lexit(df);}
-  /*load agent files*/{
-    TTokenizer tokenizer(option("agent"));
-    string agent_file;
-    while(!tokenizer.EOL())
-    {
-      tokenizer.ReadSeparators();
-      agent_file= tokenizer.ReadNonSeparators();
-      if (!LoadAgentFromFile(agent,agent_file))
-        {LERROR("failed to read "<<agent_file); lexit(df);}
-    }
-  }
+  std::ofstream debug;
+  if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
   MBasicLearningManager &lmanager = agent.ModuleAs<MBasicLearningManager>("lmanager");
   MMazeEnvironment &environment = agent.ModuleAs<MMazeEnvironment>("environment");
 
-  if (ConvertFromStr<bool>(option("available_mods","false")))
-  {
-    LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules(option("show_conf"));
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_mods","false")))
-  {
-    LMESSAGE("agent's modules:");
-    agent.ShowAllModules(option("show_conf"),cout);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("dot_mod","false")))
-  {
-    std::ofstream mdot((outdir+"maze2d-modules.dot").c_str());
-    agent.ExportToDOT(mdot);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_connect","false")))
-  {
-    LMESSAGE("agent's connections:");
-    agent.ShowAllConnections(cout);
-    return 0;
-  }
 
-  std::ofstream debug;
-  if (ConvertFromStr<bool>(option("dump_debug","false")))
-  {
-    debug.open((outdir+"maze2d-debug.dat").c_str());
-    agent.SetDebugStream (debug);
-    agent.SetAllModuleMode (TModuleInterface::mmDebug);
-  }
-
-  SaveAgentToFile (agent, outdir+"maze2d-before.agent");
+  agent.SaveToFile (agent.GetDataFileName("maze2d-before.agent"));
 
   {
     stringstream optss;
@@ -683,7 +638,7 @@ int main(int argc, char**argv)
 
   /// result:
 
-  SaveAgentToFile (agent, outdir+"maze2d-after.agent");
+  agent.SaveToFile (agent.GetDataFileName("maze2d-after.agent"));
 
   return 0;
 }

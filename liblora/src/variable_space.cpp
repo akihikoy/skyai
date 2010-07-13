@@ -109,6 +109,52 @@ void generic_function_call_generator (const TVariableMap &members, const TIdenti
 //-------------------------------------------------------------------------------------------
 
 
+//-------------------------------------------------------------------------------------------
+// generators for arrays (vector and list) of primitive types
+//-------------------------------------------------------------------------------------------
+
+template <typename t_array>
+void array_of_primitive_get_as_string_generator (t_array *x, pt_string &out)
+{
+  out= NumericalContainerToString(*x, ", ");
+}
+template <typename t_array>
+void array_of_primitive_set_by_string_generator (t_array *x, const pt_string &in)
+{
+  (*x)= ConvertFromStr<t_array>(in);
+}
+//-------------------------------------------------------------------------------------------
+
+//!\brief set f_primitive_get_as_string_ and f_primitive_set_by_string_  (for arrays of primitive types)
+template <typename t_array>
+void  array_of_primitive_get_set_string_generator_generic (t_array &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by)
+{
+  get_as= boost::bind(array_of_primitive_get_as_string_generator<t_array>,&x,_1);
+  set_by= boost::bind(array_of_primitive_set_by_string_generator<t_array>,&x,_1);
+}
+//-------------------------------------------------------------------------------------------
+
+#define SPECIALIZER(x_type)  \
+  template<> void  array_of_primitive_get_set_string_generator (std::vector<x_type> &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by)  \
+      {array_of_primitive_get_set_string_generator_generic(x,get_as,set_by);}                                                                                                         \
+  template<> void  array_of_primitive_get_set_string_generator (std::list<x_type> &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by)    \
+      {array_of_primitive_get_set_string_generator_generic(x,get_as,set_by);}
+SPECIALIZER(unsigned short  )
+SPECIALIZER(unsigned int    )
+SPECIALIZER(unsigned long   )
+SPECIALIZER(signed short    )
+SPECIALIZER(signed int      )
+SPECIALIZER(signed long     )
+SPECIALIZER(pt_bool         )
+
+SPECIALIZER(float           )
+SPECIALIZER(double          )
+SPECIALIZER(long double     )
+#undef SPECIALIZER
+//-------------------------------------------------------------------------------------------
+
+
+
 //===========================================================================================
 // class TVariable
 //===========================================================================================

@@ -44,6 +44,7 @@ LDLIBS  = -lm -L/usr/local/lib
 # LIBS    += -I$(LIBSKYAI)/include
 # LIBOBJS += $(LIBSKYAI)/lib/libskyai.a
 # LIBOBJS+= $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
+# LDLIBS += -lboost_filesystem
 ##-------------------------------------------------------------------------------------------
 ## for oldngnet
 # LIBNGNET := $(BASEPREFIX)/robotics/ngnet-smem

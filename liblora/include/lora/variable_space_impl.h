@@ -124,6 +124,35 @@ void enum_write_to_stream_generator (t_var *x, const TVariableMap &members, std:
 //-------------------------------------------------------------------------------------------
 
 
+//-------------------------------------------------------------------------------------------
+// generators for arrays (vector and list) of primitive types
+//-------------------------------------------------------------------------------------------
+
+//!\brief set f_primitive_get_as_string_ and f_primitive_set_by_string_  (for arrays of generic types)
+template <typename t_array>
+void  array_of_primitive_get_set_string_generator (t_array &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by)
+{
+  // do nothing
+}
+// specialization declarations to arrays of primitive types
+#define SPECIALIZER(x_type)  \
+  template<> void  array_of_primitive_get_set_string_generator (std::vector<x_type> &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by);  \
+  template<> void  array_of_primitive_get_set_string_generator (std::list<x_type> &x, boost::function<void(pt_string&)> &get_as, boost::function<void(const pt_string&)> &set_by);
+SPECIALIZER(unsigned short  )
+SPECIALIZER(unsigned int    )
+SPECIALIZER(unsigned long   )
+SPECIALIZER(signed short    )
+SPECIALIZER(signed int      )
+SPECIALIZER(signed long     )
+SPECIALIZER(pt_bool         )
+
+SPECIALIZER(float           )
+SPECIALIZER(double          )
+SPECIALIZER(long double     )
+#undef SPECIALIZER
+//-------------------------------------------------------------------------------------------
+
+
 //===========================================================================================
 // partial specialization of TVariable::generator for std::vector
 //===========================================================================================
@@ -131,6 +160,12 @@ void enum_write_to_stream_generator (t_var *x, const TVariableMap &members, std:
 template <typename t_elem>
 void vector_direct_assign_generator (std::vector<t_elem> *x, TVariableMap &, const TVariable &value)
 {
+  if (value.IsPrimitive())  // if value is primitive, try to get as a string
+  {
+    TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    return;
+  }
+  // otherwise, try to "scan" (GetBegin..GetEnd)
   TConstForwardIterator  value_itr, value_last;
   value.GetEnd (value_last);
   int size(0);
@@ -376,6 +411,8 @@ void TVariable::generator<std::vector<t_elem> >::operator() (std::vector<t_elem>
 {
   o.f_direct_assign_ = boost::bind(vector_direct_assign_generator<t_elem>,&x,_1,_2);
 
+  array_of_primitive_get_set_string_generator(x, o.f_primitive_get_as_string_, o.f_primitive_set_by_string_);
+
   o.f_set_member_ = boost::bind(vector_set_member_generator<t_elem>,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(vector_get_member_generator<t_elem>,&x,_1,_2);
 
@@ -400,6 +437,12 @@ void TVariable::generator<std::vector<t_elem> >::operator() (std::vector<t_elem>
 template <typename t_elem>
 void list_direct_assign_generator (std::list<t_elem> *x, TVariableMap &, const TVariable &value)
 {
+  if (value.IsPrimitive())  // if value is primitive, try to get as a string
+  {
+    TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    return;
+  }
+  // otherwise, try to "scan" (GetBegin..GetEnd)
   TConstForwardIterator  value_itr, value_last;
   value.GetEnd (value_last);
   int size(0);
@@ -667,6 +710,8 @@ template <typename t_elem>
 void TVariable::generator<std::list<t_elem> >::operator() (std::list<t_elem> &x)
 {
   o.f_direct_assign_ = boost::bind(list_direct_assign_generator<t_elem>,&x,_1,_2);
+
+  array_of_primitive_get_set_string_generator(x, o.f_primitive_get_as_string_, o.f_primitive_set_by_string_);
 
   o.f_set_member_ = boost::bind(list_set_member_generator<t_elem>,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(list_get_member_generator<t_elem>,&x,_1,_2);

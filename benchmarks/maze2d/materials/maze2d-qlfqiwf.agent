@@ -158,10 +158,6 @@ ngnet.config={
     NGnetFileName = "materials/ngnet222g.dat"
   }
 
-ngnet.config={
-    NGnetFileName = "materials/ngnet222g.dat"
-  }
-
 avf_wire_fitting.config={
     ActionMin = (-3.14159265, 0.03, 0.1)
     ActionMax = (3.14159265, 0.03, 0.1)
@@ -184,11 +180,11 @@ avf_wire_fitting.config={
   }
 
 logger_eps_return.config={
-    FileName = "XXXRESDIR/log-eps-ret.dat"
+    FileName = "log-eps-ret.dat"
   }
 
 logger_action_result.config ={
-    FileName = "XXXRESDIR/log-action-res.dat"
+    FileName = "log-action-res.dat"
     OrderOfColumns ={
         ["lmanager.out_episode_number"]= 1
         ["timer.out_cont_time"]= 2

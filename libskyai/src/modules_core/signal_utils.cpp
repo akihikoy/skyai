@@ -32,6 +32,18 @@ using namespace std;
 
 
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MForwarder0)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MForwarder1,TInt)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MForwarder1,TReal)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MForwarder1,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MForwarder1,TRealVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MForwarder1,TComposite1)
+SKYAI_ADD_MODULE(MForwarder1_TInt)
+SKYAI_ADD_MODULE(MForwarder1_TReal)
+SKYAI_ADD_MODULE(MForwarder1_TIntVector)
+SKYAI_ADD_MODULE(MForwarder1_TRealVector)
+SKYAI_ADD_MODULE(MForwarder1_TComposite1)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TIntVector)

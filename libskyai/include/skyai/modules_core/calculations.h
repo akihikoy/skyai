@@ -174,11 +174,36 @@ struct TVectorToScalarConfigurations
     }
 };
 //-------------------------------------------------------------------------------------------
-/*!\brief MVectorToScalar: convert a vector to a scalar (extract a first element) */
+/*!\brief MVectorToScalar: convert a vector to a scalar (extract the Index-th element; Index is 0 in default) */
 template <typename t_vector, typename t_scalar> FUNCTION_SISO_GEN_CFG (MVectorToScalar, t_vector, t_scalar, TVectorToScalarConfigurations)
 template <typename t_vector, typename t_scalar> void MVectorToScalar<t_vector,t_scalar>::function (const TInput &x, TOutput &y) const
 {
   y= GenAt(x,conf_.Index);
+}
+//-------------------------------------------------------------------------------------------
+
+
+/*!\brief MVectorShuffler's Configurations */
+struct TVectorShufflerConfigurations
+{
+  TIntVector    Order;
+
+  TVectorShufflerConfigurations (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( Order   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+/*!\brief MVectorShuffler: reconstruct a vector so that y[i]=x[Order[i]] where i=0,..,size(Order)-1  */
+template <typename t_vector> FUNCTION_SISO_GEN_CFG (MVectorShuffler, t_vector, t_vector, TVectorShufflerConfigurations)
+template <typename t_vector> void MVectorShuffler<t_vector>::function (const TInput &x, TOutput &y) const
+{
+  GenResize(y,GenSize(conf_.Order));
+  typename TypeExt<TOutput>::iterator  yitr(GenBegin(y));
+  for (typename TypeExt<TIntVector>::const_iterator oitr(GenBegin(conf_.Order)),olast(GenEnd(conf_.Order)); oitr!=olast; ++oitr,++yitr)
+    (*yitr)= GenAt(x,*oitr);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -464,6 +489,14 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TReal,TBool)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TBool,TInt )
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TBool,TReal)
 //-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorShuffler,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorShuffler,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorShuffler,TBoolVector)
+//-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MAdd,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MAdd,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MAdd,TIntVector)
@@ -534,10 +567,6 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElements,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElementsCounter,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNonzeroElementsCounter,TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------

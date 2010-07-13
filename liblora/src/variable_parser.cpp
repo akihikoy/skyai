@@ -50,7 +50,7 @@ bool ParseFile (TVariable &var, const std::string &filename, bool *is_last)
 
   TIterator last= first.make_end();
 
-  parse_info<TIterator> info= pagent.Parse(var, first, last);
+  parse_info<TIterator> info= pagent.Parse(var, filename, first, last);
   if (is_last)  *is_last= (info.stop==last);
   return !pagent.Error();
 }

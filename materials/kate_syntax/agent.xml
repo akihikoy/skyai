@@ -16,7 +16,7 @@
     http://kate.kde.org/doc/hlhowto.php
     -->
 
-<language version="1.00" kateversion="2.4" name="Agent Modules" section="Other" extensions="*.agent" mimetype="" author="akihiko" licence="GPL">
+<language version="1.1" kateversion="2.4" name="Agent Modules" section="Other" extensions="*.agent" mimetype="" author="akihiko" licence="GPL">
   <highlighting>
 
     <list name="kwList1">
@@ -52,8 +52,10 @@
         <!--<DetectChar attribute="Symbol" context="#stay" char="{" beginRegion="Section1"/>
         <DetectChar attribute="Symbol" context="#stay" char="}" endRegion="Section1"/>-->
 
-        <StringDetect attribute="ExtSymbol" context="Module" String="module"/>
-        <StringDetect attribute="ExtSymbol" context="Connect" String="connect"/>
+        <RegExpr attribute="ExtSymbol" context="Include" String="include\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Include" String="include_once\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Module" String="module\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Connect" String="connect\s+"/>
 
         <DetectChar attribute="String" context="String" char="&quot;"/>
         <Float attribute="Float" context="#stay">
@@ -87,13 +89,21 @@
         <IncludeRules context="##Alerts" />
       </context>-->
 
-      <context attribute="Normal Text" lineEndContext="#pop" name="Module">
+      <context attribute="Normal Text" lineEndContext="#pop" name="Include">
         <DetectSpaces />
-        <AnyChar attribute="ExtSymbol" context="ModuleInstance" String=","/>
-        <DetectIdentifier attribute="ModuleType"/>
+        <DetectChar attribute="Symbol" context="FilePath" char="&quot;"/>
+      </context>
+      <context attribute="FilePath" lineEndContext="#pop" name="FilePath">
+        <LineContinue attribute="FilePath" context="#stay"/>
+        <DetectChar attribute="Symbol" context="#pop" char="&quot;"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Module">
+        <DetectIdentifier attribute="ModuleType" context="ModuleInstance"/>
       </context>
       <context attribute="Normal Text" lineEndContext="#pop" name="ModuleInstance">
         <DetectSpaces />
+        <AnyChar attribute="ExtSymbol" String=","/>
         <DetectIdentifier attribute="Module"/>
       </context>
 
@@ -121,6 +131,7 @@
     <itemDatas>
       <itemData name="Normal Text"     defStyleNum="dsNormal"/>
       <itemData name="Keyword"         defStyleNum="dsKeyword"/>
+      <itemData name="FilePath"        defStyleNum="dsNormal" color="#805"/>
       <itemData name="ModuleType"      defStyleNum="dsNormal" color="#085"/>
       <itemData name="Module"          defStyleNum="dsNormal" color="#058"/>
       <itemData name="SubModule"       defStyleNum="dsNormal" color="#053"/>

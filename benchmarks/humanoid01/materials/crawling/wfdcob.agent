@@ -111,7 +111,12 @@ connect  timer.signal_end_of_step_ud1                   , bftrans.slot_finish_ti
 connect  behavior.signal_execute_action                 , bftrans.slot_execute_action
 connect  bftrans.slot_execute_action_finished           , holder_action.slot_1
 
-connect  bftrans.signal_execute_command                 , environment.slot_execute_command_des_q
+// for crawling/cmn.agent:
+// connect  bftrans.signal_execute_command                 , environment.slot_execute_command_des_q
+// for crawling/cmn2.agent:
+connect  bftrans.signal_execute_command                 , action_converter.slot_x
+connect  action_converter.signal_y                      , environment.slot_execute_command_des_q
+
 connect  bftrans.signal_end_of_action                   , behavior.slot_finish_action
 
 /// I/O:

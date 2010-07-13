@@ -31,6 +31,10 @@ namespace grid_action_space_detail
 using namespace std;
 // using namespace boost;
 
+#define DEPRECATED_MSG(x_mod,x_alt)   \
+  do{static int msg_count(20);        \
+  if(msg_count) {--msg_count; LWARNING(x_mod << " is deprecated. Use " << x_alt << " instead." );}}while(0)
+
 
 //===========================================================================================
 // class MGridActionSpace
@@ -38,6 +42,7 @@ using namespace std;
 
 override void MGridActionSpace::slot_initialize_exec (void)
 {
+DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a continuous action space");
   ltime_= INVALID_CONT_TIME;
   grid_.Init (GenBegin(conf_.Levels), GenEnd(conf_.Levels),
               GenBegin(conf_.ActionMin),
@@ -49,6 +54,7 @@ override void MGridActionSpace::slot_initialize_exec (void)
 
 override void MGridActionSpace::slot_execute_action_exec (const TAction &a)
 {
+DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a continuous action space");
   grid_.IntToContVector (a, GenBegin(current_command_));
   ltime_= conf_.Interval;
 }
@@ -56,6 +62,7 @@ override void MGridActionSpace::slot_execute_action_exec (const TAction &a)
 
 override void MGridActionSpace::slot_start_time_step_exec (const TContinuousTime &time_step)
 {
+DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a continuous action space");
   if (ltime_<=0.0l)  return;
   signal_execute_command.ExecAll(current_command_);
 }
@@ -63,6 +70,7 @@ override void MGridActionSpace::slot_start_time_step_exec (const TContinuousTime
 
 override void MGridActionSpace::slot_finish_time_step_exec (const TContinuousTime &time_step)
 {
+DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a continuous action space");
   if (ltime_<=0.0l)  return;
   ltime_-= time_step;
   if (ltime_<=0.0l)

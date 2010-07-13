@@ -82,7 +82,7 @@ $(ARC) : $(OBJS)
 
 %.o : %.cpp
 	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c $<
-	@(if [ -z "`echo '$(MOBJS)' | sed 's/.*\b${shell echo '$@'|sed 's/[/._]/\\\\\0/g'}\b.*//g'`" ];then \
+	@(if [ -z "`echo '$@' | sed 's/[^/]*\\/[^/]*//g'`" ];then \
 	cp -a $@ ../lib/; \
 	echo "../lib/`basename $@` is generated"; \
 	fi; \

@@ -88,10 +88,11 @@ connect  action_discretizer.signal_out                  , direct_action.slot_exe
 connect  direct_action.slot_execute_action_finished     , holder_action.slot_1
 
 // for crawling-cmn.agent:
-connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
+// connect  direct_action.signal_execute_command           , environment.slot_execute_command_des_qd
 // for crawling-cmn2.agent:
-// connect  direct_action.signal_execute_command           , action_converter.slot_x
-// connect  action_converter.signal_y                      , environment.slot_execute_command_des_qd
+connect  direct_action.signal_execute_command           , action_converter.slot_x
+connect  action_converter.signal_y                      , environment.slot_execute_command_des_qd
+
 connect  direct_action.signal_end_of_action             , behavior.slot_finish_action
 
 

@@ -116,6 +116,20 @@ SKYAI_ADD_MODULE(MCaster_TReal_TBool)
 SKYAI_ADD_MODULE(MCaster_TBool_TInt )
 SKYAI_ADD_MODULE(MCaster_TBool_TReal)
 //-------------------------------------------------------------------------------------------
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
+SKYAI_ADD_MODULE(MVectorToScalar_TIntVector_TInt)
+SKYAI_ADD_MODULE(MVectorToScalar_TRealVector_TReal)
+SKYAI_ADD_MODULE(MVectorToScalar_TBoolVector_TBool)
+//-------------------------------------------------------------------------------------------
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorShuffler,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorShuffler,TRealVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorShuffler,TBoolVector)
+SKYAI_ADD_MODULE(MVectorShuffler_TIntVector)
+SKYAI_ADD_MODULE(MVectorShuffler_TRealVector)
+SKYAI_ADD_MODULE(MVectorShuffler_TBoolVector)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TIntVector)
@@ -253,13 +267,6 @@ SKYAI_ADD_MODULE(MNonzeroElements_TIntVector)
 SKYAI_ADD_MODULE(MNonzeroElements_TRealVector)
 SKYAI_ADD_MODULE(MNonzeroElementsCounter_TIntVector)
 SKYAI_ADD_MODULE(MNonzeroElementsCounter_TRealVector)
-//-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
-SKYAI_ADD_MODULE(MVectorToScalar_TIntVector_TInt)
-SKYAI_ADD_MODULE(MVectorToScalar_TRealVector_TReal)
-SKYAI_ADD_MODULE(MVectorToScalar_TBoolVector_TBool)
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------

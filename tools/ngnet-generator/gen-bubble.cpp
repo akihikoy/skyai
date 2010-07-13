@@ -117,7 +117,7 @@ int main(int argc, char**argv)
     cout<<(acc_avr(bubbles.Step(time_step)))<<" \t "<<bubbles.Radius()<<endl;
     ofstream ofs("hoge.dat");
     // ofstream ofs(("bbl/frame"+IntToStr(ni++,4)+".dat").c_str());
-    bubbles.PrintCenters(ofs);
+    bubbles.PrintRadiusCenters(ofs);
     // for(int i(0);i<bubbles.Size();++i){ofs<<GenPrint(bubbles.Center(i))<<endl;}
     usleep(10000);
   } while (acc_avr()>0.0002l*first_acc);

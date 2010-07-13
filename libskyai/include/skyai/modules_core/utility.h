@@ -49,21 +49,19 @@ template<typename t_port_for_lower>
 void MakeLowerPortsIndexConnectionIteratorMap (
     t_port_for_lower  &port_for_lower,
     std::vector<typename t_port_for_lower::TConnectedPortIterator >  &lower_modules_citr,
-    TInt max_index, const std::map<TString, TString>  &lowerport_to_indexes)
+    TInt max_index, const std::map<TString, TIntVector>  &lowerport_to_indexes)
 {
   int lower_size (max_index);
   lower_modules_citr.clear();
   lower_modules_citr.resize (lower_size);
 
-  std::vector<TInt>  indexes_of_lower;
-  std::map<TString, TString>::const_iterator  order_itr;
+  std::map<TString, TIntVector>::const_iterator  order_itr;
   for (typename t_port_for_lower::TConnectedPortIterator citr(port_for_lower.ConnectedPortBegin()); citr!=port_for_lower.ConnectedPortEnd(); ++citr)
   {
     order_itr= lowerport_to_indexes.find ((*citr)->UniqueCode());
     if (order_itr != lowerport_to_indexes.end())
     {
-      indexes_of_lower= ConvertFromStr<std::vector<TInt> >(order_itr->second);
-      for (std::vector<TInt>::const_iterator itr(indexes_of_lower.begin()); itr!=indexes_of_lower.end(); ++itr)
+      for (std::vector<TInt>::const_iterator itr(order_itr->second.begin()),last(order_itr->second.end()); itr!=last; ++itr)
         lower_modules_citr[*itr]= citr;
     }
     else
@@ -126,6 +124,137 @@ template <> inline void ApplyConstraintMin (TRealVector &value, const TRealVecto
 //-------------------------------------------------------------------------------------------
 
 
+
+
+//===========================================================================================
+/*!\brief just output the input (num of args is 0) */
+template <typename t_ret>
+class MMediator0
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface   TParent;
+  typedef MMediator0<t_ret>  TThis;
+  SKYAI_MODULE_NAMES(MMediator0)
+
+  MMediator0 (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_1              (*this),
+      out_1             (*this)
+    {
+      add_in_port   (in_1  );
+      add_out_port  (out_1 );
+    }
+
+protected:
+
+  MAKE_IN_PORT(in_1, const t_ret& (void), TThis);
+  MAKE_OUT_PORT(out_1, const t_ret&, (void), (), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+  GET_FROM_IN_PORT(1, const t_ret&, (void), ())
+  #undef GET_FROM_IN_PORT
+
+  virtual const t_ret& out_1_get (void) const
+    {
+      return get_1();
+    }
+
+};  // end of MMediator0
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief just output the input (num of args is 1) */
+template <typename t_ret, typename t_arg1>
+class MMediator1
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface          TParent;
+  typedef MMediator1<t_ret,t_arg1>  TThis;
+  SKYAI_MODULE_NAMES(MMediator1)
+
+  MMediator1 (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_1              (*this),
+      out_1             (*this)
+    {
+      add_in_port   (in_1  );
+      add_out_port  (out_1 );
+    }
+
+protected:
+
+  MAKE_IN_PORT(in_1, const t_ret& (const t_arg1 &a1), TThis);
+  MAKE_OUT_PORT(out_1, const t_ret&, (const t_arg1 &a1), (a1), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+  GET_FROM_IN_PORT(1, const t_ret&, (const t_arg1 &a1), (a1))
+  #undef GET_FROM_IN_PORT
+
+  virtual const t_ret& out_1_get (const t_arg1 &a1) const
+    {
+      return get_1(a1);
+    }
+
+};  // end of MMediator1
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief just output the input (num of args is 1; specialized for void) */
+template <typename t_arg1>
+class MMediator1<void,t_arg1>
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface          TParent;
+  typedef MMediator1<void,t_arg1>  TThis;
+  SKYAI_MODULE_NAMES(MMediator1)
+
+  MMediator1 (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_1              (*this),
+      out_1             (*this)
+    {
+      add_in_port   (in_1  );
+      add_out_port  (out_1 );
+    }
+
+protected:
+
+  MAKE_IN_PORT(in_1, void (const t_arg1 &a1), TThis);
+  MAKE_OUT_PORT(out_1, void, (const t_arg1 &a1), (a1), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+  GET_FROM_IN_PORT(1, void, (const t_arg1 &a1), (a1))
+  #undef GET_FROM_IN_PORT
+
+  virtual void out_1_get (const t_arg1 &a1) const
+    {
+      return get_1(a1);
+    }
+
+};  // end of MMediator1
+//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -402,7 +531,7 @@ public:
   // for organization
   TInt                  SizeOfLowers;
 
-  typedef  std::map<TString, TString>  TLowerportToIndexesMap;
+  typedef  std::map<TString, TIntVector>  TLowerportToIndexesMap;
   TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TSignalDistributorConfigurations (var_space::TVariableMap &mmap)
@@ -559,7 +688,7 @@ public:
   // for organization
   TInt                  SizeOfLowers;
 
-  typedef  std::map<TString, TString>  TLowerportToIndexesMap;
+  typedef  std::map<TString, TIntVector>  TLowerportToIndexesMap;
   TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TFunctionSelectorConfigurations (var_space::TVariableMap &mmap)
@@ -1292,7 +1421,7 @@ public:
 
   TInt                  Size;  //!< size of bool vector
 
-  typedef  std::map<TInt, TString>  TIntToIntVectorMap;
+  typedef  std::map<TInt, TIntVector>  TIntToIntVectorMap;
   TIntToIntVectorMap    TrueSet;  //!< mapper of integer to set of true integers
 
   TIntToBoolVectorMapperConfigurations (var_space::TVariableMap &mmap)
@@ -1362,16 +1491,14 @@ protected:
   virtual void slot_reset_exec (void)
     {
       TBoolVector  tmpb;
-      TIntVector   tmpi;
       tmpb.resize(conf_.Size);
       int_to_bvec_.clear();
       for (TIntToBoolVectorMapperConfigurations::TIntToIntVectorMap::const_iterator itr= conf_.TrueSet.begin();
             itr!=conf_.TrueSet.end(); ++itr)
       {
-        tmpi= ConvertFromStr<TIntVector >(itr->second);
         std::fill (GenBegin(tmpb),GenEnd(tmpb), false);
-        for (TypeExt<TIntVector>::const_iterator tmpiitr(GenBegin(tmpi)); tmpiitr!=GenEnd(tmpi); ++tmpiitr)
-          tmpb[*tmpiitr]= true;
+        for (TypeExt<TIntVector>::const_iterator iv_itr(GenBegin(itr->second)),iv_last(GenEnd(itr->second)); iv_itr!=iv_last; ++iv_itr)
+          tmpb[*iv_itr]= true;
         int_to_bvec_[itr->first]= tmpb;
       }
     }
@@ -1392,6 +1519,18 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TBoolVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TRealVectorSet)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TBoolVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TRealVector)

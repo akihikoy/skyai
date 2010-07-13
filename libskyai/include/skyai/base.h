@@ -34,6 +34,13 @@
 #include <boost/function.hpp>
 #include <skyai/module_manager.h>
 //-------------------------------------------------------------------------------------------
+// forward declaration:
+namespace boost {namespace filesystem {
+  struct path_traits;
+  template<class String, class Traits> class basic_path;
+  typedef basic_path< std::string, path_traits > path;
+}}
+//-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
@@ -42,9 +49,9 @@ namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 static const int SKYAI_CONNECTION_SIZE_MAX (INT_MAX);
 //-------------------------------------------------------------------------------------------
-static const char *SKYAI_DISABLED_FWD_PORT_NAME ("-");  //!< used to be a disabled forwarding signal port name
+static const char * const SKYAI_DISABLED_FWD_PORT_NAME ("-");  //!< used to be a disabled forwarding signal port name
 //-------------------------------------------------------------------------------------------
-static const char *SKYAI_MODULE_NAME_DELIMITER ("-");
+static const char * const SKYAI_MODULE_NAME_DELIMITER ("-");
 //-------------------------------------------------------------------------------------------
 
 
@@ -213,6 +220,9 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
+class  TAgent;
+
+
 //===========================================================================================
 /*!\brief Base class of every module (every skyai module is required to be inherited from this class) */
 class TModuleInterface
@@ -242,21 +252,12 @@ public:
   var_space::TVariable& ParamBoxMemory()  {return param_box_memory_;}
   const var_space::TVariable& ParamBoxMemory() const {return param_box_memory_;}
 
-  // virtual void SaveConfigTo (TSettingFile &sf) const {param_box_config_.SaveTo(sf);}
-  // virtual void SaveConfigTo (const std::string &filename, bool add_suffix=false) const {FIXME("!");}
-  // virtual void LoadConfigFrom (TSettingFile &sf)  {param_box_config_.LoadFrom(sf);}
-  // virtual void LoadConfigFrom (const std::string &filename, bool add_suffix=false) {FIXME("!");}
-
-  // virtual void SaveMemoryTo (TSettingFile &sf) const {param_box_memory_.SaveTo(sf);}
-  // virtual void SaveMemoryTo (const std::string &filename, bool add_suffix=false) const {FIXME("!");}
-  // virtual void LoadMemoryFrom (TSettingFile &sf)  {param_box_memory_.LoadFrom(sf);}
-  // virtual void LoadMemoryFrom (const std::string &filename, bool add_suffix=false) {FIXME("!");}
-
   /*!\brief a constructor of TModuleInterface class.
       \note any subclasses of the TModuleInterface that are registered to TModuleManager
           should have the same constructor form as TModuleInterface */
   TModuleInterface (const std::string &v_instance_name)
       : instance_name_         (v_instance_name),
+        pagent_                (NULL),
         param_box_config_      (var_space::VariableSpace()),
         param_box_memory_      (var_space::VariableSpace()),
         module_mode_           (mmNormal),
@@ -265,106 +266,23 @@ public:
 
   virtual ~TModuleInterface(void) {}
 
-
-  // const std::string GetConfigStr (const std::string &param_name)        {return param_box_config_.GetStr(param_name);}
-  // const TStringListEx GetConfigStrList (const std::string &param_name)  {return param_box_config_.GetStrList(param_name);}
-  // void SetConfigStr (const std::string &param_name, const std::string &str)             {param_box_config_.SetStr(param_name,str);}
-  // void SetConfigStrList (const std::string &param_name, const TStringListEx &str_list)  {param_box_config_.SetStrList(param_name,str_list);}
-
-  // const std::string GetMemoryStr (const std::string &param_name)        {return param_box_memory_.GetStr(param_name);}
-  // const TStringListEx GetMemoryStrList (const std::string &param_name)  {return param_box_memory_.GetStrList(param_name);}
-  // void SetMemoryStr (const std::string &param_name, const std::string &str)             {param_box_memory_.SetStr(param_name,str);}
-  // void SetMemoryStrList (const std::string &param_name, const TStringListEx &str_list)  {param_box_memory_.SetStrList(param_name,str_list);}
-
-
   const TModuleMode&  ModuleMode () const {return module_mode_;}
   void  SetModuleMode (const TModuleMode &mm)  {module_mode_= mm;}
 
   std::ostream& DebugStream () const {return (debug_stream_==NULL) ? std::cerr : *debug_stream_;}
   void SetDebugStream (std::ostream &os) {debug_stream_= &os;}
 
-  TPortInterface* PortPtr (const std::string &v_name)
-    {
-#define X_SEARCH_PORT(x_type,x_set_name)                                              \
-    {                                                                                 \
-      TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);          \
-      if(item!=x_set_name.end())  return  (item->second);                             \
-    }
-      X_SEARCH_PORT(TOutPortInterface        , out_ports_    )
-      X_SEARCH_PORT(TInPortInterface         , in_ports_     )
-      X_SEARCH_PORT(TSignalPortInterface     , signal_ports_ )
-      X_SEARCH_PORT(TSlotPortInterface       , slot_ports_   )
-#undef X_SEARCH_PORT
-      return NULL;
-    }
+  TPortInterface* PortPtr (const std::string &v_name);
+  TPortInterface& Port (const std::string &v_name);
 
-  TPortInterface& Port (const std::string &v_name)
-    {
-      TPortInterface *p= PortPtr(v_name);
-      if(p)  return *p;
-      LERROR("module "<<ModuleUniqueCode()<<" does not have the specified port "<<v_name);
-      lexit(df); return dummy_return<TPortInterface>::value();
-    }
-
-#define X_SEARCH_PORT(x_type,x_set_name,x_error_msg)                               \
-    TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);         \
-    if(item!=x_set_name.end())  return *(item->second);                            \
-    LERROR(x_error_msg);                                                           \
-    lexit(df); return dummy_return<x_type>::value();
-
-  //!\brief access an out-port by its name
-  TOutPortInterface& OutPort (const std::string &v_name)
-    {
-      X_SEARCH_PORT(TOutPortInterface, out_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified out-port "<<v_name)
-    }
-  //!\brief access an out-port (const) by its name
-  const TOutPortInterface& OutPort (const std::string &v_name) const
-    {
-      X_SEARCH_PORT(TOutPortInterface, out_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified out-port "<<v_name)
-    }
-
-  //!\brief access an in-port by its name
-  TInPortInterface& InPort (const std::string &v_name)
-    {
-      X_SEARCH_PORT(TInPortInterface, in_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified in-port "<<v_name)
-    }
-  //!\brief access an in-port (const) by its name
-  const TInPortInterface& InPort (const std::string &v_name) const
-    {
-      X_SEARCH_PORT(TInPortInterface, in_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified in-port "<<v_name)
-    }
-
-  //!\brief access a signal-port by its name
-  TSignalPortInterface& SignalPort (const std::string &v_name)
-    {
-      X_SEARCH_PORT(TSignalPortInterface, signal_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified signal-port "<<v_name)
-    }
-  //!\brief access a signal-port (const) by its name
-  const TSignalPortInterface& SignalPort (const std::string &v_name) const
-    {
-      X_SEARCH_PORT(TSignalPortInterface, signal_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified signal-port "<<v_name)
-    }
-
-  //!\brief access a slot-port by its name
-  TSlotPortInterface& SlotPort (const std::string &v_name)
-    {
-      X_SEARCH_PORT(TSlotPortInterface, slot_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified slot-port "<<v_name)
-    }
-  //!\brief access a slot-port (const) by its name
-  const TSlotPortInterface& SlotPort (const std::string &v_name) const
-    {
-      X_SEARCH_PORT(TSlotPortInterface, slot_ports_,
-          "module "<<ModuleUniqueCode()<<" does not have the specified slot-port "<<v_name)
-    }
-
-#undef X_SEARCH_PORT
+  TOutPortInterface& OutPort (const std::string &v_name);                   //!<\brief access an out-port by its name
+  const TOutPortInterface& OutPort (const std::string &v_name) const;       //!<\brief access an out-port (const) by its name
+  TInPortInterface& InPort (const std::string &v_name);                     //!<\brief access an in-port by its name
+  const TInPortInterface& InPort (const std::string &v_name) const;         //!<\brief access an in-port (const) by its name
+  TSignalPortInterface& SignalPort (const std::string &v_name);             //!<\brief access a signal-port by its name
+  const TSignalPortInterface& SignalPort (const std::string &v_name) const; //!<\brief access a signal-port (const) by its name
+  TSlotPortInterface& SlotPort (const std::string &v_name);                 //!<\brief access a slot-port by its name
+  const TSlotPortInterface& SlotPort (const std::string &v_name) const;     //!<\brief access a slot-port (const) by its name
 
 
   // accessors to iterators
@@ -389,6 +307,10 @@ public:
   TPortSet<TSlotPortInterface*>::type::const_iterator SlotPortBegin() const {return slot_ports_.begin();}
   TPortSet<TSlotPortInterface*>::type::const_iterator SlotPortEnd()   const {return slot_ports_.end();}
 
+
+  //!\brief return the reference to the host agent
+  const TAgent&  Agent() const {LASSERT(pagent_); return *pagent_;}
+  void  SetAgent(const TAgent &agent)  {pagent_= &agent;}
 
   struct TShowConf
     {
@@ -422,38 +344,10 @@ protected:
   /*!\brief parameter box which has links to the learning parameters of this module */
   var_space::TVariableMap&  param_box_memory_map ()  {return param_box_memory_.SetMemberMap();}
 
-#define PORT_EXISTING_CHECK(x_port) \
-    do{if (PortPtr(x_port.Name())!=NULL)  \
-      {LERROR("in module "<<ModuleUniqueCode()<<", port "<<x_port.Name()<<" already exists"); lexit(df);}}while(0)
-  void add_out_port (TOutPortInterface &v_port)
-    {
-      PORT_EXISTING_CHECK(v_port);
-      out_ports_[v_port.Name()]= &v_port;
-    }
-  void add_in_port (TInPortInterface &v_port)
-    {
-      PORT_EXISTING_CHECK(v_port);
-      in_ports_[v_port.Name()]= &v_port;
-    }
-
-  void add_signal_port (TSignalPortInterface &v_port)
-    {
-      PORT_EXISTING_CHECK(v_port);
-      signal_ports_[v_port.Name()]= &v_port;
-    }
-  void add_slot_port (TSlotPortInterface &v_port)
-    {
-      PORT_EXISTING_CHECK(v_port);
-      slot_ports_[v_port.Name()]= &v_port;
-      // [-- for signal forwarding
-      if (v_port.ForwardingSinalPortBase().Name() != SKYAI_DISABLED_FWD_PORT_NAME)
-      {
-        PORT_EXISTING_CHECK(v_port.ForwardingSinalPortBase());
-        signal_ports_[v_port.ForwardingSinalPortBase().Name()]= &(v_port.ForwardingSinalPortBase());
-      }
-      // for signal forwarding  --]
-    }
-#undef PORT_EXISTING_CHECK
+  void add_out_port (TOutPortInterface &v_port);
+  void add_in_port (TInPortInterface &v_port);
+  void add_signal_port (TSignalPortInterface &v_port);
+  void add_slot_port (TSlotPortInterface &v_port);
 
 private:
 
@@ -462,6 +356,7 @@ private:
 
 
   const std::string instance_name_;
+  const TAgent *pagent_;  //!< pointer to the host agent
 
   /*!\brief parameter box which has links to the configuration parameters of this module */
   var_space::TVariable param_box_config_;
@@ -488,6 +383,22 @@ private:
 //-------------------------------------------------------------------------------------------
 
 
+//===========================================================================================
+/*!\brief TAgent's Configurations  */
+struct TAgentConfigurations
+//===========================================================================================
+{
+  std::string               DataDir;   //!< directoly path to save data (boost::filesystem's portable file-path format)
+
+  TAgentConfigurations(var_space::TVariableMap &mmap)
+      : DataDir ("nonexistent_dir")
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( DataDir   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
 
 //===========================================================================================
 /*!\brief agent class that holds all instances of the modules */
@@ -499,10 +410,14 @@ public:
   /*! Type of module set (map) whose key is module.InstanceName() */
   typedef std::map<std::string, TModuleInterface*>  TModuleSet;
 
-  //! clear all modules (memories are freed)
+  //! clear all modules and path_list_ (memories are freed)
   void Clear();
 
-  TAgent () {}
+  TAgent ()
+      : param_box_config_  (var_space::VariableSpace()),
+        conf_              (param_box_config_.SetMemberMap()),
+        path_list_         (NULL)
+    {}
 
   virtual ~TAgent()
     {
@@ -548,8 +463,12 @@ public:
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name);
 
-  void SetAllModuleMode (const TModuleInterface::TModuleMode &mm);
-  void SetDebugStream (std::ostream &os);
+
+  const TAgentConfigurations&  Config() const {return conf_;}
+  TAgentConfigurations&  SetConfig()  {return conf_;}
+
+  var_space::TVariable& ParamBoxConfig()  {return param_box_config_;}
+  const var_space::TVariable& ParamBoxConfig() const {return param_box_config_;}
 
 
   /*!\brief for each module, apply the function f */
@@ -563,6 +482,33 @@ public:
 
   /*!\brief for each connected port, apply the function f */
   void ForEachConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const;
+
+
+  /*!\brief load modules, connections, configurations from the file [filename] (native path format)
+      \param [in,out]included_list  :  included full-path (native) list
+      \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
+  bool LoadFromFile (const std::string &filename, bool *is_last=NULL, std::list<std::string> *included_list=NULL);
+
+  /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
+  bool SaveToFile (const std::string &filename) const;
+
+
+  /*!\brief add dir_name (native format path) to the path-list */
+  void AddPath (const std::string &dir_name);
+
+  /*!\brief add dir_list (list of native format path) to the path-list */
+  void AddPathList (const std::list<std::string> &dir_list);
+
+
+  /*!\brief search filename from the path-list, return the native path */
+  std::string SearchFileName (const std::string &filename) const;
+
+  /*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
+  std::string GetDataFileName (const std::string &filename) const;
+
+
+  void SetAllModuleMode (const TModuleInterface::TModuleMode &mm);
+  void SetDebugStream (std::ostream &os);
 
   void ShowAllModules (const std::string &format="", std::ostream &os=std::cerr) const;
 
@@ -581,6 +527,12 @@ protected:
   const TAgent& operator=(const TAgent&);
 
   TModuleSet    modules_;
+
+  /*!\brief parameter box which has links to the configuration parameters of the agent */
+  var_space::TVariable param_box_config_;
+  TAgentConfigurations conf_;
+
+  std::list<boost::filesystem::path>  *path_list_;
 
   inline TModuleInterface* find_module (const std::string &module_name, bool error=false) const;
 

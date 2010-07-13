@@ -97,7 +97,7 @@ protected:
   MAKE_OUT_PORT(out_action_set_size, const TInt&, (void), (), TThis);
 
   //!\brief input a set of the center state of the basis functions
-  MAKE_IN_PORT(in_center_state_set, const std::vector<TRealVector>& (void), TThis);
+  MAKE_IN_PORT(in_center_state_set, const TRealVectorSet& (void), TThis);
 
   #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
     x_return_type  get_##x_in x_arg_list const                                                  \
@@ -107,7 +107,7 @@ protected:
         return in_##x_in.GetFirst x_param_list;                                                 \
       }
 
-  GET_FROM_IN_PORT(center_state_set, const std::vector<TRealVector>&, (void), ())
+  GET_FROM_IN_PORT(center_state_set, const TRealVectorSet&, (void), ())
 
   #undef GET_FROM_IN_PORT
 

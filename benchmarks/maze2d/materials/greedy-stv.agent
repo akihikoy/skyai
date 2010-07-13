@@ -32,5 +32,5 @@ state_values.config={
   }
 
 logger_state_values.config={
-    FileName = "XXXRESDIR/log-state-values.dat"
+    FileName = "log-state-values.dat"
   }

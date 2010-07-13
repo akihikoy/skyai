@@ -280,19 +280,24 @@ private:
     };
   std::map <std::string, t_cell> opt;  //!< options whose format is '-optname optvalue'
   std::list <std::string>  used_opt;  //!< accessed options
+  std::string cmd_line;
+
   void parse_from_arglist (int argc, const char *const*const argv); //!< parse from arguments
 
 public:
   std::list <std::string>  Floating;  /*!< options whose format is 'optname' (i.e. singular)
                                           if using such options and PrintNotAccessed, clear Floating
                                           before executing PrintNotAccessed */
-  TOptionParser (int argc, const char *const*const argv)  {parse_from_arglist(argc-1,argv+1);}
+
+  TOptionParser (int argc, const char *const*const argv);
 
   /*!\brief parse from a string
     \note option are separated by white spaces;
           strings like "x x" or 'y y' are recognized as a single word
     \note backslash \\ escapes a following letter */
   TOptionParser (const std::string &argline);
+
+  const std::string& CommandLine(void) const {return cmd_line;}
 
   //!\brief return the value of an option whose key is equal to the given key
   const std::string& operator[] (const std::string& key)

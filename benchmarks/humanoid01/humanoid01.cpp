@@ -24,10 +24,9 @@
 //-------------------------------------------------------------------------------------------
 #include "detail/humanoid01.h"
 #include <skyai/skyai.h>
+#include <skyai/utility.h>
 #include <skyai/modules_core/learning_manager.h>
-#include <skyai/parser.h>
 #include <lora/variable_space_impl.h>
-//-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -168,8 +167,10 @@ public:
       signal_system_reward        (*this),
       signal_end_of_episode       (*this),
       out_state_cc                (*this),
-      out_base_state              (*this),
-      out_joint_state             (*this),
+      out_base_pose               (*this),
+      out_base_vel                (*this),
+      out_joint_angle             (*this),
+      out_joint_vel               (*this),
       out_contact_with_ground     (*this)
     {
       add_slot_port   (slot_initialize            );
@@ -183,8 +184,10 @@ public:
       add_signal_port (signal_system_reward       );
       add_signal_port (signal_end_of_episode      );
       add_out_port    (out_state_cc               );
-      add_out_port    (out_base_state             );
-      add_out_port    (out_joint_state            );
+      add_out_port    (out_base_pose              );
+      add_out_port    (out_base_vel               );
+      add_out_port    (out_joint_angle            );
+      add_out_port    (out_joint_vel              );
       add_out_port    (out_contact_with_ground    );
     }
 
@@ -286,7 +289,7 @@ protected:
   TRealVector         tq_input_;
   mutable TContinuousState  tmp_state_;
   mutable TContinuousState  tmp_jangle_;
-  mutable TContinuousState  tmp_base_state_, tmp_joint_state_;
+  mutable TContinuousState  tmp_base_pose_, tmp_base_vel_, tmp_joint_angle_, tmp_joint_vel_;
   mutable TBoolVector       tmp_contact_with_ground_;
 
   bool   executing_;
@@ -319,11 +322,15 @@ protected:
   //!\brief output state according to the controller's constraint mode
   MAKE_OUT_PORT(out_state_cc, const TContinuousState&, (void), (), TThis);
 
-  //! output base link state (position, pose, and their velocities) according to the controller's constraint mode
-  MAKE_OUT_PORT(out_base_state, const TContinuousState&, (void), (), TThis);
+  //!\brief output base link pose (position and rotation) according to the controller's constraint mode
+  MAKE_OUT_PORT(out_base_pose, const TContinuousState&, (void), (), TThis);
+  //!\brief output base link velocities (of position and rotation) according to the controller's constraint mode
+  MAKE_OUT_PORT(out_base_vel, const TContinuousState&, (void), (), TThis);
 
-  //! output joint state (angles and angular velocities) according to the controller's constraint mode
-  MAKE_OUT_PORT(out_joint_state, const TContinuousState&, (void), (), TThis);
+  //!\brief output joint angles according to the controller's constraint mode
+  MAKE_OUT_PORT(out_joint_angle, const TContinuousState&, (void), (), TThis);
+  //!\brief output joint angular velocities according to the controller's constraint mode
+  MAKE_OUT_PORT(out_joint_vel, const TContinuousState&, (void), (), TThis);
 
   MAKE_OUT_PORT(out_contact_with_ground, const TBoolVector&, (void), (), TThis);
 
@@ -419,20 +426,34 @@ protected:
       return tmp_state_;
     }
 
-  virtual const TContinuousState& out_base_state_get() const
+  virtual const TContinuousState& out_base_pose_get() const
     {
       using namespace humanoid_controller;
-      GenResize(tmp_base_state_,BASE_STATE_DIM);
-      getBaseState(tmp_base_state_);
-      return tmp_base_state_;
+      GenResize(tmp_base_pose_,POSROT_DIM);
+      getBasePosRot(tmp_base_pose_);
+      return tmp_base_pose_;
+    }
+  virtual const TContinuousState& out_base_vel_get() const
+    {
+      using namespace humanoid_controller;
+      GenResize(tmp_base_vel_,PRVEL_DIM);
+      getBaseVel(tmp_base_vel_);
+      return tmp_base_vel_;
     }
 
-  virtual const TContinuousState& out_joint_state_get() const
+  virtual const TContinuousState& out_joint_angle_get() const
     {
       using namespace humanoid_controller;
-      GenResize(tmp_joint_state_,JOINT_STATE_DIM);
-      getJointState(tmp_joint_state_);
-      return tmp_joint_state_;
+      GenResize(tmp_joint_angle_,CTRL_JOINT_NUM);
+      getJointAngle(tmp_joint_angle_);
+      return tmp_joint_angle_;
+    }
+  virtual const TContinuousState& out_joint_vel_get() const
+    {
+      using namespace humanoid_controller;
+      GenResize(tmp_joint_vel_,CTRL_JOINT_NUM);
+      getJointAngVel(tmp_joint_vel_);
+      return tmp_joint_vel_;
     }
 
   virtual const TBoolVector& out_contact_with_ground_get() const
@@ -475,6 +496,8 @@ public:
   TSingleReward            SumOfRmin;  //!< if sum of reward in an episode is less than this value, episode is terminated
   TContinuousTime          MaxTime;
 
+  TReal                    FallingDownPenalty  ;
+
   // parameters for mltkMove:
   TReal                    ForwardRewardGain   ;
   TReal                    SidewardPenaltyGain ;
@@ -486,6 +509,7 @@ public:
       FinishVelocityNorm   (1.0l),
       SumOfRmin            (-40.0l),
       MaxTime              (20.0l),
+      FallingDownPenalty   (-4.0l),
       ForwardRewardGain    (0.01l),
       SidewardPenaltyGain  (0.1l)
     {
@@ -498,6 +522,8 @@ public:
       ADD( FinishVelocityNorm     );
       ADD( SumOfRmin              );
       ADD( MaxTime                );
+
+      ADD( FallingDownPenalty     );
 
       ADD( ForwardRewardGain      );
       ADD( SidewardPenaltyGain    );
@@ -603,10 +629,7 @@ protected:
         if (conf_.TaskKind==mltkJump || conf_.TaskKind==mltkMove || conf_.TaskKind==mltkMoveA)
         {
           if ((fallen_down=fallenDown()))
-          {
-            TSingleReward dreward=-4.0l;
-            signal_damage_reward.ExecAll(dreward);
-          }
+            signal_damage_reward.ExecAll(conf_.FallingDownPenalty);
         }
       }
 
@@ -689,64 +712,17 @@ int main(int argc, char**argv)
 {
   TOptionParser option(argc,argv);
   option["notex"]; option["noshadow"]; option["noshadows"]; option["pause"];  // these options are used by ODE
-  string outdir= option("outdir", "result/");
   bool console_mode= ConvertFromStr<bool>(option("console","false"));
 
   TAgent  agent;
-  if (option("agent")=="")
-    {LERROR("fatal! -agent option is needed."); lexit(df);}
-  /*load agent files*/{
-    TTokenizer tokenizer(option("agent"));
-    string agent_file;
-    while(!tokenizer.EOL())
-    {
-      tokenizer.ReadSeparators();
-      agent_file= tokenizer.ReadNonSeparators();
-      if (!LoadAgentFromFile(agent,agent_file))
-        {LERROR("failed to read "<<agent_file); lexit(df);}
-    }
-  }
+  std::ofstream debug;
+  if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
   MBasicLearningManager &lmanager = agent.ModuleAs<MBasicLearningManager>("lmanager");
   MHumanoidEnvironment &environment = agent.ModuleAs<MHumanoidEnvironment>("environment");
 
 
-  if (ConvertFromStr<bool>(option("available_mods","false")))
-  {
-    LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules(option("show_conf"));
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_mods","false")))
-  {
-    LMESSAGE("agent's modules:");
-    agent.ShowAllModules(option("show_conf"),cout);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("dot_mod","false")))
-  {
-    std::ofstream mdot((outdir+"manoi01-modules.dot").c_str());
-    agent.ExportToDOT(mdot);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_connect","false")))
-  {
-    LMESSAGE("agent's connections:");
-    agent.ShowAllConnections(cout);
-    return 0;
-  }
-
-  std::ofstream debug;
-  if (ConvertFromStr<bool>(option("dump_debug","false")))
-  {
-    debug.open((outdir+"manoi01-debug.dat").c_str());
-    agent.SetDebugStream (debug);
-    agent.SetAllModuleMode (TModuleInterface::mmDebug);
-  }
-
-
-  SaveAgentToFile (agent, outdir+"manoi01-before.agent");
-  // return 0;
+  agent.SaveToFile (agent.GetDataFileName("humanoid01-before.agent"));
 
   {
     stringstream optss;
@@ -785,7 +761,7 @@ int main(int argc, char**argv)
 
   /// result:
 
-  SaveAgentToFile (agent, outdir+"manoi01-after.agent");
+  agent.SaveToFile (agent.GetDataFileName("humanoid01-after.agent"));
 
   return 0;
 }

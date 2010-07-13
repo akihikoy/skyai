@@ -31,7 +31,7 @@ ngnet_nonzero.config ={
   }
 
 logger_ngnet.config ={
-    FileName = "XXXRESDIR/log-ngnet.dat"
+    FileName = "log-ngnet.dat"
     OrderOfColumns ={
         ["lmanager.out_episode_number"]= 1
         ["timer.out_cont_time"]= 2

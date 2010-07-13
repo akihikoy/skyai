@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
-#include <skyai/parser.h>
+#include <skyai/utility.h>
 #include <skyai/modules_core/learning_manager.h>
 #include <lora/bioloid.h>
 #include <lora/small_classes.h>
@@ -516,7 +516,6 @@ static bool Executing(true);
 int ExitCode(0);
 const TAgent *PtrAgent(NULL);
 MBioloidEnvironment  *PtrEnvironment(NULL);
-string OutDir;
 void SaveLearningParams ();
 void FinishLearningProc ();
 
@@ -600,18 +599,18 @@ void SaveLearningParams ()
 {
   static int params_index(0);
   std::string  suffix (IntToStr(params_index));
-  std::string  filename (OutDir+"rlbioloid-learning"+suffix+".agent");
+  std::string  filename (PtrAgent->GetDataFileName("rlbioloid-learning"+suffix+".agent"));
   LMESSAGE("writing learned parameters to "<<filename);
-  SaveAgentToFile (*PtrAgent, filename);
+  PtrAgent->SaveToFile (filename);
   params_index++;
 }
 //-------------------------------------------------------------------------------------------
 
 void FinishLearningProc ()
 {
-  std::string  filename (OutDir+"rlbioloid-after.agent");
+  std::string  filename (PtrAgent->GetDataFileName("rlbioloid-after.agent"));
   LMESSAGE("writing learned parameters to "<<filename);
-  SaveAgentToFile (*PtrAgent, filename);
+  PtrAgent->SaveToFile (filename);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -622,64 +621,18 @@ int main (int argc, const char **argv)
   signal(SIGQUIT,sig_handler);
 
   TOptionParser option(argc,argv);
-  OutDir= option("outdir", "result/rl/");
-  {ofstream ofs((OutDir+"exec").c_str()); SaveArguments(argc,argv,ofs); ofs.close();}
 
   // [-- setup the agent
 
   TAgent  agent;
-  if (option("agent")=="")
-    {LERROR("fatal! -agent option is needed."); lexit(df);}
-  /*load agent files*/{
-    TTokenizer tokenizer(option("agent"));
-    string agent_file;
-    while(!tokenizer.EOL())
-    {
-      tokenizer.ReadSeparators();
-      agent_file= tokenizer.ReadNonSeparators();
-      if (!LoadAgentFromFile(agent,agent_file))
-        {LERROR("failed to read "<<agent_file); lexit(df);}
-    }
-  }
+  std::ofstream debug;
+  if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
   MManualLearningManager &lmanager = agent.ModuleAs<MManualLearningManager>("lmanager");
   MBioloidEnvironment &environment = agent.ModuleAs<MBioloidEnvironment>("environment");
 
 
-  if (ConvertFromStr<bool>(option("available_mods","false")))
-  {
-    LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules(option("show_conf"));
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_mods","false")))
-  {
-    LMESSAGE("agent's modules:");
-    agent.ShowAllModules(option("show_conf"),cout);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("dot_mod","false")))
-  {
-    std::ofstream mdot((OutDir+"rlbioloid-modules.dot").c_str());
-    agent.ExportToDOT(mdot);
-    return 0;
-  }
-  if (ConvertFromStr<bool>(option("show_connect","false")))
-  {
-    LMESSAGE("agent's connections:");
-    agent.ShowAllConnections(cout);
-    return 0;
-  }
-
-  std::ofstream debug;
-  if (ConvertFromStr<bool>(option("dump_debug","false")))
-  {
-    debug.open((OutDir+"rlbioloid-debug.dat").c_str());
-    agent.SetDebugStream (debug);
-    agent.SetAllModuleMode (TModuleInterface::mmDebug);
-  }
-
-  SaveAgentToFile (agent, OutDir+"rlbioloid-before.agent");
+  agent.SaveToFile (agent.GetDataFileName("rlbioloid-before.agent"));
 
   // setup the agent --]
 

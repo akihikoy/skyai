@@ -34,6 +34,73 @@ namespace loco_rabbits
 
 
 //===========================================================================================
+/*!\brief just forward a signal (num of args is 0) */
+class MForwarder0
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface      TParent;
+  typedef MForwarder0           TThis;
+  SKYAI_MODULE_NAMES(MForwarder0)
+
+  MForwarder0 (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      slot_in        (*this),
+      signal_out     (*this)
+    {
+      add_slot_port   (slot_in    );
+      add_signal_port (signal_out );
+    }
+
+protected:
+
+  MAKE_SLOT_PORT(slot_in, void, (void), (), TThis);
+  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
+
+  virtual void slot_in_exec (void)
+    {
+      signal_out.ExecAll();
+    }
+
+};  // end of MForwarder0
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief just forward a signal (num of args is 1) */
+template <typename t_arg1>
+class MForwarder1
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface      TParent;
+  typedef MForwarder1<t_arg1>   TThis;
+  SKYAI_MODULE_NAMES(MForwarder1)
+
+  MForwarder1 (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      slot_in        (*this),
+      signal_out     (*this)
+    {
+      add_slot_port   (slot_in    );
+      add_signal_port (signal_out );
+    }
+
+protected:
+
+  MAKE_SLOT_PORT(slot_in, void, (const t_arg1 &a1), (a1), TThis);
+  MAKE_SIGNAL_PORT(signal_out, void (const t_arg1 &), TThis);
+
+  virtual void slot_in_exec (const t_arg1 &a1)
+    {
+      signal_out.ExecAll(a1);
+    }
+
+};  // end of MForwarder1
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 /*!\brief emit the first signal caught at slot_in since reset
     \todo implement a "signature style" rather than \p t_arg1 */
 template <typename t_arg1>
@@ -254,6 +321,12 @@ protected:
 
 
 
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TComposite1)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEmitOnce,TReal)

@@ -68,7 +68,7 @@ static bool open_log_file (ofstream &log_file, const string &filename, TFileOver
 
 /*virtual*/void MSimpleDataLoggerInterface::slot_initialize_exec (void)
 {
-  open_log_file (log_file_, conf_.FileName, conf_.FileOverwritePolicy);
+  open_log_file (log_file_, Agent().GetDataFileName(conf_.FileName), conf_.FileOverwritePolicy);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -254,7 +254,7 @@ SKYAI_ADD_MODULE(MUniversalDataLogger)
   if (conf_.FileNumFillZero)  filename= conf_.FilePrefix + IntToStr(get_file_number(),conf_.FileNumDigits) + conf_.FileSuffix;
   else                        filename= conf_.FilePrefix + IntToStr(get_file_number()) + conf_.FileSuffix;
   std::ofstream  ofs;
-  if (!open_log_file (ofs, filename, conf_.FileOverwritePolicy))  return;
+  if (!open_log_file (ofs, Agent().GetDataFileName(filename), conf_.FileOverwritePolicy))  return;
   ofs<< get_real_matrix();
   ofs.close();
 }

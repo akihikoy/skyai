@@ -43,6 +43,8 @@ typedef std::vector<TInt> TIntVector;
 typedef ColumnVector      TRealVector;
 typedef Matrix            TRealMatrix;
 
+typedef std::vector<TRealVector>  TRealVectorSet;   //!< used in MActionSetDCOB, MBasisFunctionsDCOBNGnet
+
 typedef TInt              TDiscreteState;
 typedef TInt              TDiscreteAction;
 typedef TRealVector       TContinuousState;

@@ -21,7 +21,7 @@ connect  minmax_elem.out_max_value          , logger_ngnet.in_data_real
 connect  tr_state.out_x                     , logger_ngnet.in_data_real_vector
 
 logger_ngnet.config ={
-    FileName = "XXXRESDIR/log-ngnet.dat"
+    FileName = "log-ngnet.dat"
     OrderOfColumns ={
         ["lmanager.out_episode_number"]= 1
         ["timer.out_cont_time"]= 2

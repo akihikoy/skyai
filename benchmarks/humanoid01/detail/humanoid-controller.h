@@ -438,6 +438,10 @@ inline void _get_joint_angvel (DECL_STATE1,int start)
     exit(1);
   }
 }
+inline void getJointAngVel (DECL_STATE1,int start=0)
+{
+  _get_joint_angvel (state1, start);
+}
 
 inline void getJointState (DECL_STATE1, int start=0)
 {
@@ -500,6 +504,14 @@ inline void getBaseState (DECL_STATE1)
 {
   _get_base_posrot(state1, 0);
   _get_base_prvel(state1, POSROT_DIM);
+}
+inline void getBasePosRot (DECL_STATE1)
+{
+  _get_base_posrot(state1, 0);
+}
+inline void getBaseVel (DECL_STATE1)
+{
+  _get_base_prvel(state1, 0);
 }
 
 inline void getKinState (DECL_STATE1)

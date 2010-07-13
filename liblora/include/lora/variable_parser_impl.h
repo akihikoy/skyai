@@ -116,8 +116,8 @@ public:
 
   TParserAgent () : error_(false) {}
 
-  boost::spirit::classic::parse_info<t_iterator> Parse (TVariable &var, t_iterator first, t_iterator last);
-  void StartSubParse (TVariable &var, int line_num);
+  boost::spirit::classic::parse_info<t_iterator> Parse (TVariable &var, const std::string &file_name, t_iterator first, t_iterator last);
+  void StartSubParse (TVariable &var, int line_num, const std::string &file_name);
   bool EndSubParse (int *line_num);
 
   bool Error() const {return error_;}
@@ -184,6 +184,7 @@ private:
   std::list<std::string>  id_stack_;
   bool error_;
   int  line_num_;
+  std::string  file_name_;
 
   TLiteralList literal_stack_;
   bool in_literal_list_;
@@ -265,13 +266,13 @@ private:
   try {
 #define CONV_ERR_CATCHER_E  \
   } catch (boost::bad_lexical_cast &) {                                                                \
-    std::cout<<"(l."<<line_num_<<") bad_lexical_cast: "<<join_iterators(first,last)<<std::endl;        \
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") bad_lexical_cast: "<<join_iterators(first,last)<<std::endl;  \
     lexit(df);                                                                                         \
   } catch (std::string &s) {                                                                           \
-    std::cout<<"(l."<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;                 \
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;  \
     lexit(df);                                                                                         \
   } catch (...) {                                                                                      \
-    std::cout<<"(l."<<line_num_<<") bad type conversion: "<<join_iterators(first,last)<<std::endl;     \
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") bad type conversion: "<<join_iterators(first,last)<<std::endl;  \
     lexit(df);                                                                                         \
   }
 
@@ -279,19 +280,20 @@ private:
   try {
 #define VAR_ERR_CATCHER_E  \
   } catch (std::string &s) {                                                             \
-    std::cout<<"(l."<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;   \
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;   \
     lexit(df);                                                                           \
   } catch (...) {                                                                        \
-    std::cout<<"(l."<<line_num_<<") fatal!: "<<join_iterators(first,last)<<std::endl;    \
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") fatal!: "<<join_iterators(first,last)<<std::endl;    \
     lexit(df);                                                                           \
   }
 
 TEMPLATE_DEC
-boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, t_iterator first, t_iterator last)
+boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, const std::string &file_name, t_iterator first, t_iterator last)
 {
   using namespace boost::spirit::classic;
   error_= false;
   line_num_= 1;
+  file_name_= file_name;
   in_literal_list_= false;
   TCodeParser<t_iterator> parser(*this);
   variable_stack_.push_back(TExtVariable(var));
@@ -301,23 +303,24 @@ boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, t_
   LASSERT(!variable_stack_.empty());
   variable_stack_.pop_back();
 
-  #define STACK_CHECH(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
-  STACK_CHECH(variable_stack_);
-  STACK_CHECH(context_stack_);
-  STACK_CHECH(id_stack_);
-  STACK_CHECH(literal_stack_);
-  #undef STACK_CHECH
+  #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
+  STACK_CHECK(variable_stack_);
+  STACK_CHECK(context_stack_);
+  STACK_CHECK(id_stack_);
+  STACK_CHECK(literal_stack_);
+  #undef STACK_CHECK
 
   return res;
 }
 //-------------------------------------------------------------------------------------------
 
 TEMPLATE_DEC
-void XCLASS::StartSubParse (TVariable &var, int line_num)
+void XCLASS::StartSubParse (TVariable &var, int line_num, const std::string &file_name)
 {
   using namespace boost::spirit::classic;
   error_= false;
   line_num_= line_num;
+  file_name_= file_name;
   in_literal_list_= false;
   variable_stack_.push_back(TExtVariable(var));
 }
@@ -329,12 +332,12 @@ bool XCLASS::EndSubParse (int *line_num)
   LASSERT(!variable_stack_.empty());
   variable_stack_.pop_back();
 
-  #define STACK_CHECH(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
-  STACK_CHECH(variable_stack_);
-  STACK_CHECH(context_stack_);
-  STACK_CHECH(id_stack_);
-  STACK_CHECH(literal_stack_);
-  #undef STACK_CHECH
+  #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
+  STACK_CHECK(variable_stack_);
+  STACK_CHECK(context_stack_);
+  STACK_CHECK(id_stack_);
+  STACK_CHECK(literal_stack_);
+  #undef STACK_CHECK
 
   if(line_num) *line_num= line_num_;
 
@@ -365,7 +368,7 @@ void XCLASS::CloseByBrace (t_iterator first, t_iterator last)
     context_stack_.pop_back();
     break;
   default:
-    LERROR("(l."<<line_num_<<") invalid `}'");
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") invalid `}'"<<std::endl;
     lexit(df);
     break;
   }
@@ -381,9 +384,9 @@ TEMPLATE_DEC
 void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
   error_= true;
-  std::cerr<<ioscc::red<<"Syntax error (l."<<line_num_<<"):"<<std::endl<<"  > ";
+  std::cout<<"("<<file_name_<<":"<<line_num_<<") syntax error"<<std::endl<<"  > ";
   for(;first!=last;++first)
-    std::cerr<<*first;
+    std::cout<<*first;
   std::cout<<std::endl;
 }
 
@@ -463,7 +466,7 @@ void XCLASS::PushLiteralString (t_iterator first, t_iterator last)
   }
   else
   {
-    LERROR("(l."<<line_num_<<") string type cannot be an element of a list literal");
+    std::cout<<"("<<file_name_<<":"<<line_num_<<") string type cannot be an element of a list literal"<<std::endl;
     LASSERT(!literal_stack_.empty());
     literal_stack_.back().LRealList.push_back(0.0l);
   }

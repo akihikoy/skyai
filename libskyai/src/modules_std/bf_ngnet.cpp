@@ -43,10 +43,11 @@ override void MBasisFunctionsNGnet::slot_initialize_exec (void)
 {
   if (conf_.NGnetFileName=="")
     {LERROR("conf_.NGnetFileName must be specified!"); lexit(df);}
-  else if (!FileExists(conf_.NGnetFileName))
+  string  filename(Agent().SearchFileName(conf_.NGnetFileName));
+  if (filename=="")
     {LERROR("NGnet file "<<conf_.NGnetFileName<<" does not exist!"); lexit(df);}
 
-  ngnet_.LoadFromFile (conf_.NGnetFileName);
+  ngnet_.LoadFromFile (filename);
   if (ngnet_.size()==0)
     {LERROR("no Gaussians in "<<conf_.NGnetFileName); lexit(df);}
   int state_dim= ngnet_.unit(0).mu().length();
@@ -68,7 +69,7 @@ override void MBasisFunctionsDCOBNGnet::slot_initialize_exec (void)
     calc_distance_to_nearest_bf (distance_to_nearest_bf_);
 
     center_state_set_.resize(ngnet_.size());
-    TCenterStateSet::iterator  csitr(center_state_set_.begin());
+    TRealVectorSet::iterator  csitr(center_state_set_.begin());
     for (TNGnet::const_iterator sitr(ngnet_.begin()); sitr!=ngnet_.end(); ++sitr,++csitr)
       (*csitr)= sitr->mu();
   }
@@ -77,7 +78,7 @@ override void MBasisFunctionsDCOBNGnet::slot_initialize_exec (void)
     calc_ext_distance_to_nearest_bf (distance_to_nearest_bf_);
 
     center_state_set_.resize(ngnet_.size());
-    TCenterStateSet::iterator  csitr(center_state_set_.begin());
+    TRealVectorSet::iterator  csitr(center_state_set_.begin());
     for (TNGnet::const_iterator sitr(ngnet_.begin()); sitr!=ngnet_.end(); ++sitr,++csitr)
       in_extract_proportional.GetFirst (sitr->mu(), *csitr);
   }

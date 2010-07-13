@@ -59,12 +59,23 @@ using namespace std;
 };
 //-------------------------------------------------------------------------------------------
 
+TOptionParser::TOptionParser (int argc, const char *const*const argv)
+{
+  stringstream ss;
+  SaveArguments (argc, argv, ss);
+  cmd_line= ss.str();
+  parse_from_arglist(argc-1,argv+1);
+}
+//-------------------------------------------------------------------------------------------
+
 /*!\brief parse from a string
   \note option are separated by white spaces;
         strings like "x x" or 'y y' are recognized as a single word
   \note backslash \\ escapes a following letter */
 TOptionParser::TOptionParser (const std::string &argline)
 {
+  cmd_line= argline;
+
   list<string> arglist;
   stringstream blockss;
   bool in_str_s(false), in_str_d(false), escaped(false);

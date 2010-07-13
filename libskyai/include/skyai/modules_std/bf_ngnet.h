@@ -161,15 +161,13 @@ protected:
 
   TDCOBNGnetConfigurations  conf_dcobngnet_;
 
-  typedef std::vector<TRealVector>  TCenterStateSet;
-
   TRealVector distance_to_nearest_bf_;
-  TCenterStateSet   center_state_set_;
+  TRealVectorSet   center_state_set_;
 
   //!\brief distance vector to the nearest basis function from each BF (dim == num. of BFs)
   MAKE_OUT_PORT(out_distance_to_nearest_bf, const TRealVector&, (void), (), TThis);
 
-  MAKE_OUT_PORT(out_center_state_set, const TCenterStateSet&, (void), (), TThis);
+  MAKE_OUT_PORT(out_center_state_set, const TRealVectorSet&, (void), (), TThis);
 
   /*!\brief extract proportional elements of a state (Cp)
       \note in_extract_proportional is not required always.
@@ -180,7 +178,7 @@ protected:
 
   virtual const TRealVector&  out_distance_to_nearest_bf_get (void) const
     {return distance_to_nearest_bf_;}
-  virtual const TCenterStateSet&  out_center_state_set_get (void) const
+  virtual const TRealVectorSet&  out_center_state_set_get (void) const
     {return center_state_set_;}
 
   /*!\brief for every basis function, calculate the distance to the nearest BF

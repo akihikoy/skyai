@@ -147,11 +147,11 @@ avf_linear.config={
   }
 
 logger_eps_return.config={
-    FileName = "XXXRESDIR/log-eps-ret.dat"
+    FileName = "log-eps-ret.dat"
   }
 
 logger_action_result.config ={
-    FileName = "XXXRESDIR/log-action-res.dat"
+    FileName = "log-action-res.dat"
     OrderOfColumns ={
         ["lmanager.out_episode_number"]= 1
         ["timer.out_cont_time"]= 2
