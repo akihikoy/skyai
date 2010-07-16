@@ -70,30 +70,47 @@ const std::string  TPortInterface::UniqueCode() const
 // class TModuleInterface
 //===========================================================================================
 
-TPortInterface* TModuleInterface::PortPtr (const std::string &v_name)
-{
-#define X_SEARCH_PORT(x_type,x_set_name)                                    \
-  {                                                                         \
-    TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);  \
-    if(item!=x_set_name.end())  return  (item->second);                     \
-  }
-  X_SEARCH_PORT(TOutPortInterface        , out_ports_    )
-  X_SEARCH_PORT(TInPortInterface         , in_ports_     )
-  X_SEARCH_PORT(TSignalPortInterface     , signal_ports_ )
-  X_SEARCH_PORT(TSlotPortInterface       , slot_ports_   )
-#undef X_SEARCH_PORT
+#define X_SEARCH_PORT(x_type,x_set_name)                                  \
+  TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);  \
+  if(item!=x_set_name.end())  return  (item->second);                     \
   return NULL;
+
+TOutPortInterface* TModuleInterface::OutPortPtr (const std::string &v_name)
+{
+  X_SEARCH_PORT(TOutPortInterface        , out_ports_    )
 }
+const TOutPortInterface* TModuleInterface::OutPortPtr (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TOutPortInterface        , out_ports_    )
+}
+TInPortInterface* TModuleInterface::InPortPtr (const std::string &v_name)
+{
+  X_SEARCH_PORT(TInPortInterface         , in_ports_     )
+}
+const TInPortInterface* TModuleInterface::InPortPtr (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TInPortInterface         , in_ports_     )
+}
+TSignalPortInterface* TModuleInterface::SignalPortPtr (const std::string &v_name)
+{
+  X_SEARCH_PORT(TSignalPortInterface     , signal_ports_ )
+}
+const TSignalPortInterface* TModuleInterface::SignalPortPtr (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TSignalPortInterface     , signal_ports_ )
+}
+TSlotPortInterface* TModuleInterface::SlotPortPtr (const std::string &v_name)
+{
+  X_SEARCH_PORT(TSlotPortInterface       , slot_ports_   )
+}
+const TSlotPortInterface* TModuleInterface::SlotPortPtr (const std::string &v_name) const
+{
+  X_SEARCH_PORT(TSlotPortInterface       , slot_ports_   )
+}
+
+#undef X_SEARCH_PORT
 //-------------------------------------------------------------------------------------------
 
-TPortInterface&  TModuleInterface::Port (const std::string &v_name)
-{
-  TPortInterface *p= PortPtr(v_name);
-  if(p)  return *p;
-  LERROR("module "<<ModuleUniqueCode()<<" does not have the specified port "<<v_name);
-  lexit(df); return dummy_return<TPortInterface>::value();
-}
-//-------------------------------------------------------------------------------------------
 
 #define X_SEARCH_PORT(x_type,x_set_name,x_error_msg)                               \
     TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);         \
@@ -156,6 +173,61 @@ const TSlotPortInterface&  TModuleInterface::SlotPort (const std::string &v_name
 #undef X_SEARCH_PORT
 //-------------------------------------------------------------------------------------------
 
+TPortInterface* TModuleInterface::PortPtr (const std::string &v_name)
+{
+  TPortInterface *p(NULL);
+  if ((p= OutPortPtr    (v_name))!=NULL)  return p;
+  if ((p= InPortPtr     (v_name))!=NULL)  return p;
+  if ((p= SignalPortPtr (v_name))!=NULL)  return p;
+  if ((p= SlotPortPtr   (v_name))!=NULL)  return p;
+  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+const TPortInterface* TModuleInterface::PortPtr (const std::string &v_name) const
+{
+  const TPortInterface *p(NULL);
+  if ((p= OutPortPtr    (v_name))!=NULL)  return p;
+  if ((p= InPortPtr     (v_name))!=NULL)  return p;
+  if ((p= SignalPortPtr (v_name))!=NULL)  return p;
+  if ((p= SlotPortPtr   (v_name))!=NULL)  return p;
+  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+TPortInterface&  TModuleInterface::Port (const std::string &v_name)
+{
+  TPortInterface *p= PortPtr(v_name);
+  if(p)  return *p;
+  LERROR("module "<<ModuleUniqueCode()<<" does not have the specified port "<<v_name);
+  lexit(df); return dummy_return<TPortInterface>::value();
+}
+//-------------------------------------------------------------------------------------------
+
+const TPortInterface&  TModuleInterface::Port (const std::string &v_name) const
+{
+  const TPortInterface *p= PortPtr(v_name);
+  if(p)  return *p;
+  LERROR("module "<<ModuleUniqueCode()<<" does not have the specified port "<<v_name);
+  lexit(df); return dummy_return<TPortInterface>::value();
+}
+//-------------------------------------------------------------------------------------------
+
+std::string TModuleInterface::SearchPortByPtr(const TPortInterface *port_ptr) const
+{
+#define X_SEARCH_PORT(x_type,x_port)  \
+  for (TPortSet<x_type*>::type::const_iterator itr(x_port.begin()),last(x_port.end()); itr!=last; ++itr)  \
+    if (itr->second==port_ptr)  return itr->first;
+  X_SEARCH_PORT(TOutPortInterface    , out_ports_   );
+  X_SEARCH_PORT(TInPortInterface     , in_ports_    );
+  X_SEARCH_PORT(TSignalPortInterface , signal_ports_);
+  X_SEARCH_PORT(TSlotPortInterface   , slot_ports_  );
+#undef X_SEARCH_PORT
+  return "";
+}
+//-------------------------------------------------------------------------------------------
+
+
 /*static*/void TModuleInterface::ParseShowConfOption (const std::string &option, TModuleInterface::TShowConf &conf)
 {
   TOptionParser poption(option);
@@ -212,6 +284,56 @@ void TModuleInterface::ShowModule (const std::string &option, std::ostream &os) 
 }
 //-------------------------------------------------------------------------------------------
 
+#define PORT_EXISTING_CHECK(x_port_name) \
+    do{if (PortPtr(x_port_name)!=NULL)   \
+      {LERROR("in module "<<ModuleUniqueCode()<<", port "<<x_port_name<<" already exists"); lexit(df);}}while(0)
+/*protected*/void TModuleInterface::add_out_port    (TOutPortInterface    &v_port, const std::string &v_name)
+{
+  PORT_EXISTING_CHECK(v_name);
+  out_ports_[v_name]= &v_port;
+}
+/*protected*/void TModuleInterface::add_in_port     (TInPortInterface     &v_port, const std::string &v_name)
+{
+  PORT_EXISTING_CHECK(v_name);
+  in_ports_[v_name]= &v_port;
+}
+/*protected*/void TModuleInterface::add_signal_port (TSignalPortInterface &v_port, const std::string &v_name)
+{
+  PORT_EXISTING_CHECK(v_name);
+  signal_ports_[v_name]= &v_port;
+}
+/*protected*/void TModuleInterface::add_slot_port   (TSlotPortInterface   &v_port, const std::string &v_name)
+{
+  PORT_EXISTING_CHECK(v_name);
+  slot_ports_[v_name]= &v_port;
+}
+#undef PORT_EXISTING_CHECK
+//-------------------------------------------------------------------------------------------
+
+/*protected*/void TModuleInterface::add_out_port    (TOutPortInterface    &v_port)
+{
+  add_out_port(v_port,v_port.Name());
+}
+/*protected*/void TModuleInterface::add_in_port     (TInPortInterface     &v_port)
+{
+  add_in_port(v_port,v_port.Name());
+}
+/*protected*/void TModuleInterface::add_signal_port (TSignalPortInterface &v_port)
+{
+  add_signal_port(v_port,v_port.Name());
+}
+/*protected*/void TModuleInterface::add_slot_port   (TSlotPortInterface   &v_port)
+{
+  add_slot_port(v_port,v_port.Name());
+  // [-- for signal forwarding
+  if (v_port.ForwardingSinalPortBase().Name() != SKYAI_DISABLED_FWD_PORT_NAME)
+  {
+    add_signal_port(v_port.ForwardingSinalPortBase(), v_port.ForwardingSinalPortBase().Name());
+  }
+  // for signal forwarding  --]
+}
+
+#if 0
 #define PORT_EXISTING_CHECK(x_port) \
     do{if (PortPtr(x_port.Name())!=NULL)  \
       {LERROR("in module "<<ModuleUniqueCode()<<", port "<<x_port.Name()<<" already exists"); lexit(df);}}while(0)
@@ -245,66 +367,96 @@ void TModuleInterface::ShowModule (const std::string &option, std::ostream &os) 
 }
 #undef PORT_EXISTING_CHECK
 //-------------------------------------------------------------------------------------------
+#endif
 
-
-//===========================================================================================
-// class TAgent
-//===========================================================================================
-
-//! clear all modules and path_list_ (memories are freed)
-void TAgent::Clear()
+void TModuleInterface::clear_ports()
 {
-  for(TModuleSet::iterator itr(modules_.begin()), ilast(modules_.end()); itr!=ilast; ++itr)
+  out_ports_   .clear();
+  in_ports_    .clear();
+  signal_ports_.clear();
+  slot_ports_  .clear();
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// class TCompositeModule
+//===========================================================================================
+
+//! clear all modules (memories are freed)
+void TCompositeModule::Clear()
+{
+  clear_ports();
+
+  for(TModuleSet::iterator itr(sub_modules_.begin()), ilast(sub_modules_.end()); itr!=ilast; ++itr)
   {
     if(itr->second)  {delete itr->second;}
     itr->second=NULL;
   }
-  modules_.clear();
 
-  if(path_list_)  delete path_list_;
-  path_list_= NULL;
+  sub_modules_.clear();
 }
 //-------------------------------------------------------------------------------------------
 
-TModuleInterface& TAgent::Module (const std::string &module_name)
+TModuleInterface& TCompositeModule::SubModule (const std::string &module_name)
 {
-  TModuleInterface *m (find_module(module_name,/*error=*/true));
+  TModuleInterface *m (find_sub_module(module_name,/*error=*/true));
   if (m)  return *m;
   lexit(df); return dummy_return<TModuleInterface&>::value();
 }
 //-------------------------------------------------------------------------------------------
 
-const TModuleInterface& TAgent::Module (const std::string &module_name) const
+const TModuleInterface& TCompositeModule::SubModule (const std::string &module_name) const
 {
-  TModuleInterface *m (find_module(module_name,/*error=*/true));
+  TModuleInterface *m (find_sub_module(module_name,/*error=*/true));
   if (m)  return *m;
   lexit(df); return dummy_return<TModuleInterface&>::value();
 }
 //-------------------------------------------------------------------------------------------
 
 //! create a module whose type is specified by the string v_module_class
-TModuleInterface&  TAgent::AddModule (const std::string &v_module_class, const std::string &v_instance_name)
+TModuleInterface&  TCompositeModule::AddSubModule (const std::string &v_module_class, const std::string &v_instance_name)
 {
-  if (modules_.find(v_instance_name)!=modules_.end())
+  if (sub_modules_.find(v_instance_name)!=sub_modules_.end())
   {
     LERROR("module "<<v_instance_name<<" is already registered");
     lexit(df);
   }
-  TModuleManager::TGenerator  module_generator (TModuleManager::Generator(v_module_class));
-  if (module_generator==NULL)
+
+  TModuleInterface *p(NULL);
+
+  if (Agent().CompositeModuleGenerator().GeneratorExists(v_module_class))
   {
-    LERROR("cannot generate an instance of "<<v_module_class);
-    lexit(df);
+    TCompositeModule *cp = new TCompositeModule(v_module_class, v_instance_name);
+    cp->SetAgent(Agent());
+    cp->SetParentCModule(this);
+    if (!Agent().CompositeModuleGenerator().Create(*cp, v_module_class, v_instance_name))
+    {
+      delete cp; cp=NULL;
+      lexit(df);
+    }
+    p= cp;
   }
-  TModuleInterface *p= module_generator(v_instance_name);
-  // TModuleInterface *p= TModuleManager::Generator(v_module_class)(v_instance_name);
-  modules_[v_instance_name]= p;
-  p->SetAgent(*this);
+  else
+  {
+    TModuleManager::TGenerator  module_generator (TModuleManager::Generator(v_module_class));
+    if (module_generator==NULL)
+    {
+      LERROR("cannot generate an instance of "<<v_module_class);
+      lexit(df);
+    }
+    p= module_generator(v_instance_name);
+    p->SetAgent(Agent());
+    p->SetParentCModule(this);
+  }
+
+  sub_modules_[v_instance_name]= p;
+
   return *p;
 }
 //-------------------------------------------------------------------------------------------
 
-bool TAgent::ConnectIO(
+bool TCompositeModule::SubConnectIO(
     TModuleInterface &start_module, const std::string &out_port_name,
     TModuleInterface &end_module,   const std::string &in_port_name)
 {
@@ -317,7 +469,7 @@ bool TAgent::ConnectIO(
 }
 //-------------------------------------------------------------------------------------------
 
-bool TAgent::ConnectEvent(
+bool TCompositeModule::SubConnectEvent(
     TModuleInterface &start_module, const std::string &signal_port_name,
     TModuleInterface &end_module,   const std::string &slot_port_name)
 {
@@ -331,7 +483,7 @@ bool TAgent::ConnectEvent(
 //-------------------------------------------------------------------------------------------
 
 /*! add edge.  the port types are automatically determined */
-bool TAgent::Connect(
+bool TCompositeModule::SubConnect(
     TModuleInterface &start_module, const std::string &start_port_name,
     TModuleInterface &end_module,   const std::string &end_port_name)
 {
@@ -345,14 +497,14 @@ bool TAgent::Connect(
 //-------------------------------------------------------------------------------------------
 
 /*! add edge. the modules are indicated by names. the port types are automatically determined */
-bool TAgent::Connect(
+bool TCompositeModule::SubConnect(
     const std::string &start_module_name, const std::string &start_port_name,
     const std::string &end_module_name,   const std::string &end_port_name)
 {
-  TModuleSet::iterator itr_start_module (modules_.find(start_module_name));
-  if (itr_start_module==modules_.end())  {LERROR("there is no module named "<<start_module_name);}
-  TModuleSet::iterator itr_end_module (modules_.find(end_module_name));
-  if (itr_end_module==modules_.end())  {LERROR("there is no module named "<<end_module_name);}
+  TModuleSet::iterator itr_start_module (sub_modules_.find(start_module_name));
+  if (itr_start_module==sub_modules_.end())  {LERROR("there is no module named "<<start_module_name);}
+  TModuleSet::iterator itr_end_module (sub_modules_.find(end_module_name));
+  if (itr_end_module==sub_modules_.end())  {LERROR("there is no module named "<<end_module_name);}
   TPortInterface &start (itr_start_module->second->Port(start_port_name));
   TPortInterface &end (itr_end_module->second->Port(end_port_name));
 
@@ -363,38 +515,47 @@ bool TAgent::Connect(
 //-------------------------------------------------------------------------------------------
 
 //! \todo implement Disconnect
-void TAgent::Disconnect(
+void TCompositeModule::SubDisconnect(
     TModuleInterface &start_module, const std::string &start_port_name,
     TModuleInterface &end_module,   const std::string &end_port_name)
 {
-  FIXME("TAgent::Disconnect is not implemented yet..orz..");
+  FIXME("TCompositeModule::SubDisconnect is not implemented yet..orz..");
+}
+//-------------------------------------------------------------------------------------------
+
+//! \todo implement Disconnect
+void TCompositeModule::SubDisconnect(
+    const std::string &start_module_name, const std::string &start_port_name,
+    const std::string &end_module_name,   const std::string &end_port_name)
+{
+  FIXME("TCompositeModule::SubDisconnect is not implemented yet..orz..");
 }
 //-------------------------------------------------------------------------------------------
 
 
 /*!\brief for each module, apply the function f */
-void TAgent::ForEachModule (boost::function<bool(TModuleInterface* module)> f)
+void TCompositeModule::ForEachSubModule (boost::function<bool(TModuleInterface* module)> f)
 {
-  // for each module in modules_ :
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
     if (!f(mod_itr->second))  break;
 }
 //-------------------------------------------------------------------------------------------
 
 /*!\brief for each module, apply the function f */
-void TAgent::ForEachModule (boost::function<bool(const TModuleInterface* module)> f) const
+void TCompositeModule::ForEachSubModule (boost::function<bool(const TModuleInterface* module)> f) const
 {
-  // for each module in modules_ :
-  for(TModuleSet::const_iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
     if (!f(mod_itr->second))  break;
 }
 //-------------------------------------------------------------------------------------------
 
 /*!\brief for each connected port, apply the function f */
-void TAgent::ForEachConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f)
+void TCompositeModule::ForEachSubConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f)
 {
-  // for each module in modules_ :
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
     // for each out-port :
     for (TModuleInterface::TPortSet<TOutPortInterface*>::type::iterator
@@ -420,10 +581,10 @@ void TAgent::ForEachConnection (boost::function<bool(TPortInterface* from_port_p
 //-------------------------------------------------------------------------------------------
 
 /*!\brief for each connected port, apply the function f */
-void TAgent::ForEachConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const
+void TCompositeModule::ForEachSubConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const
 {
-  // for each module in modules_ :
-  for(TModuleSet::const_iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
     // for each out-port :
     for (TModuleInterface::TPortSet<TOutPortInterface*>::type::const_iterator
@@ -448,93 +609,84 @@ void TAgent::ForEachConnection (boost::function<bool(const TPortInterface* from_
 }
 //-------------------------------------------------------------------------------------------
 
-// NOTE: the following member functions are defined in parser.cpp
-// bool TAgent::LoadFromFile (const std::string &filename, bool *is_last, std::list<std::string> *included_list);
-// bool TAgent::SaveToFile (const std::string &filename) const;
 
-/*!\brief add dir_name (native format path) to the path-list */
-void TAgent::AddPath (const std::string &dir_name)
+/*!\brief export a port sub_module_name.port_name as export_name */
+bool TCompositeModule::ExportPort (const std::string &sub_module_name, const std::string &port_name, const std::string &export_name)
 {
-  using namespace boost::filesystem;
-  if (path_list_==NULL)  path_list_= new std::list<path>;
+  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+"."+port_name, export_name));
 
-  path_list_->push_back (complete(path(dir_name,native)));
+  TModuleInterface  &sub_module(SubModule(sub_module_name));
+  if (TOutPortInterface    *p= sub_module.OutPortPtr    (port_name))  {add_out_port    (*p,export_name); return true;}
+  if (TInPortInterface     *p= sub_module.InPortPtr     (port_name))  {add_in_port     (*p,export_name); return true;}
+  if (TSignalPortInterface *p= sub_module.SignalPortPtr (port_name))  {add_signal_port (*p,export_name); return true;}
+  if (TSlotPortInterface   *p= sub_module.SlotPortPtr   (port_name))  {add_slot_port   (*p,export_name); return true;}
+  LERROR(sub_module_name<<" does not have a port named "<<port_name);
+  lexit(df);
+  return false;
 }
 //-------------------------------------------------------------------------------------------
 
-/*!\brief add dir_list (list of native format path) to the path-list */
-void TAgent::AddPathList (const std::list<std::string> &dir_list)
+/*!\brief export a config-parameter sub_module_name.config.param_name as export_name */
+bool TCompositeModule::ExportConfig (const std::string &sub_module_name, const std::string &param_name, const std::string &export_name)
 {
-  using namespace boost::filesystem;
-  if (path_list_==NULL)  path_list_= new std::list<path>;
+  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+".config."+param_name, export_name));
 
-  for (std::list<std::string>::const_iterator itr(dir_list.begin()),last(dir_list.end()); itr!=last; ++itr)
-    path_list_->push_back (complete(path(*itr,native)));
-}
-//-------------------------------------------------------------------------------------------
-
-/*!\brief search filename from the path-list, return the native path */
-std::string TAgent::SearchFileName (const std::string &filename) const
-{
-  using namespace boost::filesystem;
-  path  file_path(filename,native), complete_path;
-  if (file_path.is_complete())
+  std::string id(param_name);
+  if (!ParamBoxConfig().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxConfig().GetMember(var_space::TVariable(id))))
   {
-    if (exists(file_path))  return file_path.file_string();
-    return "";
+    LERROR("failed to export "<<sub_module_name<<".config."<<param_name<<" as "<<export_name);
+    lexit(df);
+    return false;
   }
-
-  if (exists(complete_path= complete(file_path)))  return complete_path.file_string();
-
-  if (path_list_==NULL)  return "";
-
-  for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
-    if (exists(complete_path= (*itr)/file_path))
-      return complete_path.file_string();
-  return "";
+  return true;
 }
 //-------------------------------------------------------------------------------------------
 
-/*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
-std::string TAgent::GetDataFileName (const std::string &filename) const
+/*!\brief export a memory-parameter sub_module_name.memory.param_name as export_name */
+bool TCompositeModule::ExportMemory (const std::string &sub_module_name, const std::string &param_name, const std::string &export_name)
 {
-  using namespace boost::filesystem;
-  if (filename=="")  return complete(path(conf_.DataDir,native)).file_string();
+  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+".memory."+param_name, export_name));
 
-  path  file_path(filename,native), data_dir_path(conf_.DataDir,native);
-  return complete(data_dir_path/file_path).file_string();
+  std::string id(param_name);
+  if (!ParamBoxMemory().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxMemory().GetMember(var_space::TVariable(id))))
+  {
+    LERROR("failed to export "<<sub_module_name<<".memory."<<param_name<<" as "<<export_name);
+    lexit(df);
+    return false;
+  }
+  return true;
 }
 //-------------------------------------------------------------------------------------------
 
+// NOTE: the following member function is defined in parser.cpp
+// bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &indent) const;
 
-void TAgent::SetAllModuleMode (const TModuleInterface::TModuleMode &mm)
+
+void TCompositeModule::SetAllSubModuleMode (const TModuleInterface::TModuleMode &mm)
 {
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
     mod_itr->second->SetModuleMode (mm);
 }
 //-------------------------------------------------------------------------------------------
 
-void TAgent::SetDebugStream (std::ostream &os)
+void TCompositeModule::SetDebugStream (std::ostream &os)
 {
-  for(TModuleSet::iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
     mod_itr->second->SetDebugStream (os);
 }
 //-------------------------------------------------------------------------------------------
 
-
-void TAgent::ShowAllModules (const std::string &option, std::ostream &os) const
+void TCompositeModule::ShowAllSubModules (const std::string &option, std::ostream &os) const
 {
   TModuleInterface::TShowConf  show_conf;
   TModuleInterface::ParseShowConfOption (option, show_conf);
-  for(TModuleSet::const_iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
-    // os<< (*mod_itr)->ModuleUniqueCode() <<std::endl;
     mod_itr->second->ShowModule (show_conf, os);
   }
 }
 //-------------------------------------------------------------------------------------------
 
-//! DEBUG FUNCTION
 static bool print_connection (std::ostream *os, const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)
 {
   if (from_port_ptr && to_port_ptr)
@@ -544,11 +696,9 @@ static bool print_connection (std::ostream *os, const TPortInterface* from_port_
 }
 //-------------------------------------------------------------------------------------------
 
-//! DEBUG FUNCTION
-void TAgent::ShowAllConnections (std::ostream &os) const
+void TCompositeModule::ShowAllSubConnections (std::ostream &os) const
 {
-  ForEachConnection (boost::bind(&print_connection,&os,_1,_2));
-  // ForEachConnection (print_connection);
+  ForEachSubConnection (boost::bind(&print_connection,&os,_1,_2));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -587,7 +737,7 @@ static inline std::string port_name_to_disp_style (const std::string &name)
 
 /*! TEST: export module structure to a graph description language.
       Draw by graphviz - fdp (e.g. fdp -Tsvg FOO.dot -o BAR.svg) */
-void TAgent::ExportToDOT (std::ostream &os) const
+void TCompositeModule::ExportToDOT (std::ostream &os) const
 {
   const std::string indent("  ");
   std::string cluster_name, port_name;
@@ -608,8 +758,8 @@ void TAgent::ExportToDOT (std::ostream &os) const
   os<<indent<<"node [fontsize=10, fontname=\"Trebuchet MS\", penwidth=2, sep=100, fixedsize=1,margin=0];"<<std::endl;
   os<<std::endl;
 
-  // for each module in modules_ :
-  for(TModuleSet::const_iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
     cluster_name= "cluster_"+mod_itr->second->InstanceName();
     os<<indent<<"subgraph "<<cluster_name<<std::endl;
@@ -662,8 +812,8 @@ void TAgent::ExportToDOT (std::ostream &os) const
   os<<std::endl;
 
   // for edge between a slot port and its forwarding sinal port
-  // for each module in modules_ :
-  for(TModuleSet::const_iterator mod_itr(modules_.begin()), miend(modules_.end()); mod_itr!=miend; ++mod_itr)
+  // for each module in sub_modules_ :
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
     // for each slot-port :
     for (TModuleInterface::TPortSet<TSlotPortInterface*>::type::const_iterator
@@ -680,11 +830,129 @@ void TAgent::ExportToDOT (std::ostream &os) const
   os<<std::endl;
 
   // for each edge:
-  ForEachConnection (boost::bind(&export_connection_to_dot,&os,indent,_1,_2));
+  ForEachSubConnection (boost::bind(&export_connection_to_dot,&os,indent,_1,_2));
   os<<std::endl;
 
   os<<"}"<<std::endl;
 
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// class TCompositeModuleGenerator
+//===========================================================================================
+
+//! Added: return true, failed: return false
+bool TCompositeModuleGenerator::AddGenerator(const std::string &cmodule_name, const TGeneratorInfo &generator)
+{
+  if(GeneratorExists(cmodule_name))  {LERROR(cmodule_name<<" already exists.");  return false;}
+  generators_[cmodule_name]= generator;
+  cmodule_name_list_.push_back(cmodule_name);
+// LDEBUG("#####ADDED GENERATOR: "<<cmodule_name
+// <<"("<<generators_[cmodule_name].FileName<<":"<<generators_[cmodule_name].LineNum<<")"<<endl
+// <<generators_[cmodule_name].Script<<"#####");
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TCompositeModuleGenerator::GeneratorExists(const std::string &cmodule_name) const
+{
+  std::map<std::string, TGeneratorInfo>::const_iterator  itr(generators_.find(cmodule_name));
+  return itr!=generators_.end();
+}
+//-------------------------------------------------------------------------------------------
+
+// NOTE: the following member function is defined in parser.cpp
+// bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name) const;
+// bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::string &indent) const;
+
+
+//===========================================================================================
+// class TAgent
+//===========================================================================================
+
+//! clear all modules and path_list_ (memories are freed)
+void TAgent::Clear()
+{
+  modules_.Clear();
+
+  if(path_list_)  delete path_list_;
+  path_list_= NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+// NOTE: the following member functions are defined in parser.cpp
+// bool TAgent::LoadFromFile (const std::string &filename, bool *is_last, std::list<std::string> *included_list);
+// bool TAgent::SaveToFile (const std::string &filename) const;
+
+/*!\brief add dir_name (native format path) to the path-list */
+void TAgent::AddPath (const std::string &dir_name)
+{
+  using namespace boost::filesystem;
+  SetPathList().push_back (complete(path(dir_name,native)));
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief add dir_list (list of native format path) to the path-list */
+void TAgent::AddPathList (const std::list<std::string> &dir_list)
+{
+  using namespace boost::filesystem;
+  SetPathList();
+
+  for (std::list<std::string>::const_iterator itr(dir_list.begin()),last(dir_list.end()); itr!=last; ++itr)
+    path_list_->push_back (complete(path(*itr,native)));
+}
+//-------------------------------------------------------------------------------------------
+
+const std::list<boost::filesystem::path>&  TAgent::PathList()
+{
+  return SetPathList();
+}
+//-------------------------------------------------------------------------------------------
+const std::list<boost::filesystem::path>&  TAgent::PathList() const
+{
+  return *path_list_;
+}
+//-------------------------------------------------------------------------------------------
+std::list<boost::filesystem::path>&  TAgent::SetPathList()
+{
+  using namespace boost::filesystem;
+  if (path_list_==NULL)  path_list_= new std::list<path>;
+  return *path_list_;
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief search filename from the path-list, return the native path */
+std::string TAgent::SearchFileName (const std::string &filename) const
+{
+  using namespace boost::filesystem;
+  path  file_path(filename,native), complete_path;
+  if (file_path.is_complete())
+  {
+    if (exists(file_path))  return file_path.file_string();
+    return "";
+  }
+
+  if (exists(complete_path= complete(file_path)))  return complete_path.file_string();
+
+  if (path_list_==NULL)  return "";
+
+  for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
+    if (exists(complete_path= (*itr)/file_path))
+      return complete_path.file_string();
+  return "";
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
+std::string TAgent::GetDataFileName (const std::string &filename) const
+{
+  using namespace boost::filesystem;
+  if (filename=="")  return complete(path(conf_.DataDir,native)).file_string();
+
+  path  file_path(filename,native), data_dir_path(conf_.DataDir,native);
+  return complete(data_dir_path/file_path).file_string();
 }
 //-------------------------------------------------------------------------------------------
 

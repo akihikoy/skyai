@@ -59,7 +59,7 @@ void LoadFromStringListMap (std::map<t_key,t_value> &m, const TStringListEx &str
   for (; !str_list.IsEndOfList(); str_list.Increment())
   {
     line= str_list.Current();
-    trim_both(line);
+    TrimBoth(line);
     tokenizer.Init (line);
     str= tokenizer.ReadIdentifier();
     if (line=="" || IsComment(line))

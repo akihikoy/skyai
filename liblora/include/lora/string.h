@@ -64,7 +64,7 @@ inline bool IsComment (const std::string &str)
 void TrimLeft (std::string &str);
 void TrimRight (std::string &str);
 
-inline void trim_both (std::string &str)
+inline void TrimBoth (std::string &str)
 {
   TrimLeft (str);
   TrimRight (str);
@@ -383,6 +383,16 @@ template<> inline std::string TTokenizer::ReadValue<std::string>()   {return Rea
 //===========================================================================================
 // SEQUENCE OPERATIONS
 //===========================================================================================
+
+/*!\brief Write str to a stream os.  Each line is indented with indent */
+void IndentString (const std::string &str, std::ostream &os, const std::string &indent);
+struct TIndentString
+{
+  const std::string &Str;
+  const std::string &Indent;
+  TIndentString(const std::string &s, const std::string &i) : Str(s), Indent(i) {}
+};
+inline std::ostream& operator<<(std::ostream &lhs, const TIndentString &rhs)  {IndentString(rhs.Str,lhs,rhs.Indent); return lhs;}
 
 /*!\brief split 'str' at each 'separators' , store them into 'strlist'. if skip_blank=true, blank character("") is skipped
   \note t_string_container is instantiated with std::list\<std::string\>, and  std::vector\<std::string\>

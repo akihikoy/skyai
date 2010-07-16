@@ -45,6 +45,17 @@ void generic_function_call_generator (const TVariableMap &members, const TIdenti
 //-------------------------------------------------------------------------------------------
 
 
+//-------------------------------------------------------------------------------------------
+// supplementary functions
+//-------------------------------------------------------------------------------------------
+
+template <typename T>
+inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, T &x);
+template <>
+inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, TVariable &x);
+//-------------------------------------------------------------------------------------------
+
+
 //===========================================================================================
 class TVariable
 //===========================================================================================
@@ -146,7 +157,9 @@ public:
       f_write_to_stream_            .clear();
     }
 
-  void AddMemberVariable(const TIdentifier &id, TVariable var)  {members_[id]= var;}
+  template <typename T>
+  bool AddMemberVariable(const TIdentifier &id, T &x)  {return AddToVarMap<x>(members_,id,x);}
+  bool AddMemberVariable(const TIdentifier &id, TVariable var)  {return AddToVarMap(members_,id,var);}
 
   const TVariableMap& MemberMap() const {return members_;}
   TVariableMap& SetMemberMap()  {return members_;}
@@ -183,6 +196,12 @@ public:
   inline void GetEnd (TForwardIterator &res);
   inline void GetEnd (TConstForwardIterator &res) const;
   inline void WriteToStream (std::ostream &os, bool bare=false, const pt_string &indent="") const;
+
+  inline bool NoMember (void) const
+    {
+      if(IsPrimitive())  return false;
+      return members_.empty();
+    }
 
   //!\todo FIXME: add remove (erase) method
 
@@ -557,7 +576,6 @@ struct TVariable::generator<std::map<t_key,t_elem> >
 //-------------------------------------------------------------------------------------------
 
 
-
 //===========================================================================================
 // supplementary functions
 //===========================================================================================
@@ -569,6 +587,15 @@ inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, T &x
   if (itr!=mmap.end())
     {LWARNING(identifier<<" was already registered to the variable map."); return false;}
   mmap[identifier]= TVariable(x);
+  return true;
+}
+template <>
+inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, TVariable &x)
+{
+  TVariableMap::const_iterator itr=mmap.find(identifier);
+  if (itr!=mmap.end())
+    {LWARNING(identifier<<" was already registered to the variable map."); return false;}
+  mmap[identifier]= x;
   return true;
 }
 //-------------------------------------------------------------------------------------------

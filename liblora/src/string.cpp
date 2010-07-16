@@ -326,6 +326,16 @@ void ReadAllFromStr (std::stringstream &ss, std::string::const_iterator &first, 
 // SEQUENCE OPERATIONS
 //===========================================================================================
 
+/*!\brief Write str to a stream os.  Each line is indented with indent */
+void IndentString (const std::string &str, std::ostream &os, const std::string &indent)
+{
+  //!\todo analyze the computational efficiency
+  stringstream ss(str);
+  string line;
+  while(getline(ss,line))  os<<indent<<line<<endl;
+}
+//-------------------------------------------------------------------------------------------
+
 /*!\brief split 'str' at each 'separators' , store them into 'strlist'. if skip_blank=true, blank character("") is skipped
   \note t_string_container is instantiated with std::list\<std::string\>, and  std::vector\<std::string\>
 */

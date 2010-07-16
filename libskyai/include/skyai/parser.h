@@ -46,6 +46,8 @@ namespace boost {namespace filesystem {
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
+class TCompositeModule;
+class TCompositeModuleGenerator;
 class TAgent;
 //-------------------------------------------------------------------------------------------
 
@@ -57,8 +59,9 @@ class TAgent;
     \param [in]path_list : path-list from which an agent file is searched
     \param [in,out]included_list  :  included full-path (native) list
     \note  If you use include_once for multiple LoadAgentFromFile, the same included_list should be specified */
-bool LoadAgentFromFile (TAgent &agent, boost::filesystem::path file_path, bool *is_last=NULL,
-                        LIST1(boost::filesystem::path) *path_list=NULL, LIST1(std::string) *included_list=NULL);
+bool LoadAgentFromFile (TCompositeModule &modules, boost::filesystem::path file_path, bool *is_last=NULL,
+                        LIST1(boost::filesystem::path) *path_list=NULL, LIST1(std::string) *included_list=NULL,
+                        TCompositeModuleGenerator *cmp_module_generator=NULL);
 
 /*!\brief save modules, connections, configurations to the file [filename] */
 bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path);

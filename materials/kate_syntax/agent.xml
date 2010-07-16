@@ -20,31 +20,25 @@
   <highlighting>
 
     <list name="kwList1">
-      <!--<item> module </item>-->
-      <!--<item> connect </item>-->
+      <item> module </item>
+      <item> connect </item>
+      <item> composite </item>
+      <item> inherit </item>
+      <item> export </item>
+      <item> edit </item>
+      <item> config </item>
+      <item> memory </item>
+      <item> as </item>
+      <item> as_is </item>
     </list>
 
     <list name="kwListAsign">
-      <item> group </item>
-      <item> str </item>
-      <item> end </item>
-      <item> strlist </item>
-      <item> strlistend </item>
-
       <item> true </item>
       <item> false </item>
     </list>
 
     <contexts>
       <context attribute="Normal Text" lineEndContext="#pop" name="Normal Text" >
-        <keyword attribute="Keyword" context="#stay" String="kwList1" />
-        <IncludeRules context="Common Text" />
-        <DetectIdentifier attribute="Module"/>
-      </context>
-
-      <context attribute="Normal Text" lineEndContext="#pop" name="Common Text" >
-        <!--<RegExpr attribute="Symbol" context="#stay" String="\bcf\."/>-->
-
         <IncludeRules context="##Doxygen" />
         <Detect2Chars attribute="Comment" context="LineComment" char="/" char1="/"/>
         <!--<RegExpr attribute="Comment" context="BlockComment" String="/\*" beginRegion="BlockComment"/>-->
@@ -56,6 +50,10 @@
         <RegExpr attribute="ExtSymbol" context="Include" String="include_once\s+"/>
         <RegExpr attribute="ExtSymbol" context="Module" String="module\s+"/>
         <RegExpr attribute="ExtSymbol" context="Connect" String="connect\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Composite" String="composite\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Edit" String="edit\s+"/>
+        <RegExpr attribute="ExtSymbol2" context="Export" String="export\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Inherit" String="inherit\s+"/>
 
         <DetectChar attribute="String" context="String" char="&quot;"/>
         <Float attribute="Float" context="#stay">
@@ -64,13 +62,17 @@
         <Int attribute="Decimal" context="#stay">
         </Int>
 
-        <RegExpr attribute="ExtSymbol" context="Asign" String="=\s*\{" beginRegion="Asign" />
+        <DetectChar attribute="ExtSymbol" context="Asign" char="="/>
 
-        <DetectChar attribute="Symbol" context="Member" char="."/>
+        <AnyChar attribute="ExtSymbol" context="#stay" String="{}"/>
+        <DetectChar attribute="ExtSymbol" context="#pop" char=";"/>
 
         <AnyChar attribute="Symbol" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
 
+        <keyword attribute="ExtSymbol" context="#stay" String="kwList1" />
+        <DetectIdentifier attribute="Identifier"/>
       </context>
+
 
       <context attribute="String" lineEndContext="#pop" name="String">
         <LineContinue attribute="String" context="#stay"/>
@@ -95,7 +97,7 @@
       </context>
       <context attribute="FilePath" lineEndContext="#pop" name="FilePath">
         <LineContinue attribute="FilePath" context="#stay"/>
-        <DetectChar attribute="Symbol" context="#pop" char="&quot;"/>
+        <DetectChar attribute="Symbol" context="#pop#pop" char="&quot;"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Module">
@@ -104,26 +106,41 @@
       <context attribute="Normal Text" lineEndContext="#pop" name="ModuleInstance">
         <DetectSpaces />
         <AnyChar attribute="ExtSymbol" String=","/>
-        <DetectIdentifier attribute="Module"/>
+        <DetectIdentifier attribute="Identifier" context="#pop#pop"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Connect">
         <DetectSpaces />
         <AnyChar attribute="ExtSymbol" context="#stay" String=","/>
-        <DetectChar attribute="Symbol" context="Member" char="."/>
-        <DetectIdentifier attribute="Module"/>
+        <DetectChar attribute="ExtSymbol" context="#stay" char="."/>
+        <DetectIdentifier attribute="Identifier"/>
       </context>
 
-      <context attribute="Normal Text" lineEndContext="#pop" name="Member">
+      <context attribute="Normal Text" lineEndContext="#stay" name="Composite">
         <DetectSpaces />
-        <DetectIdentifier attribute="SubModule" context="#pop"/>
+        <DetectIdentifier attribute="ModuleType" context="#pop"/>
       </context>
 
-      <context attribute="Normal Text" lineEndContext="#stay" name="Asign">
+      <context attribute="Normal Text" lineEndContext="#stay" name="Edit">
+        <DetectSpaces />
+        <DetectIdentifier attribute="Identifier" context="#pop"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Export">
+        <DetectSpaces />
+        <keyword attribute="ExtSymbol" context="#stay" String="kwList1" />
+        <DetectChar attribute="ExtSymbol" context="#stay" char="."/>
+        <DetectIdentifier attribute="Identifier"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Inherit">
+        <DetectIdentifier attribute="ModuleType" context="#pop"/>
+      </context>
+
+      <context attribute="Normal Text" lineEndContext="#pop" name="Asign">
         <DetectSpaces />
         <keyword attribute="Keyword" context="#stay" String="kwListAsign" />
-        <DetectChar attribute="ExtSymbol" context="#pop" char="}" endRegion="Asign"/>
-        <IncludeRules context="Common Text" />
+        <IncludeRules context="Normal Text" />
       </context>
 
     </contexts>
@@ -133,10 +150,11 @@
       <itemData name="Keyword"         defStyleNum="dsKeyword"/>
       <itemData name="FilePath"        defStyleNum="dsNormal" color="#805"/>
       <itemData name="ModuleType"      defStyleNum="dsNormal" color="#085"/>
-      <itemData name="Module"          defStyleNum="dsNormal" color="#058"/>
+      <itemData name="Identifier"      defStyleNum="dsNormal" color="#058"/>
       <itemData name="SubModule"       defStyleNum="dsNormal" color="#053"/>
       <itemData name="Symbol"          defStyleNum="dsNormal" color="#850"/>
       <itemData name="ExtSymbol"       defStyleNum="dsNormal" color="#0AF" bold="1"/>
+      <itemData name="ExtSymbol2"      defStyleNum="dsNormal" color="#A0F" bold="1"/>
       <!--<itemData name="URL"             defStyleNum="dsNormal" color="#00F" underline="1"/>-->
       <itemData name="Comment"         defStyleNum="dsComment"/>
       <itemData name="String"          defStyleNum="dsString"/>

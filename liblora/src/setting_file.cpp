@@ -188,7 +188,7 @@ void TSettingFile::SaveToStringList (TStringListEx &str_list, const std::string 
       {
         if (str_list.IsEndOfList())  break;
         std::string current (str_list.Current());
-        trim_both (current);
+        TrimBoth (current);
         if (current==":strlistend")  break;
         substrlist.Add (str_list.Current());
         str_list.Increment();
