@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------
 /*! \file    maze2d.cpp
-    \brief   benchmarks - test libskyai on a simple toyproblem: navigation task in 2d-maze
+    \brief   benchmarks - motion learning task of a simulation humanoid robot
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Oct.23, 2009-
 
@@ -27,20 +27,10 @@
 #include <skyai/utility.h>
 #include <skyai/modules_core/learning_manager.h>
 #include <lora/variable_space_impl.h>
+#include <lora/ctrl_tools.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
-
-ENUM_STR_MAP_BEGIN_NS(humanoid_controller, TControlConstraintKind)
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckUnspecified        )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckNone               )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckStrictSymmetric    )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckWideSymmetric      )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckFBSymmetric        )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckLowerBody          )
-  ENUM_STR_MAP_ADD_NS(humanoid_controller, cckLowerBodyAutoFoot  )
-ENUM_STR_MAP_END_NS  (humanoid_controller, TControlConstraintKind)
-SPECIALIZE_TVARIABLE_TO_ENUM(humanoid_controller::TControlConstraintKind)
 
 
 //===========================================================================================
@@ -57,10 +47,8 @@ public:
   TRealVector                InitBodyPosRotQ;
   TRealVector                InitJointAngles;
 
-  // parameters for humanoid_controller::THumanoidControllerCondition hmdctrlcnd
-  TRealVector                PDGainKp, PDGainKd;  //!< gain parameters for lowlevel controller (PD)
+  TRealVector                PDGainKp, PDGainKd;  //!< gain parameters for lowlevel PD-controller
   TRealVector                TorqueMax;
-  humanoid_controller::TControlConstraintKind   ControlConstraintKind;
 
   // parameters for TSimulationCondition simulationcnd
   int                        MaxContactNum;  //!< maximum number of contact points per body
@@ -76,11 +64,9 @@ public:
       FPS                 (50.0l),
       ViewPoint           (6,0.0),
       UseInitPose         (false),
-      // parameters for humanoid_controller::hmdctrlcnd:
       PDGainKp                 (JOINT_NUM,2.5l),
       PDGainKd                 (JOINT_NUM,0.08l),
       TorqueMax                (JOINT_NUM, loco_rabbits::TorqueMax),
-      ControlConstraintKind    (humanoid_controller::cckStrictSymmetric),
       // parameters for simulationcnd:
       MaxContactNum             (10),
       BodyContactLPFParamF      (10.0),
@@ -115,13 +101,11 @@ public:
       ADD( InitBodyPosRotQ            );
       ADD( InitJointAngles            );
 
-      // parameters for humanoid_controller::hmdctrlcnd:
       ADD( PDGainKp                       );
       ADD( PDGainKd                       );
       ADD( TorqueMax                      );
-      ADD( ControlConstraintKind          );
 
-      // parameters for humanoid_controller::hmdctrlcnd:
+      // parameters for TSimulationCondition simulationcnd
       ADD( MaxContactNum                              );
       ADD( Surface                                    );
       ADD( BodyContactLPFParamF                       );
@@ -150,7 +134,8 @@ public:
   MHumanoidEnvironment (const std::string &v_instance_name)
     : TParent                     (v_instance_name),
       conf_                       (TParent::param_box_config_map()),
-      tq_input_                   (JOINT_NUM,0.0),
+      PDC_                        (JOINT_NUM, 0.0, 0.0, 0.0),
+      tq_input_                   (JOINT_NUM, 0.0),
       executing_                  (false),
       console_mode_               (false),
       repaint_time_               (0),
@@ -166,7 +151,6 @@ public:
       signal_end_of_timestep      (*this),
       signal_system_reward        (*this),
       signal_end_of_episode       (*this),
-      out_state_cc                (*this),
       out_base_pose               (*this),
       out_base_vel                (*this),
       out_joint_angle             (*this),
@@ -183,7 +167,6 @@ public:
       add_signal_port (signal_end_of_timestep     );
       add_signal_port (signal_system_reward       );
       add_signal_port (signal_end_of_episode      );
-      add_out_port    (out_state_cc               );
       add_out_port    (out_base_pose              );
       add_out_port    (out_base_vel               );
       add_out_port    (out_joint_angle            );
@@ -285,10 +268,11 @@ protected:
 
   THumanoidEnvironmentConfigurations conf_;
 
+  TPDController       PDC_;
   TRealVector         current_command_;
   TRealVector         tq_input_;
-  mutable TContinuousState  tmp_state_;
-  mutable TContinuousState  tmp_jangle_;
+//   mutable TContinuousState  tmp_state_;
+  mutable TContinuousState  tmp_joint_state_;
   mutable TContinuousState  tmp_base_pose_, tmp_base_vel_, tmp_joint_angle_, tmp_joint_vel_;
   mutable TBoolVector       tmp_contact_with_ground_;
 
@@ -319,9 +303,6 @@ protected:
 
   MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
 
-  //!\brief output state according to the controller's constraint mode
-  MAKE_OUT_PORT(out_state_cc, const TContinuousState&, (void), (), TThis);
-
   //!\brief output base link pose (position and rotation) according to the controller's constraint mode
   MAKE_OUT_PORT(out_base_pose, const TContinuousState&, (void), (), TThis);
   //!\brief output base link velocities (of position and rotation) according to the controller's constraint mode
@@ -336,17 +317,6 @@ protected:
 
   virtual void slot_initialize_exec (void)
     {
-      // humanoid_controller::hmdctrlcnd.ControlConstraintKind= humanoid_controller::cckStrictSymmetric;
-
-      // copy parameters to humanoid_controller::hmdctrlcnd
-      using namespace humanoid_controller;
-      hmdctrlcnd.PDGainKp               =  conf_.PDGainKp               ;
-      hmdctrlcnd.PDGainKd               =  conf_.PDGainKd               ;
-      hmdctrlcnd.TorqueMax              =  conf_.TorqueMax              ;
-      hmdctrlcnd.ControlConstraintKind  =  conf_.ControlConstraintKind  ;
-
-      INITIALIZE_DIMENSIONS();
-
       // copy parameters to simulationcnd
       simulationcnd.MaxContactNum                   = conf_.MaxContactNum                   ;
       simulationcnd.Surface                         = conf_.Surface                         ;
@@ -355,8 +325,6 @@ protected:
       simulationcnd.ForceInitFeetContactWithGround  = conf_.ForceInitFeetContactWithGround  ;
       simulationcnd.UsingQuickStep                  = conf_.UsingQuickStep                  ;
       simulationcnd.QuickStepIterationNum           = conf_.QuickStepIterationNum           ;
-
-      use_contact_LPF= true;
 
       InitializeODE();
       initSimulation2();
@@ -377,8 +345,13 @@ protected:
         std::copy (GenBegin(conf_.InitBodyPosRotQ),GenBegin(conf_.InitBodyPosRotQ)+3, newpos);
         std::copy (GenBegin(conf_.InitBodyPosRotQ)+3,GenBegin(conf_.InitBodyPosRotQ)+7, newq);
         ODESetArticulatedBodyPosRotQ (body[0].id(), newpos, newq);
-        setJointAngle (conf_.InitJointAngles);
+        TODEJointAngleMap angle_map;
+        for(int j(0); j<JOINT_NUM; ++j)  angle_map[joint[j].id()]= TODEAngle(conf_.InitJointAngles(j));
+        ODESetArticulatedBodyJointAngles (body[0].id(), angle_map);
       }
+      PDC_.Kp   = conf_.PDGainKp;
+      PDC_.Kd   = conf_.PDGainKd;
+      PDC_.UMax = conf_.TorqueMax;
     }
 
   virtual void slot_execute_command_des_q_exec (const TRealVector &u)
@@ -388,9 +361,8 @@ protected:
   virtual void slot_execute_command_des_qd_exec (const TRealVector &u)
     {
       //!\todo FIXME: make efficient computation!
-      getState(tmp_state_);
-      humanoid_controller::extractControlPos(tmp_jangle_,tmp_state_,0);
-      current_command_= tmp_jangle_ + u;
+      GetJointAngle(tmp_joint_angle_);
+      current_command_= tmp_joint_angle_ + u;
     }
 
   virtual void slot_step_loop_exec (void)
@@ -400,9 +372,10 @@ protected:
       /*dbg*/if (current_command_.length()==0)  {LERROR("slot_execute_command_des_qd is not called!!!");}
 
       ////////////////////////
-      humanoid_controller::lowLevelRobotModel (current_command_, tq_input_);
+      GetJointState(tmp_joint_state_);
+      tq_input_= PDC_(tmp_joint_state_, current_command_);
       TSingleReward step_cost(0.0l);
-      worldStep (tq_input_, conf_.TimeStep, step_cost);
+      worldStep (tq_input_, conf_.TorqueMax, conf_.TimeStep, step_cost);
       if (ModuleMode()==TModuleInterface::mmDebug)
         {DebugStream()<<slot_step_loop.UniqueCode()<<":  WorldStep is executed (cost="<<step_cost<<")"<<std::endl;}
       ////////////////////////
@@ -420,39 +393,29 @@ protected:
       executing_= false;
     }
 
-  virtual const TContinuousState& out_state_cc_get () const
-    {
-      getState(tmp_state_);
-      return tmp_state_;
-    }
-
   virtual const TContinuousState& out_base_pose_get() const
     {
-      using namespace humanoid_controller;
       GenResize(tmp_base_pose_,POSROT_DIM);
-      getBasePosRot(tmp_base_pose_);
+      GetBasePosRot(tmp_base_pose_);
       return tmp_base_pose_;
     }
   virtual const TContinuousState& out_base_vel_get() const
     {
-      using namespace humanoid_controller;
       GenResize(tmp_base_vel_,PRVEL_DIM);
-      getBaseVel(tmp_base_vel_);
+      GetBaseVel(tmp_base_vel_);
       return tmp_base_vel_;
     }
 
   virtual const TContinuousState& out_joint_angle_get() const
     {
-      using namespace humanoid_controller;
-      GenResize(tmp_joint_angle_,CTRL_JOINT_NUM);
-      getJointAngle(tmp_joint_angle_);
+      GenResize(tmp_joint_angle_,JOINT_NUM);
+      GetJointAngle(tmp_joint_angle_);
       return tmp_joint_angle_;
     }
   virtual const TContinuousState& out_joint_vel_get() const
     {
-      using namespace humanoid_controller;
-      GenResize(tmp_joint_vel_,CTRL_JOINT_NUM);
-      getJointAngVel(tmp_joint_vel_);
+      GenResize(tmp_joint_vel_,JOINT_NUM);
+      GetJointAngVel(tmp_joint_vel_);
       return tmp_joint_vel_;
     }
 
@@ -467,216 +430,7 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
-enum TMotionLearningTaskKind
-{
-  mltkJump          =0,
-  mltkMove          ,
-  mltkStandup       ,
-  mltkForwardroll   ,
-  mltkMoveA         //
-};
-ENUM_STR_MAP_BEGIN( TMotionLearningTaskKind )
-  ENUM_STR_MAP_ADD( mltkJump            )
-  ENUM_STR_MAP_ADD( mltkMove            )
-  ENUM_STR_MAP_ADD( mltkStandup         )
-  ENUM_STR_MAP_ADD( mltkForwardroll     )
-  ENUM_STR_MAP_ADD( mltkMoveA           )
-ENUM_STR_MAP_END  ( TMotionLearningTaskKind )
-SPECIALIZE_TVARIABLE_TO_ENUM(TMotionLearningTaskKind)
-
-
-//===========================================================================================
-class TMotionLearningTaskConfigurations
-//===========================================================================================
-{
-public:
-
-  TMotionLearningTaskKind  TaskKind;
-  TReal                    FinishVelocityNorm;
-  TSingleReward            SumOfRmin;  //!< if sum of reward in an episode is less than this value, episode is terminated
-  TContinuousTime          MaxTime;
-
-  TReal                    FallingDownPenalty  ;
-
-  // parameters for mltkMove:
-  TReal                    ForwardRewardGain   ;
-  TReal                    SidewardPenaltyGain ;
-
-
-  TMotionLearningTaskConfigurations (var_space::TVariableMap &mmap)
-    :
-      TaskKind             (mltkMove),
-      FinishVelocityNorm   (1.0l),
-      SumOfRmin            (-40.0l),
-      MaxTime              (20.0l),
-      FallingDownPenalty   (-4.0l),
-      ForwardRewardGain    (0.01l),
-      SidewardPenaltyGain  (0.1l)
-    {
-      Register(mmap);
-    }
-  void Register (var_space::TVariableMap &mmap)
-    {
-      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( TaskKind               );
-      ADD( FinishVelocityNorm     );
-      ADD( SumOfRmin              );
-      ADD( MaxTime                );
-
-      ADD( FallingDownPenalty     );
-
-      ADD( ForwardRewardGain      );
-      ADD( SidewardPenaltyGain    );
-      #undef ADD
-    }
-};
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-//!\brief task module
-class MMotionLearningTask
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface     TParent;
-  typedef MMotionLearningTask  TThis;
-  SKYAI_MODULE_NAMES(MMotionLearningTask)
-
-  MMotionLearningTask (const std::string &v_instance_name)
-    : TParent                (v_instance_name),
-      conf_                  (TParent::param_box_config_map()),
-      slot_initialize        (*this),
-      slot_start_episode     (*this),
-      slot_finish_time_step  (*this),
-      signal_end_of_episode  (*this),
-      signal_task_reward     (*this),
-      signal_damage_reward   (*this),
-      in_state               (*this),
-      in_sum_of_reward       (*this)
-    {
-      add_slot_port   (slot_initialize       );
-      add_slot_port   (slot_start_episode    );
-      add_slot_port   (slot_finish_time_step );
-      add_signal_port (signal_end_of_episode );
-      add_signal_port (signal_task_reward    );
-      add_signal_port (signal_damage_reward  );
-      add_in_port     (in_state              );
-      add_in_port     (in_sum_of_reward      );
-    }
-
-protected:
-
-  TMotionLearningTaskConfigurations  conf_;
-
-  bool             is_jumped_;
-  TReal            init_head_height_;
-  TContinuousTime  time_;
-
-  MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
-  MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
-
-  MAKE_SLOT_PORT(slot_finish_time_step, void, (const TContinuousTime &dt), (dt), TThis);
-
-  MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
-
-  MAKE_SIGNAL_PORT(signal_task_reward, void (const TSingleReward&), TThis);
-  MAKE_SIGNAL_PORT(signal_damage_reward, void (const TSingleReward&), TThis);
-
-  MAKE_IN_PORT(in_state, const TContinuousState& (void), TThis);
-  MAKE_IN_PORT(in_sum_of_reward, const TSingleReward& (void), TThis);
-
-
-  virtual void slot_initialize_exec (void)
-    {
-    }
-
-  virtual void slot_start_episode_exec (void)
-    {
-      is_jumped_= false;
-      init_head_height_= body[HEADLINK_INDEX].getPosition()[2];
-      time_= 0.0l;
-    }
-
-  virtual void slot_finish_time_step_exec (const TContinuousTime &dt)
-    {
-      time_+=dt;
-
-      // calculate task reward
-      {
-        TSingleReward  task_reward(0.0l);
-        switch (conf_.TaskKind)
-        {
-          case mltkJump        :
-            task_reward= getGoalRewardJump6(dt, init_head_height_);
-            if (task_reward>DBL_TINY)  is_jumped_=true;
-            break;
-          case mltkMove        : task_reward= getGoalRewardMove3(conf_.ForwardRewardGain, conf_.SidewardPenaltyGain);  break;
-          case mltkMoveA       : task_reward= getGoalRewardMove4();    break;
-          // case mltkStandup     : break;
-          case mltkForwardroll : task_reward= getGoalRewardForwardroll1(dt); break;
-          default :
-            LERROR("invalid TaskKind= "<<conf_.TaskKind);
-            lexit(df);
-        }
-        signal_task_reward.ExecAll(task_reward);
-      }
-
-      // calculate damage reward
-      bool fallen_down(false);
-      {
-        if (conf_.TaskKind==mltkJump || conf_.TaskKind==mltkMove || conf_.TaskKind==mltkMoveA)
-        {
-          if ((fallen_down=fallenDown()))
-            signal_damage_reward.ExecAll(conf_.FallingDownPenalty);
-        }
-      }
-
-      // is the end of the episode?
-      {
-        bool is_end_of_episode(false);
-        switch (conf_.TaskKind)
-        {
-          case mltkJump        :
-            if (fallen_down)  {is_end_of_episode=true; break;}
-            if (!bodies_contact_with_ground(LFOOT_INDEX) || !bodies_contact_with_ground(RFOOT_INDEX))
-              break;
-            if (!is_jumped_)  break;
-            if (real_fabs(humanoid_controller::extractDynVel(in_state.GetFirst()).max()) < conf_.FinishVelocityNorm)
-              {is_end_of_episode=true; break;}
-            break;
-          case mltkMove        :
-          case mltkMoveA       :
-          case mltkForwardroll :
-            if (in_sum_of_reward.GetFirst() <= conf_.SumOfRmin)
-              is_end_of_episode=true;
-            break;
-          // case mltkStandup     : break;
-          default :
-            LERROR("invalid TaskKind= "<<conf_.TaskKind);
-            lexit(df);
-        }
-        if (conf_.MaxTime>0.0l && time_+CONT_TIME_TOL>=conf_.MaxTime)
-        {
-          is_end_of_episode= true;
-          if (time_-CONT_TIME_TOL<conf_.MaxTime+dt)
-            {LMESSAGE("end of episode @"<<time_<<"[s]: x="<<body[BASELINK_INDEX].getPosition()[0]<<"[m]");}
-        }
-        if (is_end_of_episode)
-        {
-          signal_end_of_episode.ExecAll();
-        }
-      }
-    }
-
-};  // end of MMotionLearningTask
-//-------------------------------------------------------------------------------------------
-
-
-
 SKYAI_ADD_MODULE(MHumanoidEnvironment)
-SKYAI_ADD_MODULE(MMotionLearningTask)
 
 }
 //-------------------------------------------------------------------------------------------
@@ -718,9 +472,12 @@ int main(int argc, char**argv)
   std::ofstream debug;
   if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
-  MBasicLearningManager &lmanager = agent.ModuleAs<MBasicLearningManager>("lmanager");
-  MHumanoidEnvironment &environment = agent.ModuleAs<MHumanoidEnvironment>("environment");
-
+  MBasicLearningManager *p_lmanager = dynamic_cast<MBasicLearningManager*>(agent.SearchModule("lmanager"));
+  MHumanoidEnvironment *p_environment = dynamic_cast<MHumanoidEnvironment*>(agent.SearchModule("environment"));
+  if(p_lmanager==NULL)  {LERROR("module `lmanager' is not defined correctly"); return 1;}
+  if(p_environment==NULL)  {LERROR("module `environment' is not defined correctly"); return 1;}
+  MBasicLearningManager &lmanager(*p_lmanager);
+  MHumanoidEnvironment &environment(*p_environment);
 
   agent.SaveToFile (agent.GetDataFileName("humanoid01-before.agent"));
 
@@ -741,7 +498,7 @@ int main(int argc, char**argv)
   fn.step = &ODEDS_StepLoop;
   fn.command = &ODEDS_KeyEvent;
   fn.stop = &ODEDS_Stop;
-  char path_to_textures[] = "materials/textures";
+  char path_to_textures[] = "m/textures";
   fn.path_to_textures = path_to_textures;
   int xwindow_width(400), xwindow_height(400);
 

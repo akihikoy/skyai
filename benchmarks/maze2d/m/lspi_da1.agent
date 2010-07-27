@@ -1,0 +1,33 @@
+// agent file for maze2d task using LSPI
+
+include "lspi_da"
+include "cmn"
+
+module MLSPIDiscAct behavior
+
+include "cmn_da"
+
+
+/// parameter setting:
+
+cmn.config ={
+    MapKind = 3
+
+    GoalRadius = 0.3
+
+    MaxEpisodeNumber = 20000
+  }
+
+behavior.config={
+    Tau = 10.0
+    TauDecreasingFactor = 0.0005
+    MaxDataSizePerDim = 50
+    LSPICycle = 5
+    LSTDQIterations = 1
+    NonzeroFeatureThreshold = 0.01
+  }
+
+radial_action.config ={
+    NumOfDirs = 4
+  }
+

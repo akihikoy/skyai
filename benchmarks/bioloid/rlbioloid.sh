@@ -1,1 +1,0 @@
-../scripts/rlbioloid.sh

@@ -1,0 +1,30 @@
+// agent file for crawling task using Q(lambda)-learning and Grid action set
+
+include "env"
+include "task_crawling"
+include "fqi_da"
+
+module MFQIDiscAct behavior
+include "cmn_grid1"
+
+/// parameter setting:
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.05
+    AlphaDecreasingFactor = 0.00
+    SqErrGradientNormLimit = 1.0e+3
+    FQICycle = 10
+    MaxNumberOfQIteration = 1
+    MaxNumberOfSLIteration = 3
+    MinRewardDeviationRate = 0.01
+    SameSampleThreshold = 0.001
+    NumberOfUsedSamples = 100
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 5
+    TauDecreasingFactor = 0.004
+    TraceMax = 1.0
+  }
+

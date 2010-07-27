@@ -1,0 +1,19 @@
+// agent file for crawling task using Q(lambda)-learning and wire fitting (grid)
+
+include "env"
+include "task_crawling"
+include_once "ql_gwf"
+
+module MTDWireFittingGrid behavior
+include "cmn_gwf1"
+
+/// parameter setting:
+
+include "cmn_qlwf_param"
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }

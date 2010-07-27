@@ -1,0 +1,49 @@
+// common agent file for DCOB
+
+module  MRemoveSignalArguments_TInt      start_rl_action
+
+/// initialization process:
+connect  env.signal_initialization       , behavior.slot_initialize
+connect  env.signal_initialization       , dcob.slot_initialize
+
+/// start of episode process:
+connect  env.signal_start_of_episode           , behavior.slot_start_episode
+
+/// start of time step process:
+connect  env.signal_start_of_ctrl_timestep     , dcob.slot_start_time_step
+
+/// end of time step process:
+connect  env.signal_end_of_ctrl_timestep       , dcob.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action        , start_rl_action.slot_in
+connect  start_rl_action.signal_out            , task.slot_start_of_action
+connect  behavior.signal_execute_action        , dcob.slot_execute_action
+connect  dcob.signal_execute_command           , env.slot_execute_command_des_cq
+connect  dcob.signal_end_of_action             , behavior.slot_finish_action
+
+connect  cmn_signal_reward.signal_out          , behavior.slot_add_to_reward
+connect  cmn_signal_end_of_episode.signal_out  , behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode        , env.slot_finalize_episode
+
+/// I/O:
+connect  dcob.out_action_set_size              , behavior.in_action_set_size
+connect  env.out_ngnet                         , behavior.in_feature
+connect  env.out_episode_number                , behavior.in_episode_number
+
+connect  env.out_cont_time                     , behavior.in_cont_time
+
+connect  env.out_ngnet                         , dcob.in_feature
+connect  env.out_state                         , dcob.in_state
+connect  env.out_ngnet_distance_to_nearest_bf  , dcob.in_distance_to_nearest_bf
+connect  env.out_ngnet_center_state_set        , dcob.in_center_state_set
+
+/// parameter setting:
+
+dcob.config ={
+    IntervalSet = (0.075, 0.1, 0.2)
+    ProportionalDim = 5
+    Cp = (5, 6, 7, 8, 9)        // joint angles of the state
+    Cd = (16, 17, 18, 19, 20)   // joint angular velocities of the state
+  }

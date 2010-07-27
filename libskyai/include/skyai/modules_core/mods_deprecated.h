@@ -266,15 +266,15 @@ protected:
     {
 DEPRECATED_MSG("MConstMultiplierRv", "MConstMultiplier_TRealVector_TRealVector");
       out_.resize (GenSize(in));
-      TypeExt<TRealVector>::const_iterator iitr(GenBegin(in)), ilastitr(GenEnd(in)), fitr(GenBegin(conf_.Factor));
+      TypeExtS<TRealVector>::const_iterator iitr(GenBegin(in)), ilastitr(GenEnd(in)), fitr(GenBegin(conf_.Factor));
       if (GenSize(conf_.Factor)==GenSize(in))
       {
-        for (TypeExt<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr,++fitr)
+        for (TypeExtS<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr,++fitr)
           (*oitr)= (*iitr) * (*fitr);
       }
       else if (GenSize(conf_.Factor)==1)
       {
-        for (TypeExt<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr)
+        for (TypeExtS<TRealVector>::iterator oitr(GenBegin(out_)); iitr!=ilastitr; ++iitr,++oitr)
           (*oitr)= (*iitr) * (*fitr);
       }
       else

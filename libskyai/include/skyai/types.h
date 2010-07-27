@@ -89,7 +89,24 @@ static const TContinuousTime CONT_TIME_TOL (1.0e-8l);
 
 //-------------------------------------------------------------------------------------------
 
+/*!\brief systematic extension of TypeExt where compatibility of vector-scalar is considered */
+template <typename t_type>
+struct TypeExtS : TypeExt<t_type>
+{
+  typedef typename TypeExt<t_type>::value_type s_value_type;
+};
 
+template <>
+struct TypeExtS<TRealVector> : TypeExt<TRealVector>
+{
+  typedef TReal s_value_type;
+};
+
+template <>
+struct TypeExtS<TRealMatrix> : TypeExt<TRealMatrix>
+{
+  typedef TReal s_value_type;
+};
 
 //-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits

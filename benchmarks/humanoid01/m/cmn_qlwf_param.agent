@@ -1,0 +1,22 @@
+// common parameters for Q(lambda)-learning module with wire fitting
+
+behavior.config={
+    UsingEligibilityTrace = true
+    UsingReplacingTrace = true
+    Lambda = 0.9
+    GradientMax = 1.0
+
+    ActionDim = 5
+    SmoothingFactor = 0.001
+    Tiny = 0.0001
+    ActionSelection = "asWFBoltzman"
+    NoiseFactor = 0.0
+    PolicyImprovement = "piExpReduction"
+    Tau = 5
+    TauDecreasingFactor = 0.004
+    TraceMax ={
+        clear()
+        resize(1)
+        [0]= 1.0e+10
+      }
+  }

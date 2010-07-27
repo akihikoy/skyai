@@ -1,0 +1,18 @@
+// Q(lambda)-learning + fitted Q iteration  modules for continuous action space
+// A hybrid of the Q(Lambda)-learning and the fitted Q-iteration
+// Using wire fitting (grid) as a function approximator
+
+include_once "ql_gwf"
+
+composite MTDFQIWireFittingGrid
+{
+  inherit_prv  MTDWireFittingGrid
+
+  include "qlfqi_cmn_wf"
+  export   behavior.signal_execute_action  as_is
+  export   behavior.slot_finish_action  as_is
+
+  export avf_wire_fitting.config.GConstraintKind      as_is
+  export avf_wire_fitting.config.Levels               as_is
+  export avf_wire_fitting.config.Radiuses             as_is
+}

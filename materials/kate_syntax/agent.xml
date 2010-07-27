@@ -24,6 +24,7 @@
       <item> connect </item>
       <item> composite </item>
       <item> inherit </item>
+      <item> inherit_prv </item>
       <item> export </item>
       <item> edit </item>
       <item> config </item>
@@ -54,6 +55,7 @@
         <RegExpr attribute="ExtSymbol" context="Edit" String="edit\s+"/>
         <RegExpr attribute="ExtSymbol2" context="Export" String="export\s+"/>
         <RegExpr attribute="ExtSymbol" context="Inherit" String="inherit\s+"/>
+        <RegExpr attribute="ExtSymbol" context="Inherit" String="inherit_prv\s+"/>
 
         <DetectChar attribute="String" context="String" char="&quot;"/>
         <Float attribute="Float" context="#stay">

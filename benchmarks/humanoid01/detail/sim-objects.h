@@ -76,19 +76,19 @@ public:
 };
 //-------------------------------------------------------------------------------------------
 
-class TGeomParticle
+class TGeomCell
 {
 public:
   dGeomID  id;
   float    color[4];
-  TGeomParticle(void) : id(0) {color[0]=color[1]=color[2]=color[3]=1.0;};
-  TGeomParticle(int rhs) : id(0) {color[0]=color[1]=color[2]=color[3]=1.0; operator=(rhs);};
-  const TGeomParticle& operator=(int rhs)
+  TGeomCell(void) : id(0) {color[0]=color[1]=color[2]=color[3]=1.0;};
+  TGeomCell(int rhs) : id(0) {color[0]=color[1]=color[2]=color[3]=1.0; operator=(rhs);};
+  const TGeomCell& operator=(int rhs)
     {
       if (rhs==0)
         id=NULL;
       else
-        {std::cerr<<"invalid assignment in TGeomParticle::operator="<<std::endl;exit(1);}
+        {std::cerr<<"invalid assignment in TGeomCell::operator="<<std::endl;exit(1);}
       return *this;
     };
 };
@@ -103,12 +103,12 @@ public:
 };
 //-------------------------------------------------------------------------------------------
 
-class TGeomList : public _TListInterface<TGeomParticle>
+class TGeomList : public _TListInterface<TGeomCell>
 {
 protected:
-  /*override*/void destroy (TGeomParticle &x) const {if(x.id) dGeomDestroy(x.id);};
+  /*override*/void destroy (TGeomCell &x) const {if(x.id) dGeomDestroy(x.id);};
 public:
-  TGeomList(void) : _TListInterface<TGeomParticle>() {};
+  TGeomList(void) : _TListInterface<TGeomCell>() {};
 };
 //-------------------------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ static TGeomList    simSphere  ;
 const dReal  FMAX      = 25.0; // car engine fmax
 //-------------------------------------------------------------------------------------------
 
-struct TCarParticle
+struct TCarCell
 {
   dBodyID  body;
   dJointID wheels[4];
@@ -152,14 +152,14 @@ struct TCarParticle
 class TCarList
 {
 private:
-  std::vector<TCarParticle>  cars;
+  std::vector<TCarCell>  cars;
 public:
   int size(void) const {return cars.size();};
-  void push_back(void)  {cars.push_back(TCarParticle());};
+  void push_back(void)  {cars.push_back(TCarCell());};
   void clear(void)  {cars.clear();}
 
-  TCarParticle& operator[](int i)  {return cars[i];};
-  const TCarParticle& operator[](int i) const {return cars[i];};
+  TCarCell& operator[](int i)  {return cars[i];};
+  const TCarCell& operator[](int i) const {return cars[i];};
 };
 TCarList  CarList;
 //-------------------------------------------------------------------------------------------

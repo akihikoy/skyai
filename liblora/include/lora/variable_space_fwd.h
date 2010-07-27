@@ -28,7 +28,6 @@
 #include <lora/common.h>
 #include <list>
 #include <map>
-#include <sstream>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -65,9 +64,7 @@ inline TVariableSpace VariableSpace()  {TVariableSpace vs; return vs;}
 #endif
 
 #ifndef VAR_SPACE_ERR_EXIT
-// #define VAR_SPACE_ERR_EXIT(x_err_message)  do{LERROR(x_err_message); lexit(df);}while(0)
-#define VAR_SPACE_ERR_EXIT(x_err_message)  \
-  do{LERROR(x_err_message); std::stringstream ss; ss<<x_err_message; throw ss.str();} while(0)
+#define VAR_SPACE_ERR_EXIT(x_err_message)  do{LERROR(x_err_message); lexit(df);}while(0)
 #endif
 
 //-------------------------------------------------------------------------------------------

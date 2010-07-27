@@ -1,0 +1,36 @@
+// agent file for maze2d task using Q(lambda)-learning with wire-fitting (grid)
+
+include "ql_gwf"
+include "cmn"
+
+module MTDWireFittingGrid behavior
+
+include "cmn_wf"
+
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+
+    ActionMin = (-3.14159265, 0.03, 0.1)
+    ActionMax = (+3.14159265, 0.03, 0.1)
+    ActionDim = 3
+    SmoothingFactor = 0.001
+    Tiny = 0.0001
+    ActionSelection = "asWFBoltzman"
+    NoiseFactor = 0.0
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax ={
+        clear()
+        resize(1)
+        [0]= 1.0
+      }
+    Levels = (11, 1, 1)
+    Radiuses = (1.0, 0.0, 0.0)
+  }

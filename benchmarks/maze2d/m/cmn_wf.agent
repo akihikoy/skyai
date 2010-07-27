@@ -1,0 +1,33 @@
+// common agent file for wire-fitting
+
+module  MRadialActionSpace2                        action_space
+
+
+/// initialization process:
+connect  cmn.signal_initialization               , action_space.slot_initialize
+connect  action_space.slot_initialize_finished   , behavior.slot_initialize
+
+/// start of episode process:
+connect  cmn.signal_start_of_episode             , behavior.slot_start_episode
+
+/// start of time step process:
+connect  cmn.signal_start_of_timestep            , action_space.slot_start_time_step
+
+/// end of time step process:
+connect  cmn.signal_end_of_timestep              , action_space.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action          , action_space.slot_execute_action
+connect  action_space.signal_execute_command     , cmn.slot_execute_command
+connect  action_space.signal_end_of_action       , behavior.slot_finish_action
+
+connect  cmn.signal_reward                       , behavior.slot_add_to_reward
+connect  cmn.signal_end_of_episode               , behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode          , cmn.slot_finalize_episode
+
+/// I/O:
+connect  cmn.out_ngnet                           , behavior.in_feature
+connect  cmn.out_episode_number                  , behavior.in_episode_number
+
+connect  cmn.out_cont_time                       , behavior.in_cont_time

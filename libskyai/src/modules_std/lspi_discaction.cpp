@@ -40,11 +40,11 @@ using namespace disc_action;
     \note size of the resQs must be the same as the action set */
 void calc_action_value (const TRealVector &W, const TRealVector &phi, TRealVector &resQs)
 {
-  TypeExt<TRealVector>::const_iterator  witr(GenBegin(W));
-  for (TypeExt<TRealVector>::iterator qsitr(GenBegin(resQs)); qsitr!=GenEnd(resQs); ++qsitr)
+  TypeExtS<TRealVector>::const_iterator  witr(GenBegin(W));
+  for (TypeExtS<TRealVector>::iterator qsitr(GenBegin(resQs)); qsitr!=GenEnd(resQs); ++qsitr)
   {
     *qsitr= 0.0l;
-    for (TypeExt<TRealVector>::const_iterator phiitr(GenBegin(phi)); phiitr!=GenEnd(phi); ++witr,++phiitr)
+    for (TypeExtS<TRealVector>::const_iterator phiitr(GenBegin(phi)); phiitr!=GenEnd(phi); ++witr,++phiitr)
       (*qsitr)+= (*witr)*(*phiitr);
   }
 }
@@ -55,7 +55,7 @@ void calc_action_value (const TRealVector &W, const TRealVector &phi, TRealVecto
 void calc_action_value (const TRealVector &W, const TSparseFeature &sphi, TRealVector &resQs, TInt size_of_feature)
 {
   TInt row_base(0);
-  for (TypeExt<TRealVector>::iterator qsitr(GenBegin(resQs)); qsitr!=GenEnd(resQs); ++qsitr,row_base+=size_of_feature)
+  for (TypeExtS<TRealVector>::iterator qsitr(GenBegin(resQs)); qsitr!=GenEnd(resQs); ++qsitr,row_base+=size_of_feature)
   {
     *qsitr= 0.0l;
     for (TSparseFeature::const_iterator sphiitr(sphi.begin()); sphiitr!=sphi.end(); ++sphiitr)
@@ -70,7 +70,7 @@ void make_complete_feature (const TRealVector &state_feature, const TDiscreteAct
 {
   // phi= SparseMatrix(wsize,1,nonzero_feature_max_size);
   TInt count=0, row=action*GenSize(state_feature);
-  for (TypeExt<TRealVector>::const_iterator itr(GenBegin(state_feature)),last(GenEnd(state_feature));
+  for (TypeExtS<TRealVector>::const_iterator itr(GenBegin(state_feature)),last(GenEnd(state_feature));
       itr!=last; ++itr,++row)
   {
     if (*itr>nonzero_feature_threshold)
@@ -102,7 +102,7 @@ void feature_to_sparse_feature (const TRealVector &feature, TSparseFeature &sfea
     const TReal &nonzero_feature_threshold, TInt nonzero_feature_max_size)
 {
   TInt count=0, row=0;
-  for (TypeExt<TRealVector>::const_iterator itr(GenBegin(feature)),last(GenEnd(feature));
+  for (TypeExtS<TRealVector>::const_iterator itr(GenBegin(feature)),last(GenEnd(feature));
       itr!=last; ++itr,++row)
   {
     if (*itr>nonzero_feature_threshold)

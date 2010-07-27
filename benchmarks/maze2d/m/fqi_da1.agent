@@ -1,0 +1,34 @@
+// agent file for maze2d task using fitted Q iteration
+
+include "fqi_da"
+include "cmn"
+
+module MFQIDiscAct behavior
+
+include "cmn_da"
+
+
+/// parameter setting:
+
+radial_action.config ={
+    NumOfDirs = 16
+  }
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.05
+    AlphaDecreasingFactor = 0.002
+    FQICycle = 10
+    MaxNumberOfQIteration = 1
+    MaxNumberOfSLIteration = 3
+    MinRewardDeviationRate = 0.1
+    SameSampleThreshold = 0.001
+    NumberOfUsedSamples = 0
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+

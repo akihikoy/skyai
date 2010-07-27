@@ -1,7 +1,0 @@
-// behavior module must be defined
-
-/// parameter setting:
-behavior.config={
-    Alpha = 0.1
-    Tau = 1.0e-10
-  }

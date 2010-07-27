@@ -1,0 +1,79 @@
+// Common modules and connections for Q(lambda)-learning + fitted Q iteration with wire fitting
+// NOTE: this file is assumed to be included inside a composite module definition
+//       where a composite module TD-learner with wire-fitting should be defined before loading this file
+
+export   rl_slot_initialize.slot_in  as  slot_initialize
+export   rl_slot_start_episode.slot_in  as  slot_start_episode
+// export   behavior.signal_execute_action  as_is
+export   rwd_accumulator.slot_add  as  slot_add_to_reward
+// export   behavior.slot_finish_action  as_is
+// export   behavior.signal_end_of_action as_is
+export   behavior.slot_finish_episode  as_is
+export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
+export   rl_in_feature.in_1  as  in_feature
+export   rl_in_episode_number.in_1  as  in_episode_number
+export   rl_in_cont_time.in_1  as  in_cont_time
+
+module  MFittedQIterationSL_TContinuousState_TContinuousAction  behavior_fqi
+
+/// initialization process:
+connect  behavior.slot_initialize_finished             , behavior_fqi.slot_initialize
+/// start of episode process:
+connect  behavior.slot_start_episode_finished          , behavior_fqi.slot_start_episode
+/// learning signals:
+connect  behavior.signal_execute_action                , behavior_fqi.slot_puppet_action
+connect  behavior.signal_end_of_action                 , behavior_fqi.slot_finish_action
+connect  behavior_fqi.signal_avf_add_to_parameter      , avf_wire_fitting.slot_add_to_parameter
+export   behavior_fqi.signal_end_of_action as_is
+
+connect  behavior.slot_finish_episode_finished         , behavior_fqi.slot_finish_episode
+
+/// I/O:
+connect  rwd_accumulator.out_last_accessed             , behavior_fqi.in_reward
+
+connect  rl_in_feature.out_1                           , behavior_fqi.in_state
+connect  avf_wire_fitting.out_evaluate                 , behavior_fqi.in_avf_evaluate
+connect  avf_wire_fitting.out_greedy                   , behavior_fqi.in_avf_greedy
+connect  avf_wire_fitting.out_select_action            , behavior_fqi.in_avf_select_action
+connect  avf_wire_fitting.out_create_parameter         , behavior_fqi.in_avf_create_parameter
+connect  avf_wire_fitting.out_zero_parameter           , behavior_fqi.in_avf_zero_parameter
+
+export behavior.config.Alpha                  as     Alpha1
+export behavior.config.AlphaDecreasingFactor  as     AlphaDecreasingFactor1
+export behavior.config.AlphaMin               as     AlphaMin1
+export behavior.config.Gamma                  as     Gamma1
+export behavior.config.GradientMax            as_is
+export behavior.config.Lambda                 as_is
+export behavior.config.LearningAlgorithm      as_is
+export behavior.config.UsingEligibilityTrace  as_is
+export behavior.config.UsingReplacingTrace    as_is
+
+export behavior_fqi.config.Alpha                       as     Alpha2
+export behavior_fqi.config.AlphaDecreasingFactor       as     AlphaDecreasingFactor2
+export behavior_fqi.config.AlphaMin                    as     AlphaMin2
+export behavior_fqi.config.EliminateSampleByDeviation  as_is
+export behavior_fqi.config.FQICycle                    as_is
+export behavior_fqi.config.Gamma                       as     Gamma2
+export behavior_fqi.config.LSMethodType                as_is
+export behavior_fqi.config.MaxNumberOfQIteration       as_is
+export behavior_fqi.config.MaxNumberOfSLIteration      as_is
+export behavior_fqi.config.MinRewardDeviationRate      as_is
+export behavior_fqi.config.NumberOfUsedSamples         as_is
+export behavior_fqi.config.SameSampleThreshold         as_is
+export behavior_fqi.config.SqErrGradientNormLimit      as_is
+
+export avf_wire_fitting.config.ActionDim            as_is
+export avf_wire_fitting.config.ActionMax            as_is
+export avf_wire_fitting.config.ActionMin            as_is
+export avf_wire_fitting.config.ActionSelection      as_is
+export avf_wire_fitting.config.Eps                  as_is
+export avf_wire_fitting.config.EpsDecreasingFactor  as_is
+export avf_wire_fitting.config.MinimumNoiseVar      as_is
+export avf_wire_fitting.config.NoiseFactor          as_is
+export avf_wire_fitting.config.PolicyImprovement    as_is
+export avf_wire_fitting.config.SmoothingFactor      as_is
+export avf_wire_fitting.config.Tau                  as_is
+export avf_wire_fitting.config.TauDecreasingFactor  as_is
+export avf_wire_fitting.config.TauMin               as_is
+export avf_wire_fitting.config.Tiny                 as_is
+export avf_wire_fitting.config.TraceMax             as_is

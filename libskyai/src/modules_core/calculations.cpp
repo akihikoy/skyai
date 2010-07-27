@@ -38,15 +38,15 @@ using namespace std;
 template<>void MConstMultiplier<TRealVector,TRealVector>::function (const TInput &x, TOutput &y) const
 {
   GenResize(y, GenSize(x));
-  TypeExt<TRealVector>::const_iterator iitr(GenBegin(x)), ilastitr(GenEnd(x)), fitr(GenBegin(conf_.Factor));
+  TypeExtS<TRealVector>::const_iterator iitr(GenBegin(x)), ilastitr(GenEnd(x)), fitr(GenBegin(conf_.Factor));
   if (GenSize(conf_.Factor)==GenSize(x))
   {
-    for (TypeExt<TRealVector>::iterator oitr(GenBegin(y)); iitr!=ilastitr; ++iitr,++oitr,++fitr)
+    for (TypeExtS<TRealVector>::iterator oitr(GenBegin(y)); iitr!=ilastitr; ++iitr,++oitr,++fitr)
       (*oitr)= (*iitr) * (*fitr);
   }
   else if (GenSize(conf_.Factor)==1)
   {
-    for (TypeExt<TRealVector>::iterator oitr(GenBegin(y)); iitr!=ilastitr; ++iitr,++oitr)
+    for (TypeExtS<TRealVector>::iterator oitr(GenBegin(y)); iitr!=ilastitr; ++iitr,++oitr)
       (*oitr)= (*iitr) * (*fitr);
   }
   else
@@ -69,7 +69,7 @@ template<>void MConstMultiplier<TRealMatrix,TRealVector>::function (const TInput
 
 void MBoolVectorAnd::function (const TInput &x, TOutput &y) const
 {
-  for (TypeExt<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
+  for (TypeExtS<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
     if (!(*x_itr))  {y=false; return;}
   y= true;
 }
@@ -77,7 +77,7 @@ void MBoolVectorAnd::function (const TInput &x, TOutput &y) const
 
 void MBoolVectorOr::function (const TInput &x, TOutput &y) const
 {
-  for (TypeExt<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
+  for (TypeExtS<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
     if (*x_itr)  {y=true; return;}
   y= false;
 }
@@ -116,12 +116,12 @@ SKYAI_ADD_MODULE(MCaster_TReal_TBool)
 SKYAI_ADD_MODULE(MCaster_TBool_TInt )
 SKYAI_ADD_MODULE(MCaster_TBool_TReal)
 //-------------------------------------------------------------------------------------------
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
-SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
-SKYAI_ADD_MODULE(MVectorToScalar_TIntVector_TInt)
-SKYAI_ADD_MODULE(MVectorToScalar_TRealVector_TReal)
-SKYAI_ADD_MODULE(MVectorToScalar_TBoolVector_TBool)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorToScalar,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorToScalar,TRealVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorToScalar,TBoolVector)
+SKYAI_ADD_MODULE(MVectorToScalar_TIntVector)
+SKYAI_ADD_MODULE(MVectorToScalar_TRealVector)
+SKYAI_ADD_MODULE(MVectorToScalar_TBoolVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorShuffler,TIntVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MVectorShuffler,TRealVector)
@@ -204,6 +204,11 @@ SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MElemSquare,TIntVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MElemSquare,TRealVector)
 SKYAI_ADD_MODULE(MElemSquare_TIntVector)
 SKYAI_ADD_MODULE(MElemSquare_TRealVector)
+//-------------------------------------------------------------------------------------------
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNorm,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNorm,TRealVector)
+SKYAI_ADD_MODULE(MNorm_TIntVector)
+SKYAI_ADD_MODULE(MNorm_TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEqualTo,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEqualTo,TReal)

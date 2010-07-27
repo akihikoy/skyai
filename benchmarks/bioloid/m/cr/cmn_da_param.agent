@@ -1,0 +1,21 @@
+// agent file for motion learning task of manoi01 (common for disc-action behavior module)
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = true
+    UsingReplacingTrace = true
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    Gamma = 0.9
+    Lambda = 0.9
+    GradientMax = 1.0e+100
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    // Tau = 5
+    // conservative:
+    Tau = 0.1
+    TauDecreasingFactor = 0.004
+    TraceMax = 1.0
+  }

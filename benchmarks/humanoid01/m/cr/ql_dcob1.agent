@@ -1,0 +1,22 @@
+// agent file for crawling task using Q(lambda)-learning and DCOB
+
+include "env"
+include "task_crawling"
+include_once "ql_da"
+include_once "dcob"
+
+module MTDDiscAct behavior
+module MDCOB dcob
+include "cmn_dcob"
+
+
+/// parameter setting:
+
+include "cmn_ql_param"
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }

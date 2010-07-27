@@ -1,0 +1,23 @@
+// agent file for crawling task using Q(lambda)-learning and Grid action set
+
+include "env"
+include "task_crawling"
+include "lspi_da"
+
+module MLSPIDiscAct behavior
+include "cmn_grid1"
+
+/// parameter setting:
+
+behavior.config={
+    Gamma = 0.9
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 5
+    TauDecreasingFactor = 0.004
+
+    MaxDataSizePerDim = 25
+    LSPICycle = 5
+    LSTDQIterations = 1
+    NonzeroFeatureThreshold = 0.01
+  }

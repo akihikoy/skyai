@@ -31,6 +31,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <set>
 #include <boost/function.hpp>
 #include <skyai/module_manager.h>
 //-------------------------------------------------------------------------------------------
@@ -411,26 +412,6 @@ private:
 };
 //-------------------------------------------------------------------------------------------
 
-#if 0
-//===========================================================================================
-/*!\brief Interface class for a parser */
-FIXME:
-struct TParserInterface
-//===========================================================================================
-{
-  virtual TModuleInterface&  Module (const std::string &module_name) = 0;
-  virtual TModuleInterface&  AddModule (const std::string &v_module_class, const std::string &v_instance_name) = 0;
-  virtual bool Connect(
-      const std::string &start_module_name, const std::string &start_port_name,
-      const std::string &end_module_name,   const std::string &end_port_name) = 0;
-  virtual void Disconnect(
-      const std::string &start_module_name, const std::string &start_port_name,
-      const std::string &end_module_name,   const std::string &end_port_name) = 0;
-  virtual var_space::TVariable& ParamBoxConfig() = 0;
-};
-//-------------------------------------------------------------------------------------------
-#endif
-
 
 //===========================================================================================
 /*!\brief Composite module class */
@@ -439,8 +420,18 @@ class TCompositeModule : public TModuleInterface
 {
 public:
 
+  struct TModuleCell
+    {
+      std::string       Name;
+      TModuleInterface  *Ptr;
+      bool              Managed;  //! if true, Ptr is freed in Clear() if not NULL
+      TModuleCell(void) : Name(""), Ptr(NULL), Managed(true) {}
+      TModuleCell(const std::string &id) : Name(id), Ptr(NULL), Managed(true) {}
+      TModuleCell(const std::string &id, TModuleInterface *m, bool mngd) : Name(id), Ptr(m), Managed(mngd) {}
+    };
+
   /*! Type of module set (map) whose key is module.InstanceName() */
-  typedef std::map<std::string, TModuleInterface*>  TModuleSet;
+  typedef std::set<TModuleCell>  TModuleSet;
 
   //! clear all modules (memories are freed)
   void Clear();
@@ -457,8 +448,18 @@ public:
       Clear();
     }
 
+  TModuleInterface* SubModulePtr (const std::string &module_name)  {return find_sub_module(module_name,/*error=*/false);}
+  const TModuleInterface* SubModulePtr (const std::string &module_name) const  {return find_sub_module(module_name,/*error=*/false);}
+
   TModuleInterface& SubModule (const std::string &module_name);
   const TModuleInterface& SubModule (const std::string &module_name) const;
+
+  /*! search a module named module_name.
+      if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
+  TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5);
+  /*! search a module named module_name.
+      if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
+  const TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5) const;
 
   template <typename t_module>
   t_module& SubModuleAs (const std::string &module_name);
@@ -472,6 +473,10 @@ public:
 
   //! create a module whose type is specified by the string v_module_class
   TModuleInterface&  AddSubModule (const std::string &v_module_class, const std::string &v_instance_name);
+
+  /*! add p into the sub-module set.  this pointer is not managed by this class,
+        i.e. the memory is not freed in Clear(), and parameter is not saved (only connection is saved) */
+  void AddUnmanagedSubModule (TModuleInterface *p, const std::string &v_instance_name);
 
 
   bool SubConnectIO(
@@ -507,6 +512,9 @@ public:
 
   /*!\brief for each module, apply the function f */
   void ForEachSubModule (boost::function<bool(const TModuleInterface* module)> f) const;
+
+  /*!\brief for each module, apply the function f */
+  void ForEachSubModuleCell (boost::function<bool(const TModuleCell &mcell)> f) const;
 
   /*!\brief for each connected port, apply the function f */
   void ForEachSubConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f);
@@ -546,11 +554,17 @@ protected:
 
   TModuleSet  sub_modules_;
 
-  std::list<std::pair<std::string,std::string> >  export_list_;
+  std::list<std::pair<std::string,std::string> >  export_list_;  //!< stored in Export{Port,Memory,Config} to be used in WriteToStream
 
   inline TModuleInterface* find_sub_module (const std::string &module_name, bool error=false) const;
 
 };
+//-------------------------------------------------------------------------------------------
+
+inline bool operator<(const TCompositeModule::TModuleCell &lhs, const TCompositeModule::TModuleCell &rhs)
+{
+  return lhs.Name < rhs.Name;
+}
 //-------------------------------------------------------------------------------------------
 
 template <typename t_module>
@@ -579,13 +593,13 @@ const t_module& TCompositeModule::SubModuleAs (const std::string &module_name) c
 template <typename t_module>
 t_module&  TCompositeModule::AddSubModule (const std::string &v_instance_name)
 {
-  if (sub_modules_.find(v_instance_name)!=sub_modules_.end())
+  if (sub_modules_.find(TModuleCell(v_instance_name))!=sub_modules_.end())
   {
     LERROR("module "<<v_instance_name<<" is already registered");
     lexit(df);
   }
   t_module *p= new t_module (v_instance_name);
-  sub_modules_[v_instance_name]= p;
+  sub_modules_.insert(TModuleCell(v_instance_name,p,true));
   p->SetAgent(Agent());
   return *p;
 }
@@ -596,10 +610,10 @@ inline TModuleInterface* TCompositeModule::find_sub_module (const std::string &m
   TModuleSet::const_iterator itr= sub_modules_.find(module_name);
   if(itr==sub_modules_.end())
   {
-    LERROR("module "<<module_name<<" is not found.");
+    if(error)  LERROR("module "<<module_name<<" is not found.");
     return NULL;
   }
-  return itr->second;
+  return itr->Ptr;
 };
 //-------------------------------------------------------------------------------------------
 
@@ -624,7 +638,7 @@ public:
   bool GeneratorExists(const std::string &cmodule_name) const;
 
   //! Create an instance of cmodule_name; return true for success
-  bool Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name) const;
+  bool Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export=false) const;
 
   //! Write all composite module definitions to a stream
   bool WriteToStream (std::ostream &os, const std::string &indent="") const;
@@ -681,6 +695,13 @@ public:
 
   TModuleInterface& Module (const std::string &module_name)  {return modules_.SubModule(module_name);}
   const TModuleInterface& Module (const std::string &module_name) const {return modules_.SubModule(module_name);}
+
+  /*! search a module named module_name.
+      if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
+  TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5)  {return modules_.SearchModule(module_name,max_depth);}
+  /*! search a module named module_name.
+      if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
+  const TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5) const {return modules_.SearchModule(module_name,max_depth);}
 
   template <typename t_module>
   t_module& ModuleAs (const std::string &module_name)  {return modules_.SubModuleAs<t_module>(module_name);}
@@ -779,8 +800,9 @@ public:
   const TCompositeModuleGenerator& CompositeModuleGenerator() const {return cmp_module_generator_;}
 
 
-  /*!\brief search filename from the path-list, return the native path */
-  std::string SearchFileName (const std::string &filename) const;
+  /*!\brief search filename from the path-list, return the native path
+      \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */
+  std::string SearchFileName (const std::string &filename, const std::string &omissible_extension="") const;
 
   /*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
   std::string GetDataFileName (const std::string &filename) const;
@@ -816,31 +838,6 @@ protected:
   TCompositeModuleGenerator  cmp_module_generator_;
 
   std::list<boost::filesystem::path>  *path_list_;
-
-#if 0
-FIXME:
-  class TAgentParserInterface : public TParserInterface
-    {
-    public:
-      TAgentParserInterface(TAgent &a) : outer_(a) {}
-      override TModuleInterface&  Module (const std::string &module_name)
-        {return outer_.Module(module_name);}
-      override TModuleInterface&  AddModule (const std::string &v_module_class, const std::string &v_instance_name)
-        {return outer_.AddModule(v_module_class, v_instance_name);}
-      override bool Connect(
-          const std::string &start_module_name, const std::string &start_port_name,
-          const std::string &end_module_name,   const std::string &end_port_name)
-        {return outer_.Connect(start_module_name, start_port_name, end_module_name, end_port_name);}
-      override void Disconnect(
-          const std::string &start_module_name, const std::string &start_port_name,
-          const std::string &end_module_name,   const std::string &end_port_name)
-        {return outer_.Disconnect(start_module_name, start_port_name, end_module_name, end_port_name);}
-      override var_space::TVariable& ParamBoxConfig()
-        {return outer_.ParamBoxConfig();}
-    private:
-      TAgent  &outer_;
-    } parser_interface_;
-#endif
 
 };
 //-------------------------------------------------------------------------------------------

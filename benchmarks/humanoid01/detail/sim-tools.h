@@ -20,14 +20,6 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-    -----------------------------------------------------------------------------------------
-
-    \note    \c posrot means position and rotation.
-    \note    \c prvel  means linear and angular velocity (velocity of position and rotation).
-    \note    \c angvel means angular velocity.
-    \note    \c kin-state  means (posrot,angular)
-    \note    \c dyn-state  means (posrot,prvel) or (angular,angvel) or (posrot,angular, prvel,angvel)
 */
 //-------------------------------------------------------------------------------------------
 #ifndef sim_tools_h
@@ -37,10 +29,6 @@
   #error SIM_OBJECT_DEFS is not defined; the simulation objects should be defined before include sim-tools.h,
   #error and SIM_OBJECT_DEFS constant is defined
 #endif
-#ifndef OBJ_CONTROLLER
-  #error OBJ_CONTROLLER is not defined; the simulation objects should be defined before include sim-tools.h,
-  #error and OBJ_CONTROLLER constant is defined as a namespace of some controller
-#endif
 //-------------------------------------------------------------------------------------------
 #include <fstream>
 #include <iomanip>
@@ -48,27 +36,15 @@
 #include <lora/octave.h>
 #include <lora/octave_str.h>
 #include <lora/small_classes.h>
-#include <lora/stl_math.h>
-#include <lora/type_gen_oct.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
 extern const int JOINT_NUM;
 //-------------------------------------------------------------------------------------------
-namespace OBJ_CONTROLLER  // defined in "humanoid-controller.h" or something like that
-{
-  extern int DYN_STATE_DIM    ;
-  inline void getDynState (ColumnVector&, int);
-  inline ColumnVector extractWholeJointAngle (const ColumnVector&);
-  inline void extractBasePosRot (const ColumnVector&, dVector3 pos, dQuaternion rot);
-};
-//-------------------------------------------------------------------------------------------
 static TReal world_time (0.0l);
 //-------------------------------------------------------------------------------------------
 TInitializer SimulationInit;   //!< initialized at create_world
-//-------------------------------------------------------------------------------------------
-static dReal MAX_PENETRATION_DEPTH (0.0l);
 //-------------------------------------------------------------------------------------------
 struct TContactInfo
 {
@@ -83,7 +59,7 @@ static std::vector<float> _bodies_contact_with_ground(BODY_NUM,0.0f); // contact
 static std::vector<float> _bodies_contact_wot_ground(BODY_NUM,0.0f);   // contact with objects other than the ground
 static TLHBPFilters<std::vector<float> >  _bodies_contact_with_ground_LPF;
 static TLHBPFilters<std::vector<float> >  _bodies_contact_wot_ground_LPF;
-static bool use_contact_LPF(false);
+static bool use_contact_LPF(true);
 //-------------------------------------------------------------------------------------------
 
 
@@ -127,52 +103,6 @@ extern TSimulationCondition simulationcnd;
 //-------------------------------------------------------------------------------------------
 
 
-
-//===========================================================================================
-// SET POSE/ROT/JOINT_ANGLE
-//===========================================================================================
-
-
-inline void setJointAngle (const ColumnVector &joint_angle)
-  //! \param [in] joint_angle : ColumnVector(JOINT_NUM)
-{
-  TODEJointAngleMap angle_map;
-  for(int j(0); j<JOINT_NUM; ++j)
-  {
-    angle_map[joint[j].id()]= TODEAngle(joint_angle(j));
-  }
-  ODESetArticulatedBodyJointAngles (body[0].id(), angle_map);
-}
-//-------------------------------------------------------------------------------------------
-
-void setWholeBodyPose (const ColumnVector &state)
-  //! \param [in] state
-{
-#ifdef FLOATING_BASE
-  dVector3 newpos;  // current base-pos, new base-pos
-  dQuaternion newq;   // new base-rotation (quaternion)
-  OBJ_CONTROLLER::extractBasePosRot (state, newpos, newq);
-  ODESetArticulatedBodyPosRotQ (body[0].id(), newpos, newq);
-#endif
-  setJointAngle (OBJ_CONTROLLER::extractWholeJointAngle(state));
-}
-//-------------------------------------------------------------------------------------------
-
-void setGlobalBodyPose (const dReal state[3])
-  //! \param [in] state
-{
-#ifdef FLOATING_BASE
-  dVector3 newpos;  // current base-pos, new base-pos
-  dQuaternion newq;    // new base-rotation (quaternion)
-  newpos[0] = state[0]; // x
-  newpos[1] = state[1]; // y
-  newpos[2] = body[0].getPosition()[2]; // z
-  dQFromAxisAndAngle (newq,0.0,0.0,1.0, state[2]);
-  ODESetArticulatedBodyPosRotQ (body[0].id(), newpos, newq);
-#endif
-}
-//-------------------------------------------------------------------------------------------
-
 //===========================================================================================
 // TOOL
 //===========================================================================================
@@ -196,34 +126,15 @@ void getCOM (dVector3 com)
 }
 //-------------------------------------------------------------------------------------------
 
-inline bool bodies_contact (int index, const float &sensitivity=0.1f)
-{
-  if (!use_contact_LPF)  {LERROR("bodies_contact is invalid when use_contact_LPF is false"); exit(1);}
-  if (!_bodies_contact_wot_ground_LPF.isInitialized())  {LERROR("_bodies_contact_wot_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
-  if (!_bodies_contact_with_ground_LPF.isInitialized())  {LERROR("_bodies_contact_with_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
-  return _bodies_contact_wot_ground_LPF()[index]>sensitivity || _bodies_contact_with_ground_LPF()[index]>sensitivity;
-}
-inline bool bodies_contact_with_ground (int index, const float &sensitivity=0.1f)
-{
-  if (!use_contact_LPF)  {LERROR("bodies_contact_with_ground is invalid when use_contact_LPF is false"); exit(1);}
-  if (!_bodies_contact_with_ground_LPF.isInitialized())  {LERROR("_bodies_contact_with_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
-  return _bodies_contact_with_ground_LPF()[index]>sensitivity;
-}
 inline void bodies_contact_with_ground (std::vector<bool> &result, const float &sensitivity=0.1f)
 {
-  if (!use_contact_LPF)  {LERROR("bodies_contact_with_ground is invalid when use_contact_LPF is false"); exit(1);}
-  if (!_bodies_contact_with_ground_LPF.isInitialized())  {LERROR("_bodies_contact_with_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
+  LASSERT(use_contact_LPF);
+  LASSERT(_bodies_contact_with_ground_LPF.isInitialized());
   const std::vector<float>  &lpf (_bodies_contact_with_ground_LPF());
   result.resize(lpf.size());
   std::vector<float>::const_iterator lpf_itr(lpf.begin());
   for (std::vector<bool>::iterator res_itr(result.begin()),res_last(result.end()); res_itr!=res_last; ++res_itr,++lpf_itr)
     (*res_itr)= (*lpf_itr > sensitivity);
-}
-inline bool bodies_contact_wot_ground (int index, const float &sensitivity=0.1f)
-{
-  if (!use_contact_LPF)  {LERROR("bodies_contact_with_ground is invalid when use_contact_LPF is false"); exit(1);}
-  if (!_bodies_contact_wot_ground_LPF.isInitialized())  {LERROR("_bodies_contact_wot_ground_LPF is not initialized; use initSimulation/stepSimulation"); exit(1);}
-  return _bodies_contact_wot_ground_LPF()[index]>sensitivity;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -276,12 +187,6 @@ int display_fps_set[]={5,10,20,50,100,200,500};
 int display_fps_index=(3);
 //-------------------------------------------------------------------------------------------
 
-template<class T>
-bool IsEqualSet (const T &a1, const T &a2, const T &b1, const T &b2)
-{
-   return (a1==b1 && a2==b2) || (a1==b2 && a2==b1);
-}
-//-------------------------------------------------------------------------------------------
 
 static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 {
@@ -296,11 +201,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 
   // make contact property
   dSurfaceParameters the_surface;
-  #ifndef GET_SURFACE_PARAMS
-    the_surface= simulationcnd.Surface;
-  #else
-    the_surface= GET_SURFACE_PARAMS(data, o1, o2, simulationcnd.Surface);
-  #endif
+  the_surface= simulationcnd.Surface;
   dContact contact [simulationcnd.MaxContactNum];   // up to MaxContactNum contacts per box-box
   if (int numc = dCollide (o1,o2,simulationcnd.MaxContactNum,&contact[0].geom,sizeof(dContact)))
   {
@@ -311,8 +212,6 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
       dJointAttach (c,b1,b2);  // set b1 or b2 to zero - a zero body refers to the static environment
       if (use_contact_points)
         contact_points.push_back(TContactInfo(contact[i].geom.pos, b1, b2));
-      if (o1==plane.id()||o2==plane.id())
-        MAX_PENETRATION_DEPTH = std::max<TReal>(MAX_PENETRATION_DEPTH,contact[i].geom.depth);
     }
     for(int j(0); j<BODY_NUM; ++j)
     {
@@ -331,17 +230,11 @@ inline void initSimulation (void)
   SimulationInit.Init();
   world_time= 0.0l;
   LMESSAGE("simulation is initialized.");
-  #ifdef humanoid_manoi_h
-  LMESSAGE("(debug message: humanoid_manoi_h is defined)");
-  #else
-  LMESSAGE("(debug message: humanoid_manoi_h is not defined)");
-  #endif
 }
 //-------------------------------------------------------------------------------------------
 
 inline void stepSimulation (const dReal &time_step)
 {
-  MAX_PENETRATION_DEPTH = 0.0l;
   contact_points.clear();
   std::fill (_bodies_contact_with_ground.begin(), _bodies_contact_with_ground.end(), 0.0f);
   std::fill (_bodies_contact_wot_ground.begin(), _bodies_contact_wot_ground.end(), 0.0f);

@@ -1,0 +1,15 @@
+// Q(lambda)-learning modules for continuous action space
+// Using wire fitting (grid) as a function approximator and generic TD learner
+
+composite MTDWireFittingGrid
+{
+  module  MAVFWireFittingGridBase  avf_wire_fitting
+
+  include "ql_cmn_wf"
+  export   behavior.signal_execute_action  as_is
+  export   behavior.slot_finish_action  as_is
+
+  export avf_wire_fitting.config.GConstraintKind      as_is
+  export avf_wire_fitting.config.Levels               as_is
+  export avf_wire_fitting.config.Radiuses             as_is
+}

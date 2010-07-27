@@ -110,9 +110,6 @@ void init_walls(dSimpleSpace &_space, int map_kind=-1)
     }
     else if (map_kind==1)
     {
-      // walls.push_back (TWall( 0.40l,  0.50l,   0.40l,  0.30l));
-      // walls.push_back (TWall( 0.40l,  0.00l,   0.40l, -1.00l));
-      // walls.push_back (TWall( 0.60l, -0.20l,   0.60l,  1.00l));
       walls.push_back (TWall( 0.10l,  0.50l,   0.10l, -0.00l));
       walls.push_back (TWall( 0.10l, -0.50l,   0.40l, -0.30l));
       walls.push_back (TWall( 0.40l, -0.30l,   0.60l,  0.20l));

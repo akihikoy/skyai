@@ -1,0 +1,24 @@
+// agent file for crawling task using Q(lambda)-learning + fitted Q iteration with Grid action set
+
+include "env"
+include "task_crawling"
+include_once "qlfqi_da"
+
+module MTDFQIDiscAct behavior
+include "cmn_grid1"
+
+/// parameter setting:
+
+include "cmn_ql_param"
+
+include "cmn_fqi_param"
+
+behavior.config={
+    Gamma1 = 0.9
+    Gamma2 = 0.9
+    Alpha1 = 0.3
+    AlphaDecreasingFactor1 = 0.002
+    AlphaMin1 = 0.05
+    Alpha2 = 0.05
+    AlphaDecreasingFactor2 = 0.00
+  }

@@ -1,0 +1,63 @@
+// Discrete action set DCOB (Cp and Cd are defined as MConstMultiplier_TRealMatrix_TRealVector)
+
+composite MDCOB
+{
+  module  MActionSetDCOB                     dcob
+  module  MBFTrans                           bftrans
+  module  MConstMultiplier_TRealMatrix_TRealVector        Cp
+  module  MConstMultiplier_TRealMatrix_TRealVector        Cd
+
+  /// initialization process:
+  export   bftrans.slot_initialize  as_is
+
+  /// start of episode process:
+
+  /// start of time step process:
+  export   bftrans.slot_start_time_step  as_is
+
+  /// end of time step process:
+  export   bftrans.slot_finish_time_step  as_is
+
+  /// learning signals:
+  export   dcob.slot_execute_action  as_is
+  connect  dcob.signal_execute_command , bftrans.slot_execute_action
+  export   bftrans.signal_execute_command  as_is
+  export   bftrans.signal_end_of_action  as_is
+
+
+  /// I/O:
+  export   dcob.out_action_set_size  as_is
+
+  export   bftrans.in_feature  as_is
+  export   bftrans.in_state  as_is
+  export   bftrans.in_distance_to_nearest_bf  as_is
+  connect  Cp.out_f2 , bftrans.in_extract_proportional
+  connect  Cd.out_f2 , bftrans.in_extract_derivative
+  export   dcob.in_center_state_set  as_is
+
+
+  /// parameter setting:
+
+  export dcob.config.IntervalSet  as_is
+
+  export bftrans.config.AbbreviateTrajectory     as_is
+  export bftrans.config.ProportionalDim          as_is
+  export bftrans.config.TrajectoryGeneratorType  as_is
+  export bftrans.config.ZeroUnspecifiedState     as_is
+
+  export Cp.config.Factor  as  Cp
+  export Cd.config.Factor  as  Cd
+}
+
+composite MOldDCOB
+{
+  inherit MDCOB
+
+  /// parameter setting:
+  bftrans.config ={
+      AbbreviateTrajectory    = false
+      TrajectoryGeneratorType = "tgtJerkMin"
+      ZeroUnspecifiedState    = false
+    }
+}
+

@@ -39,6 +39,13 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
 {
   std::list<std::string>  included_list;
 
+  if (ConvertFromStr<bool>(option("available_mods","false")))
+  {
+    LMESSAGE("TModuleManager::ShowAllModules():");
+    TModuleManager::ShowAllModules(option("show_conf"));
+    return false;
+  }
+
   if (option("path")!="")
   {
     TTokenizer tokenizer(option("path"));
@@ -57,7 +64,7 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
     while(!tokenizer.EOL())
     {
       tokenizer.ReadSeparators();
-      agent_file= agent.SearchFileName(tmp_filename= tokenizer.ReadNonSeparators());
+      agent_file= agent.SearchFileName(tmp_filename= tokenizer.ReadNonSeparators(), ".agent");
       if (agent_file=="" || !agent.LoadFromFile(agent_file,NULL,&included_list))
         {LERROR("failed to read "<<tmp_filename); lexit(df);}
     }
@@ -118,13 +125,6 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
         copy_file(from, included_dir/(from.filename()));
       }
     }
-  }
-
-  if (ConvertFromStr<bool>(option("available_mods","false")))
-  {
-    LMESSAGE("TModuleManager::ShowAllModules():");
-    TModuleManager::ShowAllModules(option("show_conf"));
-    return false;
   }
 
   if (ConvertFromStr<bool>(option("show_mods","false")))

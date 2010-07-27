@@ -1,0 +1,37 @@
+// agent file for motion learning task of manoi01
+// for 5-DoF
+
+include_once "task_crawling"
+include_once "ql_da"
+
+module MTDDiscAct behavior
+
+include_once "cmn_dcob"
+include_once "cmn_da_param"
+
+/// parameter setting:
+
+include_once "ks1"
+
+dcob.config ={
+    // IntervalSet = (0.075, 0.1, 0.2)
+    // IntervalSet = (0.2, 0.5)
+    IntervalSet = (0.5)
+    // IntervalSet = (0.8)
+
+    ProportionalDim = 5
+    Cp ={
+        resize(5, 5)
+        [@]= 0
+        [0]= {[0]=1;}
+        [1]= {[1]=1;}
+        [2]= {[2]=1;}
+        [3]= {[3]=1;}
+        [4]= {[4]=1;}
+      }
+    Cd ={
+        resize(5, 5)
+        [@]= 0
+      }
+  }
+

@@ -26,12 +26,6 @@
 #ifndef loco_rabbits_variable_parser_impl_h
 #define loco_rabbits_variable_parser_impl_h
 //-------------------------------------------------------------------------------------------
-#include <sstream>
-#ifndef VAR_SPACE_ERR_EXIT
-#define VAR_SPACE_ERR_EXIT(x_err_message)  \
-  do{std::stringstream ss; ss<<x_err_message; throw ss.str();}while(0)
-#endif
-//-------------------------------------------------------------------------------------------
 #include <lora/variable_parser.h>
 #include <lora/variable_space.h>
 // #include <lora/variable_space_impl.h>
@@ -189,6 +183,8 @@ private:
   TLiteralList literal_stack_;
   bool in_literal_list_;
 
+  LORA_MESSAGE_FORMAT_FUNCTION tmp_lora_msg_format_;
+
   // TLiteral pop_literal_stack ()
     // {
       // res= literal_stack_.back();
@@ -202,6 +198,18 @@ private:
       for(;first!=last;++first)
         ss<<*first;
       return ss.str();
+    }
+
+  void print_error (const std::string &str) const
+    {
+        std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
+    }
+  void lora_error (message_system::TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss) const
+    {
+      if(type==message_system::mtError)
+        print_error(ss.str());
+      else
+        DefaultFormat(type, linenum, filename, functionname, ss);
     }
 
 };
@@ -265,26 +273,26 @@ private:
 #define CONV_ERR_CATCHER_S  \
   try {
 #define CONV_ERR_CATCHER_E  \
-  } catch (boost::bad_lexical_cast &) {                                                                \
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") bad_lexical_cast: "<<join_iterators(first,last)<<std::endl;  \
-    lexit(df);                                                                                         \
-  } catch (std::string &s) {                                                                           \
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;  \
-    lexit(df);                                                                                         \
-  } catch (...) {                                                                                      \
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") bad type conversion: "<<join_iterators(first,last)<<std::endl;  \
-    lexit(df);                                                                                         \
+  } catch (boost::bad_lexical_cast &) {       \
+    print_error("bad_lexical_cast");          \
+    lexit(df);                                \
+  } catch (std::string &s) {                  \
+    print_error(s);                           \
+    lexit(df);                                \
+  } catch (...) {                             \
+    print_error("bad type conversion");       \
+    lexit(df);                                \
   }
 
 #define VAR_ERR_CATCHER_S  \
   try {
 #define VAR_ERR_CATCHER_E  \
-  } catch (std::string &s) {                                                             \
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<s<<": "<<join_iterators(first,last)<<std::endl;   \
-    lexit(df);                                                                           \
-  } catch (...) {                                                                        \
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") fatal!: "<<join_iterators(first,last)<<std::endl;    \
-    lexit(df);                                                                           \
+  } catch (std::string &s) {                  \
+    print_error(s);                           \
+    lexit(df);                                \
+  } catch (...) {                             \
+    print_error("fatal!");                    \
+    lexit(df);                                \
   }
 
 TEMPLATE_DEC
@@ -297,8 +305,13 @@ boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, co
   in_literal_list_= false;
   TCodeParser<t_iterator> parser(*this);
   variable_stack_.push_back(TExtVariable(var));
+
+  tmp_lora_msg_format_= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
+  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&XCLASS::lora_error,this,_1,_2,_3,_4,_5)) );
+
   parse_info<t_iterator> res= parse(first, last, parser);
-  //*dbg*/std::cerr<<"id-stack: ";while(!id_stack_.empty()) {std::cerr<<" "<<id_stack_.back();id_stack_.pop_back();} std::cerr<<std::endl;
+
+  message_system::SetFormat(tmp_lora_msg_format_);
 
   LASSERT(!variable_stack_.empty());
   variable_stack_.pop_back();
@@ -323,20 +336,26 @@ void XCLASS::StartSubParse (TVariable &var, int line_num, const std::string &fil
   file_name_= file_name;
   in_literal_list_= false;
   variable_stack_.push_back(TExtVariable(var));
+  tmp_lora_msg_format_= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
+  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&XCLASS::lora_error,this,_1,_2,_3,_4,_5)) );
 }
 //-------------------------------------------------------------------------------------------
 
 TEMPLATE_DEC
 bool XCLASS::EndSubParse (int *line_num)
 {
+  message_system::SetFormat(tmp_lora_msg_format_);
   LASSERT(!variable_stack_.empty());
   variable_stack_.pop_back();
 
-  #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
-  STACK_CHECK(variable_stack_);
-  STACK_CHECK(context_stack_);
-  STACK_CHECK(id_stack_);
-  STACK_CHECK(literal_stack_);
+  #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty:"); error_=true;}} while(0)
+  if(!error_)
+  {
+    STACK_CHECK(variable_stack_);
+    STACK_CHECK(context_stack_);
+    STACK_CHECK(id_stack_);
+    STACK_CHECK(literal_stack_);
+  }
   #undef STACK_CHECK
 
   if(line_num) *line_num= line_num_;
@@ -368,8 +387,8 @@ void XCLASS::CloseByBrace (t_iterator first, t_iterator last)
     context_stack_.pop_back();
     break;
   default:
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") invalid `}'"<<std::endl;
-    lexit(df);
+    print_error("invalid `}'");
+    lexit(qfail);
     break;
   }
 }
@@ -384,10 +403,8 @@ TEMPLATE_DEC
 void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
   error_= true;
-  std::cout<<"("<<file_name_<<":"<<line_num_<<") syntax error"<<std::endl<<"  > ";
-  for(;first!=last;++first)
-    std::cout<<*first;
-  std::cout<<std::endl;
+  print_error("syntax error:");
+  std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
 }
 
 TEMPLATE_DEC
@@ -466,7 +483,7 @@ void XCLASS::PushLiteralString (t_iterator first, t_iterator last)
   }
   else
   {
-    std::cout<<"("<<file_name_<<":"<<line_num_<<") string type cannot be an element of a list literal"<<std::endl;
+    print_error("string type cannot be an element of a list literal");
     LASSERT(!literal_stack_.empty());
     literal_stack_.back().LRealList.push_back(0.0l);
   }

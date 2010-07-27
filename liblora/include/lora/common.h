@@ -5,6 +5,9 @@
     \date    Nov.30, 2008-
     \note    use -rdynamic linker option to show function name in StackTrace
     \date    Apr.21, 2010  Added template functions: TypeMax, TypeMin, RealMax, RealMin
+    \date    Jul.26, 2010  Added message_system::SetFormat to change message format of LERROR, etc.
+    \date    Jul.26, 2010  Added exitlv::th which throw an exception, added exitlv::ChangeDefault
+    \date    Jul.26, 2010  Added ioscc::Disable, etc. to change color scheme
 
     Copyright (C) 2008, 2009, 2010  Akihiko Yamaguchi
 
@@ -22,6 +25,12 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+    -----------------------------------------------------------------------------------------
+
+    \note If you want to disable to show colored message, use ioscc::Disable() function
+      in a main() function.  Use ioscc::ResetScheme to enable.
+
 */
 //-------------------------------------------------------------------------------------------
 #ifndef loco_rabbits_common_h
@@ -30,6 +39,7 @@
 #include <cmath>
 #include <climits>
 #include <cfloat>
+#include <sstream>
 #include <iostream>
 #include <boost/current_function.hpp>
 // #include <boost/type_traits/remove_const.hpp>
@@ -90,16 +100,36 @@ static const int NullIndex (-1);
         (ISO/IEC 14882:2003 (E): 16.3.2 The # operator)  */
 #define CODE_TO_STR_M(_code) CODE_TO_STR(_code)
 //-------------------------------------------------------------------------------------------
-// #define _LFUNCTION  BOOST_CURRENT_FUNCTION
 #define LORA_CURRENT_FUNCTION  BOOST_CURRENT_FUNCTION
 //-------------------------------------------------------------------------------------------
-#define LERROR(msg)    std::cerr<<"\033[""31;1m"<<"error("<<__FILE__<<":"<<__LINE__<<"): "<<msg<<"\033[""0m"<<std::endl
-#define LWARNING(msg)  std::cerr<<"\033[""31;1m"<<"warning("<<__FILE__<<":"<<__LINE__<<"): "<<msg<<"\033[""0m"<<std::endl
-#define LDEBUG(msg)    std::cerr<<"\033[""31;1m"<<"debug("<<__FILE__<<":"<<__LINE__<<"): "<<msg<<"\033[""0m"<<std::endl
-#define LDBGVAR(var)   std::cerr<<"\033[""31;1m"<<"debug("<<__FILE__<<":"<<__LINE__<<"): "<<#var"= "<<(var)<<"\033[""0m"<<std::endl
-#define LMESSAGE(msg)  std::cerr<<"\033[""34;1m"<<msg<<"\033[""0m"<<std::endl
-#define LTODO(msg)     std::cerr<<"\033[""32;1m"<<"todo("<<__FILE__<<":"<<__LINE__<<"): "<<msg<<"\033[""0m"<<std::endl
-#define FIXME(msg)  do{std::cerr<<"\033[""31;1m"<<"FIX "<<__FILE__<<":"<<__LINE__<<": "<<msg<<"\033[""0m"<<std::endl;lexit(df);} while(0)
+namespace message_system
+{
+  enum TMessageType {mtMessage=0, mtError, mtWarning, mtDebug, mtTodo, mtFixme};
+  namespace detail
+  {
+    void OutputMessage(TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss);
+  }
+  void DefaultFormat(TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss);
+  #define LORA_MESSAGE_FORMAT_FUNCTION  ::boost::function< void(::loco_rabbits::message_system::TMessageType,int,const char*,const char*,::std::stringstream&) >
+  /*!\brief Set message format
+      \note SetFormat is instantiated for
+              t_format_function = LORA_MESSAGE_FORMAT_FUNCTION , and
+              t_format_function = void (*)(TMessageType,int,const char*,const char*,std::stringstream&) */
+  template<typename t_format_function> void SetFormat(t_format_function fmt);
+  /*!\brief Get message format
+      \note SetFormat is instantiated only for LORA_MESSAGE_FORMAT_FUNCTION.  The reason of being a template
+              is not to include boost/function.hpp in this header file */
+  template<typename t_format_function> t_format_function GetFormat(void);
+}
+#define L_OUTPUT_MESSAGE(x_type,x_msg) ::loco_rabbits::message_system::detail::OutputMessage( \
+              ::loco_rabbits::message_system::x_type, __LINE__,  __FILE__, LORA_CURRENT_FUNCTION, x_msg)
+#define LMESSAGE(msg)  do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtMessage,ss);}while(0)
+#define LERROR(msg)    do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtError  ,ss);}while(0)
+#define LWARNING(msg)  do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtWarning,ss);}while(0)
+#define LDEBUG(msg)    do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtDebug  ,ss);}while(0)
+#define LDBGVAR(var)   do{std::stringstream ss; ss<<#var"= "<<(var); L_OUTPUT_MESSAGE(mtDebug,ss);}while(0)
+#define LTODO(msg)     do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtTodo   ,ss);}while(0)
+#define FIXME(msg)     do{std::stringstream ss; ss<<msg; L_OUTPUT_MESSAGE(mtFixme  ,ss);lexit(df);}while(0)
 //-------------------------------------------------------------------------------------------
 #define LASSERT(eqn)                                        \
     do{if(!(eqn)){                                          \
@@ -117,13 +147,17 @@ static const int NullIndex (-1);
 #define SIZE_OF_ARRAY(array)  (sizeof(array)/sizeof((array)[0]))
 //-------------------------------------------------------------------------------------------
 
-#ifndef DEFAULT_EXIT_LEVEL
-  // #define DEFAULT_EXIT_LEVEL btfail
-  #define DEFAULT_EXIT_LEVEL abort
-#endif
-
-namespace loco_rabbits_detail_exitlv
+namespace exitlv
 {
+struct TException
+{
+  int LineNum;
+  const char *FileName;
+  const char *FunctionName;
+  TException (int v_linenum,const char *v_filename,const char *v_functionname)
+    : LineNum(v_linenum), FileName(v_filename), FunctionName(v_functionname)  {}
+};
+
 enum TExitLevel {
   success=0  /*! exit quietly, and return success code */,
   qfail      /*! exit with printing where the program is terminated,
@@ -133,29 +167,28 @@ enum TExitLevel {
                   and return failure code*/,
   abort      /*! exit with printing where the program is terminated,
                   and abort. note that a core file will be generated */,
-  df=1000    /*! exit with default level */};
+  th         /*! throw an exception of the type TException */,
+  df=1000    /*! exit with default level which is modifiable by ChangeDefault;
+                  many functions in loco_rabbits use this exit level */};
 
-void i_i_lexit (
-    TExitLevel exit_level,
-    int linenum,
-    const char *filename,
-    const char *functionname);
-inline void i_lexit (
-    TExitLevel exit_level,
-    int linenum,
-    const char *filename,
-    const char *functionname)
+namespace detail
 {
-  if (exit_level==df)  exit_level= DEFAULT_EXIT_LEVEL;
-  i_i_lexit (exit_level, linenum, filename, functionname);
+  void i_lexit (
+      TExitLevel exit_level,
+      int linenum,
+      const char *filename,
+      const char *functionname);
 }
+//! \brief Change default exit scheme
+void ChangeDefault (TExitLevel exit_level);
 //-------------------------------------------------------------------------------------------
-} // end of namespace loco_rabbits_detail_exitlv
+} // end of namespace exitlv
 //-------------------------------------------------------------------------------------------
-#define lexit(_level)  loco_rabbits::loco_rabbits_detail_exitlv::i_lexit( \
-                                loco_rabbits::loco_rabbits_detail_exitlv::_level, \
+#define lexit(x_level)  ::loco_rabbits::exitlv::detail::i_lexit( \
+                                ::loco_rabbits::exitlv::x_level, \
                                 __LINE__,  __FILE__, LORA_CURRENT_FUNCTION)
 //-------------------------------------------------------------------------------------------
+
 /*!\brief get a dummy typed value dereferenced from NULL
   use this object with lexit to avoid the warning: "control reaches end of non-void function" */
 template <typename _type>
@@ -310,49 +343,57 @@ namespace ioscc
 
   namespace detail
   {
-    static const char *code_esc    = "\033[";
-    static const char *code_reset  = "0m";
-    static const char *code_red    = "31;1m";
-    static const char *code_blue   = "34;1m";
-    static const char *code_green  = "32;1m";
+    extern const char *code_esc   ;
+    extern const char *code_reset ;
+    extern const char *code_red   ;
+    extern const char *code_green ;
+    extern const char *code_blue  ;
   }
+
+  //!\brief Disable colored out
+  void Disable(void);
+  //!\brief Change color scheme
+  void SetScheme(const char *v_red, const char *v_green, const char *v_blue);
+  //!\brief Reset color scheme to default
+  void ResetScheme();
 }
 
-struct colored_stream
+struct ColoredStream
 {
-  std::ostream &os;
+  std::ostream &Os;
 };
 
-inline colored_stream operator<< (std::ostream &os, ioscc::TColorCode ccode)
+inline ColoredStream operator<< (std::ostream &os, ioscc::TColorCode ccode)
 {
   switch (ccode)
   {
     case ioscc::none   : os<<ioscc::detail::code_esc<<ioscc::detail::code_reset; break;
     case ioscc::red    : os<<ioscc::detail::code_esc<<ioscc::detail::code_red;   break;
-    case ioscc::blue   : os<<ioscc::detail::code_esc<<ioscc::detail::code_blue;  break;
     case ioscc::green  : os<<ioscc::detail::code_esc<<ioscc::detail::code_green; break;
+    case ioscc::blue   : os<<ioscc::detail::code_esc<<ioscc::detail::code_blue;  break;
+    default  :  std::cerr<<"invalid color code: "<<static_cast<int>(ccode)<<std::endl;  lexit(df);
   }
-  colored_stream colos={os};
+  ColoredStream colos={os};
   return colos;
 }
 
 template <typename T>
-inline colored_stream operator<< (colored_stream os, const T     &rhs)
+inline ColoredStream operator<< (ColoredStream os, const T     &rhs)
 {
-  os.os << rhs;
+  os.Os << rhs;
   return os;
 }
 template <>
-inline colored_stream operator<< (colored_stream os, const ioscc::TColorCode &ccode)
+inline ColoredStream operator<< (ColoredStream os, const ioscc::TColorCode &ccode)
 {
-  os.os << ioscc::detail::code_esc<<ioscc::detail::code_reset;
-  os.os << ccode;
+  os.Os << ioscc::detail::code_esc<<ioscc::detail::code_reset;
+  os.Os << ccode;
   return os;
 }
-inline colored_stream operator<< (colored_stream os, std::ostream& (*pf)(std::ostream&))
+inline ColoredStream operator<< (ColoredStream os, std::ostream& (*pf)(std::ostream&))
 {
-  os.os << ioscc::detail::code_esc<<ioscc::detail::code_reset;
-  pf(os.os);
+  os.Os << ioscc::detail::code_esc<<ioscc::detail::code_reset;
+  pf(os.Os);
   return os;
 }
 //-------------------------------------------------------------------------------------------

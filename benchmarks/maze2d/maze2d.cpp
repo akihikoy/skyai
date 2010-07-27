@@ -215,123 +215,6 @@ protected:
 
 
 //===========================================================================================
-class TTaskConfigurations
-//===========================================================================================
-{
-public:
-
-  TRealVector                GoalPos;
-  TReal                      GoalRadius;
-  TContinuousTime            MaxTime;
-
-  TTaskConfigurations (var_space::TVariableMap &mmap) :
-      GoalRadius          (0.15l),
-      MaxTime             (12.0l)
-    {
-      GoalPos=  CVector2( 0.75, 0.00);
-
-      Register(mmap);
-    }
-  void Register (var_space::TVariableMap &mmap)
-    {
-      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( GoalPos             );
-      ADD( GoalRadius          );
-      ADD( MaxTime             );
-      #undef ADD
-    }
-};
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-//!\brief task module
-class MNavigationTask
-    : public TModuleInterface
-//===========================================================================================
-{
-public:
-  typedef TModuleInterface    TParent;
-  typedef MNavigationTask     TThis;
-  SKYAI_MODULE_NAMES(MNavigationTask)
-
-  MNavigationTask (const std::string &v_instance_name)
-    : TParent                (v_instance_name),
-      conf_                  (TParent::param_box_config_map()),
-      is_goal_               (false),
-      slot_initialize        (*this),
-      slot_start_episode     (*this),
-      slot_finish_time_step  (*this),
-      signal_end_of_episode  (*this),
-      signal_goal_reward     (*this),
-      in_position            (*this)
-    {
-      add_slot_port   (slot_initialize       );
-      add_slot_port   (slot_start_episode    );
-      add_slot_port   (slot_finish_time_step );
-      add_signal_port (signal_end_of_episode );
-      add_signal_port (signal_goal_reward    );
-      add_in_port     (in_position           );
-    }
-
-protected:
-
-  TTaskConfigurations  conf_;
-  bool                 is_goal_;
-  TContinuousTime      time_;
-
-  MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
-  MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
-
-  MAKE_SLOT_PORT(slot_finish_time_step, void, (const TContinuousTime &dt), (dt), TThis);
-
-  MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
-
-  MAKE_SIGNAL_PORT(signal_goal_reward, void (const TSingleReward&), TThis);
-
-  MAKE_IN_PORT(in_position, const TContinuousState& (void), TThis);
-
-
-  virtual void slot_initialize_exec (void)
-    {
-      is_goal_= false;
-    }
-
-  virtual void slot_start_episode_exec (void)
-    {
-      is_goal_= false;
-      time_= 0.0l;
-    }
-
-  virtual void slot_finish_time_step_exec (const TContinuousTime &dt)
-    {
-      time_+=dt;
-
-      if (!is_goal_)
-      {
-        TReal distance = GetNorm(in_position.GetFirst() - conf_.GoalPos);
-        if (distance < conf_.GoalRadius)
-        {
-          TSingleReward reward (0.0l);
-          // reward = real_exp (-Square(distance)/conf_.GoalRadius);
-          reward = 1.0l;
-          is_goal_= true;
-LMESSAGE("GOAL!!");
-          signal_goal_reward.ExecAll(reward);
-          signal_end_of_episode.ExecAll();
-        }
-      }
-      if (conf_.MaxTime>0.0l && time_+CONT_TIME_TOL>=conf_.MaxTime)
-      {
-        signal_end_of_episode.ExecAll();
-      }
-    }
-
-};  // end of MNavigationTask
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
 class TRadialActionSpaceConfigurations
 //===========================================================================================
 {
@@ -385,8 +268,6 @@ public:
 protected:
 
   TRadialActionSpaceConfigurations  conf_;
-
-  // TGridGenerator   grid_;
 
   const TInt       COMMAND_SIZE_;
   TReal            ltime_;  //!< if positive, an action is active
@@ -587,9 +468,7 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
-
 SKYAI_ADD_MODULE(MMazeEnvironment)
-SKYAI_ADD_MODULE(MNavigationTask)
 SKYAI_ADD_MODULE(MRadialActionSpace)
 SKYAI_ADD_MODULE(MRadialActionSpace2)
 SKYAI_ADD_MODULE(MConstActionSpace)
@@ -597,12 +476,9 @@ SKYAI_ADD_MODULE(MConstActionSpace)
 }
 //-------------------------------------------------------------------------------------------
 using namespace std;
-// using namespace boost;
 using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
-// #define print(var) PrintContainer((var), #var"= ")
-// #define print(var) std::cout<<#var"= "<<(var)<<std::endl
-//-------------------------------------------------------------------------------------------
+
 
 int main(int argc, char**argv)
 {
@@ -612,8 +488,12 @@ int main(int argc, char**argv)
   std::ofstream debug;
   if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
-  MBasicLearningManager &lmanager = agent.ModuleAs<MBasicLearningManager>("lmanager");
-  MMazeEnvironment &environment = agent.ModuleAs<MMazeEnvironment>("environment");
+  MBasicLearningManager *p_lmanager = dynamic_cast<MBasicLearningManager*>(agent.SearchModule("lmanager"));
+  MMazeEnvironment *p_environment = dynamic_cast<MMazeEnvironment*>(agent.SearchModule("environment"));
+  if(p_lmanager==NULL)  {LERROR("module `lmanager' is not defined correctly"); return 1;}
+  if(p_environment==NULL)  {LERROR("module `environment' is not defined correctly"); return 1;}
+  MBasicLearningManager &lmanager(*p_lmanager);
+  MMazeEnvironment &environment(*p_environment);
 
 
   agent.SaveToFile (agent.GetDataFileName("maze2d-before.agent"));

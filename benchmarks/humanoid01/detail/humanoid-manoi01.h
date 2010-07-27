@@ -131,24 +131,6 @@ struct TJointRange
 {
   dReal Lo, Hi;
 };
-// static TJointRange joint_range[JOINT_NUM]
-  // ={/*J 0*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J 1*/{-0.5*M_PI, +0.99*M_PI       },
-    // /*J 2*/{-0.99*M_PI, +1.0/12.0*M_PI  },
-    // /*J 3*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J 4*/{-0.5*M_PI, +0.99*M_PI       },
-    // /*J 5*/{-1.0/12.0*M_PI, +0.99*M_PI  },
-    // /*J 6*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J 7*/{-0.5*M_PI, +1.0/9.0*M_PI    },
-    // /*J 8*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J 9*/{-0.78*M_PI, +1.0/18.0*M_PI  },
-    // /*J10*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J11*/{-1.0/7.2*M_PI, +0.4*M_PI    },
-    // /*J12*/{-1.0/9.0*M_PI, +0.5*M_PI    },
-    // /*J13*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J14*/{-0.78*M_PI, +1.0/18.0*M_PI  },
-    // /*J15*/{-0.5*M_PI, +0.5*M_PI        },
-    // /*J16*/{-0.4*M_PI, +1.0/7.2*M_PI    }};
 static TJointRange joint_range[JOINT_NUM]
   ={/*J 0*/{-0.5*M_PI, +0.5*M_PI        },
     /*J 1*/{-0.5*M_PI, +0.99*M_PI       },
@@ -167,9 +149,6 @@ static TJointRange joint_range[JOINT_NUM]
     /*J14*/{-0.78*M_PI, +1.0/18.0*M_PI  },
     /*J15*/{-M_PI, +M_PI   },
     /*J16*/{-M_PI, +M_PI   }};
-//-------------------------------------------------------------------------------------------
-// static double joint_state[JOINT_STATE_DIM];
-// static double base_state[BASE_STATE_DIM];
 //-------------------------------------------------------------------------------------------
 static const dReal param_dha     = 15.50e-3;
 static const dReal param_dhb     = 11.77e-3;

@@ -1,0 +1,26 @@
+// crawling task definition
+
+include_once "env"
+
+module  MMotionLearningTask       task
+module  MSimpleAccumulator_TReal  sum_reward
+
+/// initialization process:
+connect  env.signal_initialization           , task.slot_initialize
+
+/// start of episode process:
+connect  env.signal_start_of_episode         , sum_reward.slot_reset
+
+/// start of time step process:
+
+/// end of time step process:
+connect  env.signal_end_of_timestep          , task.slot_finish_time_step
+
+/// learning signals:
+connect  task.signal_task_reward             , cmn_signal_reward.slot_in
+connect  cmn_signal_reward.slot_in_finished  , sum_reward.slot_add
+connect  task.signal_end_of_episode          , cmn_signal_end_of_episode.slot_in
+
+/// I/O:
+connect  sum_reward.out_sum                  , task.in_sum_of_reward
+connect  env.out_sensor_distance_diff_c      , task.in_speed

@@ -1,0 +1,25 @@
+// agent file for crawling task using Q(lambda)-learning + fitted Q iteration with WF-DCOB
+
+include "env"
+include "task_crawling"
+include_once "qlfqi_wfdcob"
+include_once "wfdcob"
+
+module MTDFQIWFDCOB behavior
+include "cmn_wfdcob"
+
+/// parameter setting:
+
+include "cmn_qlwf_param"
+
+include "cmn_fqi_param"
+
+behavior.config={
+    Gamma1 = 0.9
+    Gamma2 = 0.9
+    Alpha1 = 0.3
+    AlphaDecreasingFactor1 = 0.002
+    AlphaMin1 = 0.05
+    Alpha2 = 0.01  // 0.05
+    AlphaDecreasingFactor2 = 0.00
+  }

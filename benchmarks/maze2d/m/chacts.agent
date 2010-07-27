@@ -1,0 +1,77 @@
+// TEST of avf_linear whose available action set changes with state
+
+include "ql_da"
+include "cmn"
+
+module MTDDiscAct behavior
+
+module  MRadialActionSpace2                          action_space
+module  MDiscretizer                                 action_discretizer
+
+module  MIntToBoolVectorMapper                       situation_to_actionset
+
+/// initialization process:
+connect  cmn.signal_initialization                       , situation_to_actionset.slot_reset
+connect  cmn.signal_initialization                       , action_space.slot_initialize
+connect  cmn.signal_initialization                       , action_discretizer.slot_initialize
+connect  action_discretizer.slot_initialize_finished     , behavior.slot_initialize
+
+/// start of episode process:
+connect  cmn.signal_start_of_episode                     , behavior.slot_start_episode
+
+/// start of time step process:
+connect  cmn.signal_start_of_timestep                    , action_space.slot_start_time_step
+
+/// end of time step process:
+connect  cmn.signal_end_of_timestep                      , action_space.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action                , action_discretizer.slot_in
+connect  action_discretizer.signal_out                 , action_space.slot_execute_action
+connect  action_space.signal_execute_command           , cmn.slot_execute_command
+connect  action_space.signal_end_of_action             , behavior.slot_finish_action
+
+connect  cmn.signal_reward                             , behavior.slot_add_to_reward
+connect  cmn.signal_end_of_episode                     , behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode                , cmn.slot_finalize_episode
+
+/// I/O:
+connect  action_discretizer.out_set_size               , behavior.in_action_set_size
+connect  cmn.out_situation                             , situation_to_actionset.in_1
+connect  situation_to_actionset.out_1                  , behavior.in_action_availability
+
+connect  cmn.out_ngnet                                 , behavior.in_feature
+connect  cmn.out_episode_number                        , behavior.in_episode_number
+
+connect  cmn.out_cont_time                             , behavior.in_cont_time
+
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+
+action_discretizer.config ={
+    Min = (-3.14159265, 0.03, 0.1)
+    Max = (3.14159265, 0.03, 0.1)
+    Division = (17, 1, 1)
+  }
+situation_to_actionset.config={
+    Size = 17
+    TrueSet ={
+        [0]= (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+        [1]= (0, 4, 8, 12)
+      }
+  }
+

@@ -45,6 +45,7 @@ struct TConstantConfigurations
 
   TConstantConfigurations(var_space::TVariableMap &mmap)
     {
+      SetZero(Constant);
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( Constant   );
       #undef ADD
@@ -175,8 +176,8 @@ struct TVectorToScalarConfigurations
 };
 //-------------------------------------------------------------------------------------------
 /*!\brief MVectorToScalar: convert a vector to a scalar (extract the Index-th element; Index is 0 in default) */
-template <typename t_vector, typename t_scalar> FUNCTION_SISO_GEN_CFG (MVectorToScalar, t_vector, t_scalar, TVectorToScalarConfigurations)
-template <typename t_vector, typename t_scalar> void MVectorToScalar<t_vector,t_scalar>::function (const TInput &x, TOutput &y) const
+template <typename t_vector> FUNCTION_SISO_GEN_CFG (MVectorToScalar, t_vector, typename TypeExtS<t_vector>::s_value_type, TVectorToScalarConfigurations)
+template <typename t_vector> void MVectorToScalar<t_vector>::function (const TInput &x, TOutput &y) const
 {
   y= GenAt(x,conf_.Index);
 }
@@ -201,8 +202,8 @@ template <typename t_vector> FUNCTION_SISO_GEN_CFG (MVectorShuffler, t_vector, t
 template <typename t_vector> void MVectorShuffler<t_vector>::function (const TInput &x, TOutput &y) const
 {
   GenResize(y,GenSize(conf_.Order));
-  typename TypeExt<TOutput>::iterator  yitr(GenBegin(y));
-  for (typename TypeExt<TIntVector>::const_iterator oitr(GenBegin(conf_.Order)),olast(GenEnd(conf_.Order)); oitr!=olast; ++oitr,++yitr)
+  typename TypeExtS<TOutput>::iterator  yitr(GenBegin(y));
+  for (typename TypeExtS<TIntVector>::const_iterator oitr(GenBegin(conf_.Order)),olast(GenEnd(conf_.Order)); oitr!=olast; ++oitr,++yitr)
     (*yitr)= GenAt(x,*oitr);
 }
 //-------------------------------------------------------------------------------------------
@@ -259,9 +260,9 @@ template <typename t_input1, typename t_input2>void MElemMultiply<t_input1,t_inp
 {
   LASSERT1op1(GenSize(x1),==,GenSize(x2));
   GenResize(y,GenSize(x1));
-  typename TypeExt<TInput1>::const_iterator x1_itr(GenBegin(x1));
-  typename TypeExt<TInput2>::const_iterator x2_itr(GenBegin(x2));
-  for (typename TypeExt<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)
+  typename TypeExtS<TInput1>::const_iterator x1_itr(GenBegin(x1));
+  typename TypeExtS<TInput2>::const_iterator x2_itr(GenBegin(x2));
+  for (typename TypeExtS<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)
     (*y_itr)= (*x1_itr) * (*x2_itr);
 }
 //-------------------------------------------------------------------------------------------
@@ -272,9 +273,9 @@ template <typename t_input1, typename t_input2>void MElemDivide<t_input1,t_input
 {
   LASSERT1op1(GenSize(x1),==,GenSize(x2));
   GenResize(y,GenSize(x1));
-  typename TypeExt<TInput1>::const_iterator x1_itr(GenBegin(x1));
-  typename TypeExt<TInput2>::const_iterator x2_itr(GenBegin(x2));
-  for (typename TypeExt<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)
+  typename TypeExtS<TInput1>::const_iterator x1_itr(GenBegin(x1));
+  typename TypeExtS<TInput2>::const_iterator x2_itr(GenBegin(x2));
+  for (typename TypeExtS<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)
     (*y_itr)= (*x1_itr) / (*x2_itr);
 }
 //-------------------------------------------------------------------------------------------
@@ -288,6 +289,7 @@ struct TConstMultiplierConfigurations
 
   TConstMultiplierConfigurations(var_space::TVariableMap &mmap)
     {
+      SetZero(Factor);
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( Factor     );
       #undef ADD
@@ -322,32 +324,20 @@ template <typename t_input> FUNCTION_SISO_GEN (MElemSquare, t_input, t_input)
 template <typename t_input> void MElemSquare<t_input>::function (const TInput &x, TOutput &y) const
 {
   GenResize(y, GenSize(x));
-  typename TypeExt<TInput>::const_iterator  x_itr(GenBegin(x));
-  for (typename TypeExt<TInput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x_itr)
+  typename TypeExtS<TInput>::const_iterator  x_itr(GenBegin(x));
+  for (typename TypeExtS<TInput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x_itr)
     (*y_itr)= Square(*x_itr);
 }
 //-------------------------------------------------------------------------------------------
 
+/*!\brief MNorm: norm calculator (y = sqrt((x[0])^2+(x[1])^2+..))  */
+template <typename t_input> FUNCTION_SISO_GEN (MNorm, t_input, typename TypeExtS<t_input>::s_value_type)
+template <typename t_input> void MNorm<t_input>::function (const TInput &x, TOutput &y) const
+{
+  y= GetNorm(x);
+}
+//-------------------------------------------------------------------------------------------
 
-#if 0
-/*!\brief MGreaterThan: greater-than calculator (y = (x1 > x2)) */
-template <typename t_input>FUNCTION_2ISO_GEN (MGreaterThan, t_input, t_input, TBool)
-template <typename t_input>void MGreaterThan<t_input>::function (const TInput1 &x1, const TInput2 &x2, TOutput &y) const
-{
-  y= (x1 > x2);
-}
-/*!\brief MElemGreaterThan: elemental greater-than calculator (y[i] = (x1[i] > x2[i]), for all i) */
-template <typename t_input1, typename t_input2>FUNCTION_2ISO_GEN (MElemGreaterThan, t_input1, t_input2, t_input2)
-template <typename t_input1, typename t_input2>void MElemGreaterThan<t_input1,t_input2>::function (const TInput1 &x1, const TInput2 &x2, TOutput &y) const
-{
-  LASSERT1op1(GenSize(x1),==,GenSize(x2));
-  GenResize(y,GenSize(x1));
-  typename TypeExt<TInput1>::const_iterator x1_itr(GenBegin(x1));
-  typename TypeExt<TInput2>::const_iterator x2_itr(GenBegin(x2));
-  for (typename TypeExt<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y)); y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)
-    (*y_itr)= ((*x1_itr) > (*x2_itr));
-}
-#endif
 
 #define INEQ_CALCULATOR_GEN(x_mod_name, x_op)                \
   template <typename t_input>                                \
@@ -370,9 +360,9 @@ INEQ_CALCULATOR_GEN(MLessEqual, <=)
   {                                                                   \
     LASSERT1op1(GenSize(x1),==,GenSize(x2));                          \
     GenResize(y,GenSize(x1));                                         \
-    typename TypeExt<TInput1>::const_iterator x1_itr(GenBegin(x1));   \
-    typename TypeExt<TInput2>::const_iterator x2_itr(GenBegin(x2));   \
-    for (typename TypeExt<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y));  \
+    typename TypeExtS<TInput1>::const_iterator x1_itr(GenBegin(x1));   \
+    typename TypeExtS<TInput2>::const_iterator x2_itr(GenBegin(x2));   \
+    for (typename TypeExtS<TOutput>::iterator y_itr(GenBegin(y)),y_last(GenEnd(y));  \
           y_itr!=y_last; ++y_itr,++x1_itr,++x2_itr)                   \
       {(*y_itr)= ((*x1_itr) x_op (*x2_itr));}                         \
   }
@@ -392,12 +382,12 @@ FUNCTION_SISO_GEN (MBoolVectorOr, TBoolVector, TBool)
 //-------------------------------------------------------------------------------------------
 
 
-template <typename t_vector> FUNCTION_SISO_GEN (MMinElementValue, t_vector, typename TypeExt<t_vector>::value_type)
+template <typename t_vector> FUNCTION_SISO_GEN (MMinElementValue, t_vector, typename TypeExtS<t_vector>::s_value_type)
 template <typename t_vector> void MMinElementValue<t_vector>::function (const TInput &x, TOutput &y) const
 {
   y= *std::min_element(GenBegin(x),GenEnd(x));
 }
-template <typename t_vector> FUNCTION_SISO_GEN (MMaxElementValue, t_vector, typename TypeExt<t_vector>::value_type)
+template <typename t_vector> FUNCTION_SISO_GEN (MMaxElementValue, t_vector, typename TypeExtS<t_vector>::s_value_type)
 template <typename t_vector> void MMaxElementValue<t_vector>::function (const TInput &x, TOutput &y) const
 {
   y= *std::max_element(GenBegin(x),GenEnd(x));
@@ -418,10 +408,10 @@ template <typename t_vector> void MMaxElementIndex<t_vector>::function (const TI
 namespace skyai_calculations_detail
 {
 template <typename t_vector>
-inline TInt CountNonzeroElements (const t_vector &x, const typename TypeExt<t_vector>::value_type &threshold)
+inline TInt CountNonzeroElements (const t_vector &x, const typename TypeExtS<t_vector>::s_value_type &threshold)
 {
   TInt count(0);
-  for (typename TypeExt<t_vector>::const_iterator itr(GenBegin(x)), last(GenEnd(x)); itr!=last; ++itr)
+  for (typename TypeExtS<t_vector>::const_iterator itr(GenBegin(x)), last(GenEnd(x)); itr!=last; ++itr)
     if (*itr>threshold || *itr<-threshold)  ++count;
   return count;
 }
@@ -432,7 +422,7 @@ inline TInt CountNonzeroElements (const t_vector &x, const typename TypeExt<t_ve
 template <typename t_vector>
 struct TNonzeroElementsConfigurations
 {
-  typename TypeExt<t_vector>::value_type    Threshold;
+  typename TypeExtS<t_vector>::s_value_type   Threshold;
 
   TNonzeroElementsConfigurations (var_space::TVariableMap &mmap)
     {
@@ -451,8 +441,8 @@ template <typename t_vector> void MNonzeroElements<t_vector>::function (const TI
 {
   using namespace skyai_calculations_detail;
   GenResize(y, CountNonzeroElements(x, conf_.Threshold));
-  typename TypeExt<t_vector>::iterator  nzitr(GenBegin(y));
-  for (typename TypeExt<t_vector>::const_iterator itr(GenBegin(x)), last(GenEnd(x)); itr!=last; ++itr)
+  typename TypeExtS<t_vector>::iterator  nzitr(GenBegin(y));
+  for (typename TypeExtS<t_vector>::const_iterator itr(GenBegin(x)), last(GenEnd(x)); itr!=last; ++itr)
     if (*itr>conf_.Threshold || *itr<-conf_.Threshold)  {*nzitr= *itr; ++nzitr;}
 }
 //-------------------------------------------------------------------------------------------
@@ -489,9 +479,9 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TReal,TBool)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TBool,TInt )
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCaster,TBool,TReal)
 //-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TIntVector,TInt)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TRealVector,TReal)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MVectorToScalar,TBoolVector,TBool)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorToScalar,TBoolVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorShuffler,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorShuffler,TRealVector)
@@ -535,6 +525,9 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSquare,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSquare,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MElemSquare,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MElemSquare,TRealVector)
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNorm,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNorm,TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEqualTo,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEqualTo,TReal)

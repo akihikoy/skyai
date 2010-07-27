@@ -1,0 +1,267 @@
+// agent file for maze2d task using Cohen's HRL
+// Using MHierarchicalTDGenericFACohen
+
+include "cmn"
+
+module  MHierarchicalTDGenericFACohen_TDiscreteAction   behavior
+module  MAVFLinearDiscAction                            avf_linear
+module  MRadialActionSpace2                             action_space
+module  MDiscretizer                                    action_discretizer0
+module  MDiscretizer                                    action_discretizer1
+module  MRemoveSignalArguments_TInt                     exec_action
+module  MSimpleAccumulator_TReal                        rwd_accumulator
+module  MSimpleDataLogger2_TInt_TReal                   logger_eps_return
+module  MUniversalDataLogger                            logger_action_result
+module  MUniversalDataLogger                            logger_action_result_sub
+module  MHolder_TRealVector                             holder_action
+module  MIntToBoolVectorMapper                          situation_to_actionset
+
+/// initialization process:
+connect  cmn.signal_initialization       , situation_to_actionset.slot_reset
+connect  cmn.signal_initialization       , action_space.slot_initialize
+connect  cmn.signal_initialization       , action_discretizer0.slot_initialize
+connect  action_discretizer0.slot_initialize_finished    , action_discretizer1.slot_initialize
+connect  action_discretizer1.slot_initialize_finished    , avf_linear.slot_initialize
+connect  avf_linear.slot_initialize_finished             , behavior.slot_initialize
+connect  cmn.signal_initialization       , logger_eps_return.slot_initialize
+connect  cmn.signal_initialization       , logger_action_result.slot_initialize
+connect  cmn.signal_initialization       , logger_action_result_sub.slot_initialize
+
+/// start of episode process:
+connect  cmn.signal_start_of_episode    , behavior.slot_start_episode
+connect  cmn.signal_start_of_episode    , avf_linear.slot_reset
+
+/// start of time step process:
+connect  cmn.signal_start_of_timestep   , action_space.slot_start_time_step
+
+/// end of time step process:
+connect  cmn.signal_end_of_timestep     , action_space.slot_finish_time_step
+
+/// learning signals:
+connect  behavior.signal_execute_action                 , exec_action.slot_in
+connect  exec_action.signal_out                         , rwd_accumulator.slot_reset
+connect  action_space.signal_execute_command            , cmn.slot_execute_command
+connect  action_space.signal_execute_command            , holder_action.slot_1
+connect  behavior.signal_avf_add_to_parameter           , avf_linear.slot_add_to_parameter
+connect  behavior.signal_end_of_action                  , logger_action_result.slot_log
+connect  behavior.signal_end_of_action                  , logger_action_result_sub.slot_log
+
+connect  cmn.signal_reward                              , rwd_accumulator.slot_add
+
+connect  cmn.signal_end_of_episode                      , behavior.slot_finish_episode
+
+connect  behavior.signal_end_of_episode                 , logger_eps_return.slot_log
+connect  logger_eps_return.slot_log_finished            , logger_action_result.slot_newline
+connect  logger_action_result.slot_newline_finished     , logger_action_result_sub.slot_newline
+connect  logger_action_result_sub.slot_newline_finished , cmn.slot_finalize_episode
+
+/// I/O:
+connect  cmn.out_situation                              , situation_to_actionset.in_1
+connect  rwd_accumulator.out_sum                        , behavior.in_reward
+
+connect  cmn.out_ngnet                                  , avf_linear.in_feature
+connect  cmn.out_episode_number                         , avf_linear.in_episode_number
+connect  avf_linear.out_select_action                   , behavior.in_avf_select_action
+connect  avf_linear.out_replacing_trace                 , behavior.in_avf_replacing_trace
+connect  avf_linear.out_create_parameter                , behavior.in_avf_create_parameter
+connect  avf_linear.out_zero_parameter                  , behavior.in_avf_zero_parameter
+
+connect  cmn.out_episode_number                         , logger_eps_return.in_data1
+connect  behavior.out_return_in_episode                 , logger_eps_return.in_data2
+
+connect  cmn.out_episode_number                         , logger_action_result.in_data_int
+connect  cmn.out_cont_time                              , logger_action_result.in_data_real
+connect  rwd_accumulator.out_last_accessed              , logger_action_result.in_data_real
+connect  behavior.out_td_error                          , logger_action_result.in_data_real
+connect  behavior.out_current_action_value              , logger_action_result.in_data_real
+connect  cmn.out_state                                  , logger_action_result.in_data_real_vector
+connect  holder_action.out_1                            , logger_action_result.in_data_real_vector
+
+
+////////////////////////////////////
+/// for hierarchical RL
+////////////////////////////////////
+
+module  MHierarchicalTDGenericFACohen_TDiscreteAction         , subbehavior0
+module  MHierarchicalTDGenericFACohen_TDiscreteAction         , subbehavior1
+
+module  MSignalDistributor0                                   , sigdist_higher_action
+module  MSignalDistributor1_TRealVector                       , sigdist_update
+
+module  MAVFLinearDiscAction                                  , subavf_linear0
+module  MAVFLinearDiscAction                                  , subavf_linear1
+
+module  MReturnToSameModule10_TRealVector                     , eoa_separator
+
+/// initialization process:
+connect  avf_linear.slot_initialize_finished           , subbehavior0.slot_initialize
+connect  avf_linear.slot_initialize_finished           , subbehavior1.slot_initialize
+connect  cmn.signal_initialization                     , sigdist_higher_action.slot_reset
+connect  cmn.signal_initialization                     , sigdist_update.slot_reset
+connect  sigdist_higher_action.slot_reset_finished     , subavf_linear0.slot_initialize
+connect  sigdist_higher_action.slot_reset_finished     , subavf_linear1.slot_initialize
+
+/// start of episode process:
+connect  behavior.signal_reset_lower                   , subbehavior0.slot_start_episode
+connect  behavior.signal_reset_lower                   , subbehavior1.slot_start_episode
+connect  behavior.signal_reset_lower                   , subavf_linear0.slot_reset
+connect  behavior.signal_reset_lower                   , subavf_linear1.slot_reset
+
+/// learning signals:
+connect  behavior.signal_execute_action                , sigdist_higher_action.slot_in
+connect  sigdist_higher_action.signal_out              , subbehavior0.slot_execute_higher_action
+connect  sigdist_higher_action.signal_out              , subbehavior1.slot_execute_higher_action
+connect  subbehavior0.signal_execute_action            , action_discretizer0.slot_in
+connect  subbehavior1.signal_execute_action            , action_discretizer1.slot_in
+
+connect  action_discretizer0.signal_out                , eoa_separator.slot_in1
+connect  action_discretizer1.signal_out                , eoa_separator.slot_in2
+connect  eoa_separator.signal_in                       , action_space.slot_execute_action
+
+connect  subbehavior0.signal_avf_add_to_parameter      , subavf_linear0.slot_add_to_parameter
+connect  subbehavior1.signal_avf_add_to_parameter      , subavf_linear1.slot_add_to_parameter
+
+connect  action_space.signal_end_of_action             , eoa_separator.slot_return
+connect  eoa_separator.signal_return1                  , subbehavior0.slot_finish_action
+connect  eoa_separator.signal_return2                  , subbehavior1.slot_finish_action
+
+connect  behavior.signal_update_lower                  , sigdist_update.slot_in
+connect  sigdist_update.signal_out                     , subbehavior0.slot_update
+connect  sigdist_update.signal_out                     , subbehavior1.slot_update
+
+connect  subbehavior0.signal_clear_flag_greedy         , behavior.slot_clear_flag_greedy
+connect  subbehavior1.signal_clear_flag_greedy         , behavior.slot_clear_flag_greedy
+
+connect  subbehavior0.signal_end_of_higher_action      , behavior.slot_finish_action
+connect  subbehavior1.signal_end_of_higher_action      , behavior.slot_finish_action
+
+/// I/O:
+connect  sigdist_higher_action.out_lower_size          , avf_linear.in_action_set_size
+connect  action_discretizer0.out_set_size              , subavf_linear0.in_action_set_size
+connect  action_discretizer1.out_set_size              , subavf_linear1.in_action_set_size
+
+connect  situation_to_actionset.out_1                  , avf_linear.in_action_availability
+
+connect  cmn.out_ngnet                                 , subavf_linear0.in_feature
+connect  cmn.out_episode_number                        , subavf_linear0.in_episode_number
+connect  subavf_linear0.out_select_action              , subbehavior0.in_avf_select_action
+connect  subavf_linear0.out_replacing_trace            , subbehavior0.in_avf_replacing_trace
+connect  subavf_linear0.out_create_parameter           , subbehavior0.in_avf_create_parameter
+connect  subavf_linear0.out_zero_parameter             , subbehavior0.in_avf_zero_parameter
+
+connect  cmn.out_ngnet                                 , subavf_linear1.in_feature
+connect  cmn.out_episode_number                        , subavf_linear1.in_episode_number
+connect  subavf_linear1.out_select_action              , subbehavior1.in_avf_select_action
+connect  subavf_linear1.out_replacing_trace            , subbehavior1.in_avf_replacing_trace
+connect  subavf_linear1.out_create_parameter           , subbehavior1.in_avf_create_parameter
+connect  subavf_linear1.out_zero_parameter             , subbehavior1.in_avf_zero_parameter
+
+
+connect  cmn.out_episode_number                        , logger_action_result_sub.in_data_int
+connect  rwd_accumulator.out_last_accessed             , logger_action_result_sub.in_data_real
+connect  subbehavior0.out_td_error                     , logger_action_result_sub.in_data_real
+connect  subbehavior0.out_current_action_value         , logger_action_result_sub.in_data_real
+connect  subbehavior1.out_td_error                     , logger_action_result_sub.in_data_real
+connect  subbehavior1.out_current_action_value         , logger_action_result_sub.in_data_real
+
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = false
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+    LearningAlgorithm = "laSarsa"
+  }
+subbehavior0.config={
+    UsingEligibilityTrace = false
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+    LearningAlgorithm = "laSarsa"
+  }
+subbehavior1.config={
+    UsingEligibilityTrace = false
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+    LearningAlgorithm = "laSarsa"
+  }
+
+sigdist_higher_action.config={
+    SizeOfLowers = 2
+    IndexesOfLowers ={
+        ["subbehavior0.slot_execute_higher_action"]= (0)
+        ["subbehavior1.slot_execute_higher_action"]= (1)
+      }
+  }
+sigdist_update.config={
+    SizeOfLowers = 2
+    IndexesOfLowers ={
+        ["subbehavior0.slot_update"]= (0)
+        ["subbehavior1.slot_update"]= (1)
+      }
+  }
+
+action_discretizer0.config ={
+    Min = (-3.14159265, 0.03, 0.1)
+    Max = (3.14159265, 0.03, 0.1)
+    Division = (17, 1, 1)
+  }
+action_discretizer1.config ={
+    Min = (-3.14159265, 0.03, 0.1)
+    Max = (3.14159265, 0.03, 0.1)
+    Division = (5, 1, 1)
+  }
+
+situation_to_actionset.config={
+    Size = 2
+    TrueSet ={
+        [0]= (0, 1)
+        [1]= (1)
+      }
+  }
+
+avf_linear.config={
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+subavf_linear0.config={
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+subavf_linear1.config={
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
+
+logger_eps_return.config={
+    FileName = "log-eps-ret.dat"
+  }
+
+logger_action_result.config ={
+    FileName = "log-action-res.dat"
+    OrderOfColumns ={
+        ["cmn.out_episode_number"]= 1
+        ["cmn.out_cont_time"]= 2
+        ["rwd_accumulator.out_last_accessed"]= 4
+        ["behavior.out_td_error"]= 5
+        ["behavior.out_current_action_value"]= 6
+        ["cmn.out_state"]= 8
+        ["holder_action.out_1"]= 10
+      }
+    PutBlankData = true
+  }
+
+logger_action_result_sub.config ={FileName = "__not_saved";}
+

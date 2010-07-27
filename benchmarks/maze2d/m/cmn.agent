@@ -1,0 +1,155 @@
+// common agent file for maze2d task
+
+// This module completely defines a navigation task in a 2 dimensional maze
+composite M2DNavigationTask
+{
+  // interface modules:
+  module  MForwarder0  signal_end_of_episode
+  export  signal_end_of_episode.signal_out  as  signal_end_of_episode
+  module  MForwarder1_TReal  slot_finish_time_step
+  export  slot_finish_time_step.slot_in  as  slot_finish_time_step
+
+  // goal detection and signal-end-of-episode:
+  module  MSubtract_TRealVector  goal_diff
+  module  MConstant_TRealVector  goal_pos
+  goal_pos.config={Constant=(0.75, 0.00);}
+  export  goal_pos.config.Constant  as  GoalPos
+  export  goal_diff.in_x1  as  in_position
+  connect goal_pos.out_const ,   goal_diff.in_x2
+  module  MNorm_TRealVector  goal_diff_norm
+  connect goal_diff.out_y ,   goal_diff_norm.in_x
+  module  MLessThan_TReal  is_goaled
+  module  MConstant_TReal  goal_radius
+  goal_radius.config={Constant=0.15;}
+  export  goal_radius.config.Constant  as  GoalRadius
+  connect goal_diff_norm.out_y ,   is_goaled.in_x1
+  connect goal_radius.out_const ,   is_goaled.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  is_goaled_sig
+  connect slot_finish_time_step.signal_out ,   is_goaled_sig.slot_in
+  export  is_goaled_sig.slot_in_finished  as  slot_finish_time_step_finished
+  connect is_goaled.out_y ,   is_goaled_sig.in_replace
+  module  MEmitIf  is_goaled_sig_t
+  connect is_goaled_sig.signal_out ,   is_goaled_sig_t.slot_in
+  connect is_goaled_sig_t.signal_out ,   signal_end_of_episode.slot_in
+
+  // goal reward
+  module  MReplaceSignalArguments_TVoid_TReal  goal_rwd_sig
+  module  MConstant_TReal  goal_reward
+  goal_reward.config={Constant=1.0;}
+  export  goal_reward.config.Constant  as  GoalReward
+  connect is_goaled_sig_t.signal_out ,   goal_rwd_sig.slot_in
+  connect goal_reward.out_const ,   goal_rwd_sig.in_replace
+  module  MEmitOnce_TReal  goal_rwd_sig_1
+  connect goal_rwd_sig.signal_out ,   goal_rwd_sig_1.slot_in
+  export  goal_rwd_sig_1.slot_reset  as  slot_start_episode
+  export  goal_rwd_sig_1.signal_out  as  signal_reward
+
+  // timeup (signal-end-of-episode):
+  module  MGreaterThan_TReal  end_of_eps
+  module  MConstant_TReal  max_time
+  max_time.config={Constant=100;}
+  export  max_time.config.Constant  as  MaxTime
+  export  end_of_eps.in_x1  as  in_cont_time
+  connect max_time.out_const ,   end_of_eps.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  end_of_eps_sig
+  connect slot_finish_time_step.signal_out ,   end_of_eps_sig.slot_in
+  connect end_of_eps.out_y ,   end_of_eps_sig.in_replace
+  module  MEmitIf  end_of_eps_sig_t
+  connect end_of_eps_sig.signal_out ,   end_of_eps_sig_t.slot_in
+  connect end_of_eps_sig_t.signal_out ,   signal_end_of_episode.slot_in
+}
+
+composite MMaze2DCommon
+{
+  module  MBasicLearningManager                      lmanager
+  module  MMazeEnvironment                           environment
+  module  M2DNavigationTask                          task
+  module  MBasisFunctionsNGnet                       ngnet
+  module  MUserEmittedTimer                          timer
+  module  MTimedResourceXX_TRealVector               tr_state
+  module  MTimedResourceXY_TRealVector_TRealVector   tr_ngnet
+
+  // interface modules:
+  module  MForwarder0                                cmn_signal_end_of_episode
+  module  MForwarder1_TReal                          cmn_signal_reward
+
+  /// initialization process:
+  connect  lmanager.signal_initialization                , environment.slot_initialize
+  connect  lmanager.signal_initialization                , ngnet.slot_initialize
+  export   ngnet.slot_initialize_finished  as  signal_initialization
+
+  /// start of episode process:
+  connect  lmanager.signal_start_of_episode              , tr_ngnet.slot_reset
+  connect  tr_ngnet.slot_reset_finished                  , tr_state.slot_reset
+  connect  tr_state.slot_reset_finished                  , timer.slot_reset
+  connect  timer.slot_reset_finished                     , environment.slot_start_episode
+  connect  environment.slot_start_episode_finished       , task.slot_start_episode
+  export   environment.slot_start_episode_finished  as  signal_start_of_episode
+
+  /// start of time step process:
+  connect  environment.signal_start_of_timestep          , timer.slot_start_step
+  export   timer.signal_start_of_step  as  signal_start_of_timestep
+
+  /// end of time step process:
+  connect  environment.signal_end_of_timestep            , timer.slot_finish_step
+  connect  timer.signal_end_of_step                      , task.slot_finish_time_step
+  export   task.slot_finish_time_step_finished  as  signal_end_of_timestep
+
+  /// learning signals:
+  export   environment.slot_execute_command  as_is
+
+  connect  task.signal_reward                            , cmn_signal_reward.slot_in
+  connect  environment.signal_system_reward              , cmn_signal_reward.slot_in
+  export   cmn_signal_reward.signal_out  as  signal_reward
+
+  connect  environment.signal_end_of_episode             , cmn_signal_end_of_episode.slot_in
+  connect  task.signal_end_of_episode                    , cmn_signal_end_of_episode.slot_in
+  export   cmn_signal_end_of_episode.signal_out  as  signal_end_of_episode
+
+  export   lmanager.slot_finish_episode  as  slot_finalize_episode
+
+  /// I/O:
+  export   environment.out_situation  as_is
+  export   lmanager.out_episode_number  as_is
+  export   tr_state.out_x  as  out_state
+  export   tr_ngnet.out_y  as  out_ngnet
+  export   timer.out_cont_time  as_is
+
+  connect  environment.out_position                      , tr_state.in_x
+  connect  ngnet.out_f2                                  , tr_ngnet.in_converter
+  connect  tr_state.out_x                                , task.in_position
+  connect  timer.out_disc_time                           , tr_ngnet.in_disc_time
+  connect  timer.out_disc_time                           , tr_state.in_disc_time
+  connect  timer.out_cont_time                           , task.in_cont_time
+  connect  tr_state.out_x                                , tr_ngnet.in_x
+
+
+  /// parameter setting:
+
+  lmanager.config ={
+      MaxEpisodeNumber = 1000
+    }
+
+  task.config ={
+      MaxTime = 100
+    }
+
+  ngnet.config={
+      NGnetFileName = "m/ngnet222g.dat"
+    }
+
+  export environment.config.BadStatePenalty   as_is
+  export environment.config.MapKind           as_is
+  export environment.config.StartPos          as_is
+  export environment.config.StepCostFactor    as_is
+
+  export lmanager.config.MaxEpisodeNumber     as_is
+  export lmanager.config.RandomSeed           as_is
+
+  export  task.config.GoalRadius  as_is
+  export  task.config.GoalReward  as_is
+  export  task.config.MaxTime     as_is
+}
+
+module MMaze2DCommon cmn
+

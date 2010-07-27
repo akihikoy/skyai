@@ -1,1 +1,0 @@
-../scripts/maze2d.sh

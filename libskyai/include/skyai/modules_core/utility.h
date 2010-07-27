@@ -82,15 +82,15 @@ template <> inline void ApplyConstraintMax (TReal &value, const TReal &max)
 template <> inline void ApplyConstraintMax (TIntVector &value, const TIntVector &max)
 {
   LASSERT1op1(GenSize(value),==,GenSize(max));
-  TypeExt<TIntVector>::const_iterator mitr(GenBegin(max));
-  for (TypeExt<TIntVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
+  TypeExtS<TIntVector>::const_iterator mitr(GenBegin(max));
+  for (TypeExtS<TIntVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
     if (*itr>*mitr)  *itr= *mitr;
 }
 template <> inline void ApplyConstraintMax (TRealVector &value, const TRealVector &max)
 {
   LASSERT1op1(GenSize(value),==,GenSize(max));
-  TypeExt<TRealVector>::const_iterator mitr(GenBegin(max));
-  for (TypeExt<TRealVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
+  TypeExtS<TRealVector>::const_iterator mitr(GenBegin(max));
+  for (TypeExtS<TRealVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
     if (*itr>*mitr)  *itr= *mitr;
 }
 //-------------------------------------------------------------------------------------------
@@ -106,15 +106,15 @@ template <> inline void ApplyConstraintMin (TReal &value, const TReal &min)
 template <> inline void ApplyConstraintMin (TIntVector &value, const TIntVector &min)
 {
   LASSERT1op1(GenSize(value),==,GenSize(min));
-  TypeExt<TIntVector>::const_iterator mitr(GenBegin(min));
-  for (TypeExt<TIntVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
+  TypeExtS<TIntVector>::const_iterator mitr(GenBegin(min));
+  for (TypeExtS<TIntVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
     if (*itr<*mitr)  *itr= *mitr;
 }
 template <> inline void ApplyConstraintMin (TRealVector &value, const TRealVector &min)
 {
   LASSERT1op1(GenSize(value),==,GenSize(min));
-  TypeExt<TRealVector>::const_iterator mitr(GenBegin(min));
-  for (TypeExt<TRealVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
+  TypeExtS<TRealVector>::const_iterator mitr(GenBegin(min));
+  for (TypeExtS<TRealVector>::iterator itr(GenBegin(value)); itr!=GenEnd(value); ++itr,++mitr)
     if (*itr<*mitr)  *itr= *mitr;
 }
 //-------------------------------------------------------------------------------------------
@@ -371,7 +371,7 @@ protected:
 
   const t_vector& out_mixed_get (void) const
     {
-      typename TypeExt<t_vector>::iterator out_itr(GenBegin(output_));
+      typename TypeExtS<t_vector>::iterator out_itr(GenBegin(output_));
       for (typename std::vector<TElement>::const_iterator mixt_itr(mixing_table_.begin()),mixt_last(mixing_table_.end());
             mixt_itr!=mixt_last; ++mixt_itr,++out_itr)
       {
@@ -507,7 +507,7 @@ protected:
 
   const TRealVector& out_mixed_get (void) const
     {
-      TypeExt<TRealVector>::iterator out_itr(GenBegin(output_));
+      TypeExtS<TRealVector>::iterator out_itr(GenBegin(output_));
       for (std::vector<TElement>::const_iterator mixt_itr(mixing_table_.begin()),mixt_last(mixing_table_.end());
             mixt_itr!=mixt_last; ++mixt_itr,++out_itr)
       {
@@ -535,7 +535,7 @@ public:
   TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TSignalDistributorConfigurations (var_space::TVariableMap &mmap)
-    // :
+    : SizeOfLowers(-1)
     {
       Register(mmap);
     }
@@ -692,7 +692,7 @@ public:
   TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TFunctionSelectorConfigurations (var_space::TVariableMap &mmap)
-    // :
+    : SizeOfLowers(-1)
     {
       Register(mmap);
     }
@@ -990,6 +990,8 @@ public:
       UsingMinConstraint (false)
     {
       SetZero(Zero);
+      SetZero(Max);
+      SetZero(Min);
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
@@ -1079,6 +1081,98 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
+//===========================================================================================
+/*!\brief function sharer which shares a SISO-function in some signal-slot pairs */
+template <typename t_input, typename t_output>
+class MFunctionSISOSharer
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface                       TParent;
+  typedef t_input                                TInput;
+  typedef t_output                               TOutput;
+  typedef MFunctionSISOSharer<t_input,t_output>  TThis;
+  SKYAI_MODULE_NAMES(MFunctionSISOSharer)
+
+  MFunctionSISOSharer (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_function       (*this),
+      slot_x1           (*this),
+      slot_x2           (*this),
+      slot_x3           (*this),
+      slot_x4           (*this),
+      slot_x5           (*this),
+      signal_y1         (*this),
+      signal_y2         (*this),
+      signal_y3         (*this),
+      signal_y4         (*this),
+      signal_y5         (*this)
+    {
+      add_in_port (in_function);
+      add_slot_port (slot_x1);
+      add_slot_port (slot_x2);
+      add_slot_port (slot_x3);
+      add_slot_port (slot_x4);
+      add_slot_port (slot_x5);
+      add_signal_port (signal_y1);
+      add_signal_port (signal_y2);
+      add_signal_port (signal_y3);
+      add_signal_port (signal_y4);
+      add_signal_port (signal_y5);
+    }
+
+protected:
+
+  TOutput  tmp_y1_;
+  TOutput  tmp_y2_;
+  TOutput  tmp_y3_;
+  TOutput  tmp_y4_;
+  TOutput  tmp_y5_;
+
+  MAKE_IN_PORT(in_function, void (const TInput &x, TOutput &y), TThis);
+
+  MAKE_SLOT_PORT(slot_x1, void, (const TInput &x), (x), TThis);
+  MAKE_SLOT_PORT(slot_x2, void, (const TInput &x), (x), TThis);
+  MAKE_SLOT_PORT(slot_x3, void, (const TInput &x), (x), TThis);
+  MAKE_SLOT_PORT(slot_x4, void, (const TInput &x), (x), TThis);
+  MAKE_SLOT_PORT(slot_x5, void, (const TInput &x), (x), TThis);
+  MAKE_SIGNAL_PORT(signal_y1, void (const TOutput&), TThis);
+  MAKE_SIGNAL_PORT(signal_y2, void (const TOutput&), TThis);
+  MAKE_SIGNAL_PORT(signal_y3, void (const TOutput&), TThis);
+  MAKE_SIGNAL_PORT(signal_y4, void (const TOutput&), TThis);
+  MAKE_SIGNAL_PORT(signal_y5, void (const TOutput&), TThis);
+
+  // generate get_##x_in (e.g. get_reward)
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+
+  GET_FROM_IN_PORT(function, void, (const TInput &x, TOutput &y), (x,y))
+
+  #undef GET_FROM_IN_PORT
+
+  #define GEN_SLOT_N(x_N)  \
+    void slot_x##x_N##_exec (const TInput &x)     \
+      {                                           \
+        get_function (x,tmp_y##x_N##_);           \
+        signal_y##x_N.ExecAll (tmp_y##x_N##_);  \
+      }
+  GEN_SLOT_N(1)
+  GEN_SLOT_N(2)
+  GEN_SLOT_N(3)
+  GEN_SLOT_N(4)
+  GEN_SLOT_N(5)
+  #undef GEN_SLOT_N
+
+};  // end of MFunctionSISOSharer
+//-------------------------------------------------------------------------------------------
+
+
 
 //===========================================================================================
 /*!\brief signal holder module which holds a parameter of last signal */
@@ -1137,7 +1231,7 @@ SPECIALIZE_TVARIABLE_TO_ENUM(THolderKind)
 
 //===========================================================================================
 template <typename t_arg1, typename t_arg2>
-class TCompositHolder2Configurations
+class TCompositeHolder2Configurations
 //===========================================================================================
 {
 public:
@@ -1146,10 +1240,12 @@ public:
   t_arg1                    Clear1;
   t_arg2                    Clear2;
 
-  TCompositHolder2Configurations (var_space::TVariableMap &mmap)
+  TCompositeHolder2Configurations (var_space::TVariableMap &mmap)
     :
       HolderKind  (hkExclusive)
     {
+      SetZero(Clear1);
+      SetZero(Clear2);
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
@@ -1165,7 +1261,7 @@ public:
 //===========================================================================================
 /*!\brief signal holder module which holds a parameter of last signal (multiple input) */
 template <typename t_arg1, typename t_arg2>
-class MCompositHolder2
+class MCompositeHolder2
     : public TModuleInterface
 //===========================================================================================
 {
@@ -1173,12 +1269,12 @@ public:
   typedef TModuleInterface     TParent;
   typedef t_arg1               TArgument1;
   typedef t_arg2               TArgument2;
-  typedef MCompositHolder2<
+  typedef MCompositeHolder2<
                   TArgument1,
                   TArgument2>  TThis;
-  SKYAI_MODULE_NAMES(MCompositHolder2)
+  SKYAI_MODULE_NAMES(MCompositeHolder2)
 
-  MCompositHolder2 (const std::string &v_instance_name)
+  MCompositeHolder2 (const std::string &v_instance_name)
     : TParent           (v_instance_name),
       conf_             (TParent::param_box_config_map()),
       slot_1            (*this),
@@ -1194,7 +1290,7 @@ public:
 
 protected:
 
-  TCompositHolder2Configurations<TArgument1,TArgument2>  conf_;
+  TCompositeHolder2Configurations<TArgument1,TArgument2>  conf_;
 
   TArgument1  last_signal1_;
   TArgument2  last_signal2_;
@@ -1225,7 +1321,7 @@ protected:
       return last_signal2_;
     }
 
-};  // end of MCompositHolder2
+};  // end of MCompositeHolder2
 //-------------------------------------------------------------------------------------------
 
 
@@ -1425,7 +1521,7 @@ public:
   TIntToIntVectorMap    TrueSet;  //!< mapper of integer to set of true integers
 
   TIntToBoolVectorMapperConfigurations (var_space::TVariableMap &mmap)
-    // :
+    : Size(-1)
     {
       Register(mmap);
     }
@@ -1497,7 +1593,7 @@ protected:
             itr!=conf_.TrueSet.end(); ++itr)
       {
         std::fill (GenBegin(tmpb),GenEnd(tmpb), false);
-        for (TypeExt<TIntVector>::const_iterator iv_itr(GenBegin(itr->second)),iv_last(GenEnd(itr->second)); iv_itr!=iv_last; ++iv_itr)
+        for (TypeExtS<TIntVector>::const_iterator iv_itr(GenBegin(itr->second)),iv_last(GenEnd(itr->second)); iv_itr!=iv_last; ++iv_itr)
           tmpb[*iv_itr]= true;
         int_to_bvec_[itr->first]= tmpb;
       }
@@ -1560,13 +1656,18 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSimpleAccumulator,TRealVector)
 //-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TInt,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TReal,TReal)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TIntVector,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TRealVector,TRealVector)
+//-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MHolder,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MHolder,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MHolder,TComposite1)
 //-------------------------------------------------------------------------------------------
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositHolder2,TInt,TRealVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositHolder2,TRealVector,TRealVector)
-SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositHolder2,TInt,TInt)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositeHolder2,TInt,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositeHolder2,TRealVector,TRealVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositeHolder2,TInt,TInt)
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------

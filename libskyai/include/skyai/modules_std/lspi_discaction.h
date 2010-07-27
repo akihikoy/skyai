@@ -90,7 +90,7 @@ namespace lspi_discaction_detail
 //-------------------------------------------------------------------------------------------
 
 
-typedef std::pair<TInt,TypeExt<TRealVector>::value_type>  TFeatureElement;
+typedef std::pair<TInt,TypeExtS<TRealVector>::value_type>  TFeatureElement;
 typedef std::vector<TFeatureElement>                       TSparseFeature;
 
 struct TLSPISample

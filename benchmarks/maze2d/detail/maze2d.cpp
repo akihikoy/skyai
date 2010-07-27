@@ -133,32 +133,7 @@ public:
     {
       walls_.clear();
       if (MAP_KIND<0)  return;
-      //! put walls
-      #if 0
-      walls_.push_back (TWall(-0.70l,  1.00l,  -0.70l,  0.25l));
-      walls_.push_back (TWall(-0.80l,  0.00l,  -0.40l,  0.00l));
-      walls_.push_back (TWall(-0.40l,  0.00l,  -0.40l,  0.50l));
-      walls_.push_back (TWall(-0.50l, -0.50l,  -0.10l, -0.15l));
-      walls_.push_back (TWall(-0.10l, -0.15l,  -0.10l,  0.50l));
-      walls_.push_back (TWall(-0.10l,  0.50l,   0.10l,  0.50l));
-      if (MAP_KIND==0)
-      {
-        walls_.push_back (TWall( 0.10l,  0.50l,   0.10l, -1.00l));
-        walls_.push_back (TWall( 0.40l,  0.50l,   0.40l, -0.30l));
-        walls_.push_back (TWall( 0.40l, -0.30l,   0.60l,  0.20l));
-        walls_.push_back (TWall( 0.60l,  0.20l,   0.60l,  1.00l));
-      }
-      else if (MAP_KIND==1)
-      {
-        // walls_.push_back (TWall( 0.40l,  0.50l,   0.40l,  0.30l));
-        // walls_.push_back (TWall( 0.40l,  0.00l,   0.40l, -1.00l));
-        // walls_.push_back (TWall( 0.60l, -0.20l,   0.60l,  1.00l));
-        walls_.push_back (TWall( 0.10l,  0.50l,   0.10l, -0.00l));
-        walls_.push_back (TWall( 0.10l, -0.50l,   0.40l, -0.30l));
-        walls_.push_back (TWall( 0.40l, -0.30l,   0.60l,  0.20l));
-        walls_.push_back (TWall( 0.60l,  0.20l,   0.60l,  1.00l));
-      }
-      #endif
+      // put walls
       if (MAP_KIND==0 || MAP_KIND==1 || MAP_KIND==10)
       {
         walls_.push_back (TWall(-0.70l,  1.00l,  -0.70l,  0.25l));
@@ -176,9 +151,6 @@ public:
         }
         else if (MAP_KIND==1)
         {
-          // walls_.push_back (TWall( 0.40l,  0.50l,   0.40l,  0.30l));
-          // walls_.push_back (TWall( 0.40l,  0.00l,   0.40l, -1.00l));
-          // walls_.push_back (TWall( 0.60l, -0.20l,   0.60l,  1.00l));
           walls_.push_back (TWall( 0.10l,  0.50l,   0.10l, -0.00l));
           walls_.push_back (TWall( 0.10l, -0.50l,   0.40l, -0.30l));
           walls_.push_back (TWall( 0.40l, -0.30l,   0.60l,  0.20l));

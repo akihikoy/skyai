@@ -54,12 +54,12 @@ override void MLCSimplePD::slot_start_time_step_exec (const TContinuousTime &tim
   const int dim= target_.length();
   command_.resize(dim);
 
-  TypeExt<TRealVector>::const_iterator ikp(GenBegin(conf_.Kp));
-  TypeExt<TRealVector>::const_iterator ikd(GenBegin(conf_.Kd));
-  TypeExt<TRealVector>::const_iterator ix(GenBegin(state_proportional_));
-  TypeExt<TRealVector>::const_iterator iv(GenBegin(state_derivative_));
-  TypeExt<TRealVector>::const_iterator ir(GenBegin(target_));
-  for(TypeExt<TRealVector>::iterator iu(GenBegin(command_)); iu!=GenEnd(command_);
+  TypeExtS<TRealVector>::const_iterator ikp(GenBegin(conf_.Kp));
+  TypeExtS<TRealVector>::const_iterator ikd(GenBegin(conf_.Kd));
+  TypeExtS<TRealVector>::const_iterator ix(GenBegin(state_proportional_));
+  TypeExtS<TRealVector>::const_iterator iv(GenBegin(state_derivative_));
+  TypeExtS<TRealVector>::const_iterator ir(GenBegin(target_));
+  for(TypeExtS<TRealVector>::iterator iu(GenBegin(command_)); iu!=GenEnd(command_);
       ++iu, ++ikp, ++ikd, ++ix, ++iv, ++ir)
   {
     (*iu)= (*ikp)*((*ir)-(*ix)) - (*ikd)*(*iv);

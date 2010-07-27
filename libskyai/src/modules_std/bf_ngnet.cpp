@@ -93,7 +93,7 @@ void MBasisFunctionsDCOBNGnet::calc_distance_to_nearest_bf (TRealVector &neighbo
 {
   LDEBUG("calc_distance_to_nearest_bf ...");
   neighbor_distance.resize(ngnet_.size());
-  TypeExt<TRealVector>::iterator ditr(GenBegin(neighbor_distance));
+  TypeExtS<TRealVector>::iterator ditr(GenBegin(neighbor_distance));
   for (TNGnet::const_iterator sitr(ngnet_.begin()); sitr!=ngnet_.end(); ++sitr, ++ditr)
   {
     TReal dmin (REAL_MAX), d;
@@ -120,7 +120,7 @@ void MBasisFunctionsDCOBNGnet::calc_ext_distance_to_nearest_bf (TRealVector &nei
   ColumnVector  ext_diff;
   Matrix ext_sigma;
   neighbor_distance.resize(ngnet_.size());
-  TypeExt<TRealVector>::iterator ditr(GenBegin(neighbor_distance));
+  TypeExtS<TRealVector>::iterator ditr(GenBegin(neighbor_distance));
   for (TNGnet::const_iterator sitr(ngnet_.begin()); sitr!=ngnet_.end(); ++sitr, ++ditr)
   {
     TReal dmin (REAL_MAX), d;

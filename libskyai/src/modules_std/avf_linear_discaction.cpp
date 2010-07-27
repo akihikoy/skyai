@@ -354,8 +354,8 @@ override void MAVFLinearDiscAction::out_select_action_get (TAction *a, TStateAct
     // {
       // TValue qmax(-0.12345);
       // bool is_first(true);
-      // TypeExt<TBoolVector>::const_iterator  actavlitr(GenBegin(*action_availability));
-      // for (TypeExt<TRealVector>::const_iterator qitr(GenBegin(nextQs)); qitr!=GenEnd(nextQs); ++qitr,++actavlitr)
+      // TypeExtS<TBoolVector>::const_iterator  actavlitr(GenBegin(*action_availability));
+      // for (TypeExtS<TRealVector>::const_iterator qitr(GenBegin(nextQs)); qitr!=GenEnd(nextQs); ++qitr,++actavlitr)
         // if (*actavlitr) {if (is_first || *qitr>qmax) {qmax=*qitr; is_first=false;}}
       // *attrib.StateValue= qmax;
     // }

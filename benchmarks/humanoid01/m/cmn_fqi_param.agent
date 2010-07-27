@@ -1,0 +1,11 @@
+// common parameters for fitted Q iteration module (used with Q-learning module)
+
+behavior.config={
+    SqErrGradientNormLimit = 1.0e+3
+    FQICycle = 10
+    MaxNumberOfQIteration = 1
+    MaxNumberOfSLIteration = 3
+    MinRewardDeviationRate = 0.01
+    SameSampleThreshold = 0.001
+    NumberOfUsedSamples = 10
+  }

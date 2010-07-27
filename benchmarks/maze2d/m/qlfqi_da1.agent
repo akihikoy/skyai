@@ -1,0 +1,40 @@
+// agent file for maze2d task using Q(lambda)-learning + fitted Q iteration
+
+include "qlfqi_da"
+include "cmn"
+
+module MTDFQIDiscAct behavior
+
+include "cmn_da"
+
+
+/// parameter setting:
+
+radial_action.config ={
+    NumOfDirs = 16
+  }
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha1 = 0.7
+    AlphaDecreasingFactor1 = 0.002
+    AlphaMin1 = 0.05
+    Lambda = 0.9
+    GradientMax = 1.0e+100
+    UsingReplacingTrace = true
+
+    Alpha2 = 0.05
+    AlphaDecreasingFactor2 = 0.0
+    FQICycle = 10
+    MaxNumberOfQIteration = 1
+    MaxNumberOfSLIteration = 3
+    MinRewardDeviationRate = 0.1
+    SameSampleThreshold = 0.001
+    NumberOfUsedSamples = 10
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }
