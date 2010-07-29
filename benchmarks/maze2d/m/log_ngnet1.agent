@@ -1,0 +1,11 @@
+include_once "logger_ngnet"
+
+module MLoggerNGnet  logger_ngnet
+connect  cmn.out_ngnet           ,  logger_ngnet.in_ngnet
+connect  cmn.out_episode_number  ,  logger_ngnet.in_episode_number
+connect  cmn.out_cont_time       ,  logger_ngnet.in_cont_time
+connect  cmn.out_state           ,  logger_ngnet.in_state
+
+connect  cmn.signal_initialization       , logger_ngnet.slot_initialize
+connect  behavior.signal_end_of_action   , logger_ngnet.slot_log
+connect  behavior.signal_end_of_episode  , logger_ngnet.slot_newline

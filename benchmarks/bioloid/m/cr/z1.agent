@@ -1,0 +1,60 @@
+// Dinosaur constrained to 5 DoF
+
+// action log of dcob
+module  MUniversalDataLogger   act_logger
+module  MHolder_TRealVector    holder_action
+connect  dcob.signal_execute_command , holder_action.slot_1
+connect  env.signal_initialization       , act_logger.slot_initialize
+connect  behavior.signal_end_of_action   , act_logger.slot_log
+connect  behavior.signal_end_of_episode  , act_logger.slot_newline
+connect  holder_action.out_1 , act_logger.in_data_real_vector
+act_logger.config={
+      FileName = "log-action.dat"
+  }
+
+/// parameter setting:
+
+task.config ={
+    RewardGain = 5.0
+  }
+
+// ext_speed_sensor.config={Index=0;}  // 0:center, 1:left, 2:right
+
+dcob.config ={
+    // IntervalSet = (0.5)
+    IntervalSet = (1.2)
+  }
+
+env.config ={
+    ActuatorIndexes = (1, 2,  3, 4, 5, 6,  7, 8, 9, 10, 11, 12,  13, 14, 15)
+    SensingAngleIndexes = (3, 5, 7, 9, 11)
+    DistanceSensorIndex = 100
+    AngleMax = (-90,  10,    30,  30,  30,  80,    30,  10,  45, -10,   0,  45,    90,  90,  90)
+    AngleMin = (-90, -90,   -30, -30, -80, -30,   -10, -30,  10, -45, -45,  -0,   -90, -90, -90)
+
+    NGnetFileName = "m/ngnet_z_q5_3.dat"
+
+    ActionConvertFactor ={
+        resize(15, 5)
+        // j    0  1  2  3  4
+        [@]=0
+        [0]=  ( 0, 0, 0, 0, 0)
+        [1]=  ( 0, 0, 1, 0, 0)
+
+        [2]=  ( 1, 0, 0, 0, 0)
+        [3]=  (-1, 0, 0, 0, 0)
+        [4]=  ( 0, 1, 0, 0, 0)
+        [5]=  ( 0,-1, 0, 0, 0)
+
+        [6]=  ( 0, 0, 1, 0, 0)
+        [7]=  ( 0, 0,-1, 0, 0)
+        [8]=  ( 0, 0, 0, 1, 0)
+        [9]=  ( 0, 0, 0,-1, 0)
+        [10]= ( 0, 0, 0, 0, 1)
+        [11]= ( 0, 0, 0, 0,-1)
+
+        [12]= ( 0, 0, 0, 0, 0)
+        [13]= ( 0, 1, 0, 0, 0)
+        [14]= ( 3, 0, 0, 0, 0)
+      }
+  }

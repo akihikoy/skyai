@@ -35,6 +35,7 @@
 #include <sys/time.h>  // getrusage, gettimeofday
 #include <sys/resource.h> // get cpu time
 #include <sys/types.h>
+#include <termios.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -103,6 +104,39 @@ private:
 bool DirectoryExists (const std::string &dirname);
 /*! \brief create directory */
 bool CreateDirectory (const std::string &dirname, mode_t mode=0755);
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+class TKBHit
+//===========================================================================================
+{
+public:
+  TKBHit (void) : is_open_(false)  {Open();}
+  ~TKBHit (void)  {Close();}
+  void Open (void);
+  void Close (void);
+  int operator() (void) const;
+private:
+  termios old_tios_;
+  termios raw_tios_;
+  bool is_open_;
+};
+//-------------------------------------------------------------------------------------------
+inline int WaitKBHit(void)
+{
+  TKBHit kbhit;
+  return kbhit();
+}
+inline void WaitKBHit(int k)
+{
+  TKBHit kbhit;
+  while(true)
+  {
+    int s= kbhit();
+    if(s==k)  break;
+  }
+}
 //-------------------------------------------------------------------------------------------
 
 

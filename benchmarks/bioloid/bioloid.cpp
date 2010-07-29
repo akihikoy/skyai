@@ -49,13 +49,15 @@ public:
 
   TReal             InitSleepTime;
   TReal             TimeStep;
+  TReal             UserPenalty;
 
 
   TBioloidEnvironmentConfigurations (var_space::TVariableMap &mmap)
     :
       SerialPort      ("/dev/ttyUSB0"),
       InitSleepTime   (2.0l),
-      TimeStep        (0.1l)
+      TimeStep        (0.1l),
+      UserPenalty     (-4.0l)
     {
       Register(mmap);
     }
@@ -70,6 +72,7 @@ public:
       ADD( AngleMin                 );
       ADD( InitSleepTime            );
       ADD( TimeStep                 );
+      ADD( UserPenalty              );
       #undef ADD
     }
 };
@@ -138,6 +141,11 @@ public:
       signal_end_of_episode.ExecAll();
     }
 
+  void ForcePenalty ()
+    {
+      signal_system_reward.ExecAll(conf_.UserPenalty);
+    }
+
   void Setup ()
     {
       LMESSAGE("setup robot..");
@@ -198,9 +206,9 @@ protected:
     {
       Setup();
 
-      tmp_distance_c_.resize(1);
-      tmp_old_distance_c_.resize(1);
-      tmp_distance_diff_c_.resize(1);
+      tmp_distance_c_.resize(3);
+      tmp_old_distance_c_.resize(3);
+      tmp_distance_diff_c_.resize(3);
       LMESSAGE("resetting robot..");
       TRealVector  target_angle(conf_.ActuatorIndexes.size(),0.0), observed_angle(conf_.ActuatorIndexes.size());
       double time_offset(GetCurrentTime()), time(GetCurrentTime());
@@ -211,19 +219,25 @@ protected:
           *itr= (*itr)/180.0*M_PI;
         constrain_angles (target_angle);
         bioloid_.GoTo (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(target_angle));
-        bioloid_.GetDistance(conf_.DistanceSensorIndex,0,tmp_old_distance_c_(0));
+        bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_old_distance_c_(0));  // center sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_old_distance_c_(1));  // left sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_old_distance_c_(2));  // right sensor
         usleep(10000);
         time= GetCurrentTime();
       }
       LMESSAGE("ok..");
 
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,0,tmp_distance_c_(0));
+      bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
+      bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
+      bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
       tmp_distance_diff_c_(0)= 0.0;
+      tmp_distance_diff_c_(1)= 0.0;
+      tmp_distance_diff_c_(2)= 0.0;
 
       distance_lpf_.Initialize (TLHBPFilters<TRealVector>::LPF2,
-        conf_.TimeStep, 0.5/*f*/, 0.8/*q*/, TRealVector(1,0.0), tmp_distance_c_);
+        conf_.TimeStep, 0.5/*f*/, 0.8/*q*/, TRealVector(3,0.0), tmp_distance_c_);
       distance_diff_lpf_.Initialize (TLHBPFilters<TRealVector>::LPF2,
-        conf_.TimeStep, 0.5/*f*/, 0.8/*q*/, TRealVector(1,0.0), tmp_distance_diff_c_);
+        conf_.TimeStep, 0.5/*f*/, 0.8/*q*/, TRealVector(3,0.0), tmp_distance_diff_c_);
 
       // setting initial pose...
       // if (rltcnd.INIT_POSE>=0 || rltcnd.USING_INIT_STATE_SET)
@@ -259,12 +273,14 @@ protected:
 
   virtual void slot_finish_step_exec (void)
     {
-      tmp_old_distance_c_(0)= distance_lpf_()(0); // tmp_distance_c_(0);
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,0,tmp_distance_c_(0));
+      for(int i(0);i<3;++i)  tmp_old_distance_c_(i)= distance_lpf_()(i); // tmp_distance_c_(i);
+      bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
+      bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
+      bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
       distance_lpf_ (tmp_distance_c_);  // tmp_distance_c_(0)= distance_lpf_()(0);
-      tmp_distance_diff_c_(0)= -1.0*(distance_lpf_()(0)-tmp_old_distance_c_(0));
+      for(int i(0);i<3;++i)  tmp_distance_diff_c_(i)= -1.0*(distance_lpf_()(i)-tmp_old_distance_c_(i));
       distance_diff_lpf_ (tmp_distance_diff_c_);
-std::cout<<tmp_distance_c_(0)<<"\t"<<distance_lpf_()(0)<<"\t"<<tmp_distance_diff_c_(0)<<"\t"<<distance_diff_lpf_()(0)<<std::endl;
+std::cout<<distance_lpf_()(0)<<"\t"<<distance_lpf_()(1)<<"\t"<<distance_lpf_()(2)<<std::endl;
 
       TSingleReward reward(0.0l);
       reward+= -0.15l*conf_.TimeStep;
@@ -331,12 +347,14 @@ class TMotionLearningTaskConfigurations
 public:
 
   TMotionLearningTaskKind  TaskKind;
+  TReal                    RewardGain;
   TSingleReward            SumOfRmin;  //!< if sum of reward in an episode is less than this value, episode is terminated
   TContinuousTime          MaxTime;
 
   TMotionLearningTaskConfigurations (var_space::TVariableMap &mmap)
     :
       TaskKind             (mltkMove),
+      RewardGain           (1.0l),
       SumOfRmin            (-40.0l),
       MaxTime              (50.0l)
     {
@@ -346,6 +364,7 @@ public:
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( TaskKind       );
+      ADD( RewardGain     );
       ADD( SumOfRmin      );
       ADD( MaxTime        );
       #undef ADD
@@ -404,7 +423,7 @@ protected:
   MAKE_SIGNAL_PORT(signal_damage_reward, void (const TSingleReward&), TThis);
 
   //!\brief input the speed of the robot
-  MAKE_IN_PORT(in_speed, const TRealVector& (void), TThis);
+  MAKE_IN_PORT(in_speed, const TReal& (void), TThis);
 
   MAKE_IN_PORT(in_sum_of_reward, const TSingleReward& (void), TThis);
 
@@ -416,7 +435,7 @@ protected:
         return in_##x_in.GetFirst x_param_list;                                                 \
       }
 
-  GET_FROM_IN_PORT(speed, const TRealVector&, (void), ())
+  GET_FROM_IN_PORT(speed, const TReal&, (void), ())
 
   GET_FROM_IN_PORT(sum_of_reward, const TSingleReward&, (void), ())
 
@@ -444,7 +463,7 @@ protected:
             /*!Goal Reward def.*/
             // task_reward= body[BASELINK_INDEX].getLinearVel()[0];
             // task_reward= 0.01l*task_reward - 0.1l*Square(body[BASELINK_INDEX].getPosition()[1]);
-            task_reward= get_speed()(0);
+            task_reward= conf_.RewardGain * get_speed();
             break;
           default :
             LERROR("invalid TaskKind= "<<conf_.TaskKind);
@@ -501,6 +520,9 @@ SKYAI_ADD_MODULE(MMotionLearningTask)
 
 }
 //-------------------------------------------------------------------------------------------
+#include <signal.h>
+#include <lora/sys.h>
+//-------------------------------------------------------------------------------------------
 using namespace std;
 // using namespace boost;
 using namespace loco_rabbits;
@@ -529,47 +551,48 @@ void sig_handler(int signo)
   {
     std::cerr<<ioscc::blue<<"interrupted."<<std::endl;
     std::cerr<<
-      "  quit/QUIT:  quit with returning a failure code"<<std::endl<<
-      "  squit/SQUIT:  quit with returning a success code"<<std::endl<<
+      "  Q:  quit with returning a failure code"<<std::endl<<
+      "  X:  quit with returning a success code"<<std::endl<<
       "  l/L:  save the learned valuetable"<<std::endl<<
-      "  r/R:  reset the simulation and start a new episode"<<std::endl<<
-      "  sr/SR:  reset the simulation (including connection setup) and start a new episode"<<std::endl;
-    string str;
+      "  r/R:  reset the simulation (including connection setup) and start a new episode"<<std::endl<<
+      "  g/G:  emit a penalty signal, reset the simulation, and start a new episode"<<std::endl;
     while(true)
     {
-      std::cerr<<"select action: "<<std::flush;
-      std::cin>>str;
-      if(str=="quit"||str=="QUIT")
+      std::cerr<<"  Q|X|l|r|g > "<<std::flush;
+      int res= WaitKBHit();
+      if(res=='Q')
       {
         Executing=false;
         ExitCode=1;
         FinishLearningProc();
         break;
       }
-      else if(str=="squit"||str=="SQUIT")
+      else if(res=='X')
       {
         Executing=false;
         ExitCode=0;
         FinishLearningProc();
         break;
       }
-      else if(str=="l"||str=="L")
+      else if(res=='l'||res=='L')
       {
         SaveLearningParams();
         std::cerr<<"reset the simulation..."<<std::endl;
         PtrEnvironment->ForceFinishEpisode();
         break;
       }
-      else if(str=="r"||str=="R")
+      else if(res=='r'||res=='R')
       {
         std::cerr<<"reset the simulation..."<<std::endl;
+        PtrEnvironment->Setup();
         PtrEnvironment->ForceFinishEpisode();
         break;
       }
-      else if(str=="sr"||str=="SR")
+      else if(res=='g'|res=='G')
       {
-        std::cerr<<"reset the simulation (s)..."<<std::endl;
-        // ForceSetup= true;
+        std::cerr<<"emit penalty..."<<std::endl;
+        PtrEnvironment->ForcePenalty();
+        std::cerr<<"reset the simulation..."<<std::endl;
         PtrEnvironment->Setup();
         PtrEnvironment->ForceFinishEpisode();
         break;
@@ -662,7 +685,8 @@ int main (int argc, const char **argv)
     // if (ForceSetup)  environment.Setup();
 
     LMESSAGE("can you start learning?");
-    while (!AskYesNo());
+    cout<<"hit space key > "<<flush;
+    WaitKBHit(' ');
     LMESSAGE("bioloid: learning...");
 
     lmanager.StartEpisode();
