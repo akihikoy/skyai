@@ -80,7 +80,7 @@ struct TPortConnector
         }
       }
       else
-        {LERROR("too many ports are connected to the port "<<v_this_port.UniqueCode());}
+        {LERROR("too many ports are connected to the port "<<&v_this_port);}
 
       /*!\note if *this is already connected to the v_port, then disconnect it
           to prevent 'dead' connections  */
@@ -119,11 +119,11 @@ struct TPortConnector
         if (!f(*itr))  break;
     }
 
-  /*!\brief find a connected port whose UniqueCode is unique_code */
-  typename TConnectedPortSet::const_iterator FindByUniqueCode (const std::string &unique_code) const
+  /*!\brief find a connected port by a pointer */
+  typename TConnectedPortSet::const_iterator FindByPtr (const TPortInterface *ptr) const
     {
       for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
-        if (*itr && (*itr)->UniqueCode()==unique_code)  return itr;
+        if (*itr==ptr)  return itr;
       return ConnectedPorts.end();
     }
 };

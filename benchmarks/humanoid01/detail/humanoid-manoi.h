@@ -284,9 +284,9 @@ static void draw_world (bool pause=false)
   for(j=0; j<BODY_NUM; ++j)
   {
     if(j==1)
-      _dsSetColorAlpha (0.7, 0.7, 0.8, 0.8);
+      _dsSetColorAlpha (0.2, 0.2, 0.7, 0.8);
     else
-      _dsSetColorAlpha (0.8, 0.7, 0.8, 0.8);
+      _dsSetColorAlpha (0.4, 0.45, 0.6, 0.8);
     const int i=geom_table[j].i;
     switch(geom_table[j].type)
     {
@@ -312,7 +312,7 @@ static void draw_world (bool pause=false)
         exit(1);
     }
   }
-  _dsSetColorAlpha (0.0, 0.8, 0.5, 0.6);
+  _dsSetColorAlpha (1.0, 0.2, 0.2, 0.6);
   int DISPLAY_JOINTS[] = { 1,2,3, 4,5,6, 8,9,10, 13,14,15};
   for (size_t i=0; i<sizeof(DISPLAY_JOINTS)/sizeof(int); ++i)
   {

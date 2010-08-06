@@ -47,6 +47,7 @@ namespace skyai_utility_detail
 //! make a map [index --> one of connected ports] from lowerport_to_indexes. index should be in {0,..,max_index-1}
 template<typename t_port_for_lower>
 void MakeLowerPortsIndexConnectionIteratorMap (
+    const TCompositeModule &parent_c_module,
     t_port_for_lower  &port_for_lower,
     std::vector<typename t_port_for_lower::TConnectedPortIterator >  &lower_modules_citr,
     TInt max_index, const std::map<TString, TIntVector>  &lowerport_to_indexes)
@@ -58,14 +59,14 @@ void MakeLowerPortsIndexConnectionIteratorMap (
   std::map<TString, TIntVector>::const_iterator  order_itr;
   for (typename t_port_for_lower::TConnectedPortIterator citr(port_for_lower.ConnectedPortBegin()); citr!=port_for_lower.ConnectedPortEnd(); ++citr)
   {
-    order_itr= lowerport_to_indexes.find ((*citr)->UniqueCode());
+    order_itr= lowerport_to_indexes.find (parent_c_module.SearchSubPortUniqueCode(*citr));
     if (order_itr != lowerport_to_indexes.end())
     {
       for (std::vector<TInt>::const_iterator itr(order_itr->second.begin()),last(order_itr->second.end()); itr!=last; ++itr)
         lower_modules_citr[*itr]= citr;
     }
     else
-      {LERROR("module "<<(*citr)->UniqueCode()<<" should described in lowerport_to_indexes"); lexit(df);}
+      {LERROR("module.port: "<<parent_c_module.SearchSubPortUniqueCode(*citr)<<" should be listed in IndexesOfLowers"); lexit(df);}
   }
 }
 //-------------------------------------------------------------------------------------------
@@ -358,10 +359,11 @@ protected:
             conf_itr(conf_.MixingTable.begin()),conf_last(conf_.MixingTable.end());
               conf_itr!=conf_last; ++conf_itr,++mixt_itr)
       {
-        typename GET_PORT_TYPE(in_vectors)::TConnectedPortIterator iv_citr= in_vectors.ConnectedPortFind (conf_itr->PortCode);
+        typename GET_PORT_TYPE(in_vectors)::TConnectedPortIterator
+                  iv_citr= in_vectors.ConnectedPortFind (ParentCModule().SearchSubPort(conf_itr->PortCode));
         if (iv_citr==in_vectors.ConnectedPortEnd())
         {
-          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<in_vectors.UniqueCode());
+          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<ParentCModule().SearchSubPortUniqueCode(&in_vectors));
           lexit(df);
         }
         mixt_itr->CItr= iv_citr;
@@ -493,10 +495,11 @@ protected:
             conf_itr(conf_.MixingTable.begin()),conf_last(conf_.MixingTable.end());
               conf_itr!=conf_last; ++conf_itr,++mixt_itr)
       {
-        GET_PORT_TYPE(in_real_vectors)::TConnectedPortIterator iv_citr= in_real_vectors.ConnectedPortFind (conf_itr->PortCode);
+        GET_PORT_TYPE(in_real_vectors)::TConnectedPortIterator
+                  iv_citr= in_real_vectors.ConnectedPortFind (ParentCModule().SearchSubPort(conf_itr->PortCode));
         if (iv_citr==in_real_vectors.ConnectedPortEnd())
         {
-          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<in_real_vectors.UniqueCode());
+          LERROR("Port "<<conf_itr->PortCode<<" is not connected to "<<ParentCModule().SearchSubPortUniqueCode(&in_real_vectors));
           lexit(df);
         }
         mixt_itr->CItr= iv_citr;
@@ -532,7 +535,7 @@ public:
   TInt                  SizeOfLowers;
 
   typedef  std::map<TString, TIntVector>  TLowerportToIndexesMap;
-  TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
+  TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (PortUniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TSignalDistributorConfigurations (var_space::TVariableMap &mmap)
     : SizeOfLowers(-1)
@@ -619,7 +622,7 @@ protected:
   override void slot_reset_exec (void)
     {
       using namespace skyai_utility_detail;
-      MakeLowerPortsIndexConnectionIteratorMap (signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
+      MakeLowerPortsIndexConnectionIteratorMap (ParentCModule(), signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
   virtual void slot_in_exec (const TInt &index)
@@ -664,7 +667,7 @@ protected:
   override void slot_reset_exec (void)
     {
       using namespace skyai_utility_detail;
-      MakeLowerPortsIndexConnectionIteratorMap (signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
+      MakeLowerPortsIndexConnectionIteratorMap (ParentCModule(), signal_out, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
   virtual void slot_in_exec (const TInt &index, const t_arg1 &a1)
@@ -689,7 +692,7 @@ public:
   TInt                  SizeOfLowers;
 
   typedef  std::map<TString, TIntVector>  TLowerportToIndexesMap;
-  TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (UniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
+  TLowerportToIndexesMap    IndexesOfLowers;  //!< map of (PortUniqueCode of lower port -> set of index). index should be in {0,..,SizeOfLowers-1}
 
   TFunctionSelectorConfigurations (var_space::TVariableMap &mmap)
     : SizeOfLowers(-1)
@@ -776,7 +779,7 @@ protected:
   override void slot_reset_exec (void)
     {
       using namespace skyai_utility_detail;
-      MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
+      MakeLowerPortsIndexConnectionIteratorMap (ParentCModule(), in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
   virtual const t_ret& out_function_get (const TInt &index) const
@@ -821,7 +824,7 @@ protected:
   override void slot_reset_exec (void)
     {
       using namespace skyai_utility_detail;
-      MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
+      MakeLowerPortsIndexConnectionIteratorMap (ParentCModule(), in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
   virtual const t_ret& out_function_get (const TInt &index, const t_arg1 &a1) const
@@ -865,7 +868,7 @@ protected:
   override void slot_reset_exec (void)
     {
       using namespace skyai_utility_detail;
-      MakeLowerPortsIndexConnectionIteratorMap (in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
+      MakeLowerPortsIndexConnectionIteratorMap (ParentCModule(), in_function, lower_modules_citr_, conf_.SizeOfLowers, conf_.IndexesOfLowers);
     }
 
   virtual void out_function_get (const TInt &index, const t_arg1 &a1) const

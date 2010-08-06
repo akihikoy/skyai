@@ -377,7 +377,7 @@ protected:
       TSingleReward step_cost(0.0l);
       worldStep (tq_input_, conf_.TorqueMax, conf_.TimeStep, step_cost);
       if (ModuleMode()==TModuleInterface::mmDebug)
-        {DebugStream()<<slot_step_loop.UniqueCode()<<":  WorldStep is executed (cost="<<step_cost<<")"<<std::endl;}
+        {DebugStream()<<"HUMANOID(slot_step_loop: "<<&slot_step_loop<<"):  WorldStep is executed (cost="<<step_cost<<")"<<std::endl;}
       ////////////////////////
 
       TSingleReward reward(0.0l);

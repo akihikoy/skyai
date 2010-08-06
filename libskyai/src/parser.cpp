@@ -80,6 +80,8 @@ public:
       keywords_.insert("export");
       keywords_.insert("config");
       keywords_.insert("memory");
+
+      var_space::AddToKeywordSet(keywords_);
     }
 
   boost::spirit::classic::parse_info<t_iterator>  Parse (TCompositeModule &cmodule, const std::string &file_name, t_iterator first, t_iterator last, int start_line_num=1, bool no_export=false);
@@ -866,57 +868,10 @@ static bool save_module_to_stream (const TCompositeModule::TModuleCell &module, 
 }
 //-------------------------------------------------------------------------------------------
 
-static const TCompositeModule::TModuleCell* find_module_by_ptr (const std::vector<TCompositeModule::TModuleCell> &modules, const TModuleInterface *ptr)
+static bool save_connection_to_stream (const TConstPortInfo *from_port, const TConstPortInfo *to_port, ostream *os, const std::string &indent)
 {
-  for (std::vector<TCompositeModule::TModuleCell>::const_iterator itr(modules.begin()),last(modules.end()); itr!=last; ++itr)
-    if (itr->Ptr==ptr)  return &(*itr);
-  return NULL;
-}
-//-------------------------------------------------------------------------------------------
-
-void find_module_port_ids(const TPortInterface &port, const std::vector<TCompositeModule::TModuleCell> &modules, std::string &port_name, std::string &module_name)
-{
-  if (find_module_by_ptr(modules, &port.OuterBase()))
-  {
-    port_name= port.Name();
-    module_name= port.OuterBase().InstanceName();
-    return;
-  }
-
-  const TCompositeModule *parent= port.OuterBase().ParentCModule();
-  while(parent)
-  {
-    const TCompositeModule::TModuleCell* mcell= find_module_by_ptr(modules,parent);
-    if (mcell)
-    {
-      port_name= parent->SearchPortByPtr(&port);
-      module_name= parent->InstanceName();
-      return;
-    }
-    parent= parent->ParentCModule();
-  }
-
-  port_name="";
-  module_name="";
-}
-//-------------------------------------------------------------------------------------------
-
-static bool save_connection_to_stream (
-    const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr,
-    ostream *os, const std::string &indent, const std::vector<TCompositeModule::TModuleCell> &modules)
-{
-  std::string  from_port_name, from_module_name, to_port_name, to_module_name;
-  find_module_port_ids(*from_port_ptr, modules, from_port_name, from_module_name);
-  find_module_port_ids(*to_port_ptr, modules, to_port_name, to_module_name);
-
-  if(from_port_name=="" || from_module_name=="" || to_port_name=="" || to_module_name=="")
-  {
-    // this means the connection is one in the other composite module layer
-    return true;
-  }
-
-  (*os)<<indent<< "connect  "<< from_module_name << "." << from_port_name
-                    << " ,   "<< to_module_name << "." << to_port_name << endl;
+  (*os)<<indent<< "connect  "<< from_port->OuterModule->InstanceName() << "." << from_port->Name
+                    << " ,   "<< to_port->OuterModule->InstanceName() << "." << to_port->Name << endl;
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -966,16 +921,10 @@ static bool save_params_to_stream (const TCompositeModule::TModuleCell &module, 
 bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &indent) const
 //===========================================================================================
 {
-  std::vector<TCompositeModule::TModuleCell>  modules(sub_modules_.size());
-    //!\todo replace by a set container, and make find_module_by_ptr efficient
-  TCompositeModule::TModuleSet::const_iterator  sub_modules_itr(sub_modules_.begin());
-  for (std::vector<TCompositeModule::TModuleCell>::iterator itr(modules.begin()),last(modules.end()); itr!=last; ++itr,++sub_modules_itr)
-    *itr= *sub_modules_itr;
-
   ForEachSubModuleCell (boost::bind(save_module_to_stream,_1,&os,indent));
 
   os<<endl;
-  ForEachSubConnection (boost::bind(save_connection_to_stream,_1,_2,&os,indent,modules));
+  ForEachSubConnection (boost::bind(save_connection_to_stream,_1,_2,&os,indent));
 
   if (!export_list_.empty())
   {

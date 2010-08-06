@@ -87,12 +87,12 @@ public:
 
   TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
   TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
-  TConnectedPortIterator  ConnectedPortFind (const std::string &unique_code) const  {return port_connector_.FindByUniqueCode(unique_code);}
+  TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
 
   t_return Exec (FUNC_OBJ_FUNC_PARAMS)
     {
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
-        {outer_base_.DebugStream()<<"SLOT-PORT: "<<UniqueCode()<<" <<<<"<<std::endl;}
+        {outer_base_.DebugStream()<<"SLOT-PORT: "<<this<<" <<<<"<<std::endl;}
       return exec_switcher<t_return>(*this) (FUNC_OBJ_FUNC_ARGS);
     }
 

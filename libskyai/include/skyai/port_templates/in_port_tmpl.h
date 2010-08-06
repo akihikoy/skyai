@@ -84,7 +84,7 @@ public:
 
   TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
   TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
-  TConnectedPortIterator  ConnectedPortFind (const std::string &unique_code) const  {return port_connector_.FindByUniqueCode(unique_code);}
+  TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
 
   t_return GetFirst (FUNC_OBJ_FUNC_PARAMS) const
     {
@@ -101,7 +101,7 @@ public:
         lexit(df); return dummy_return<t_return>::value();
       }
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
-        {outer_base_.DebugStream()<<"IN-PORT: "<<UniqueCode()<<" (((( "<<(*current_itr)->UniqueCode()<<std::endl;}
+        {outer_base_.DebugStream()<<"IN-PORT: "<<this<<" (((( "<<(*current_itr)<<std::endl;}
       return (*current_itr)->Get(FUNC_OBJ_FUNC_ARGS);
     }
 
@@ -118,7 +118,7 @@ protected:
         return p;
       }
       else
-        {LERROR("the port "<<v_port.UniqueCode()<<" cannot be connected to the port "<<v_this_port.UniqueCode());}
+        {LERROR("the port "<<&v_port<<" cannot be connected to the port "<<&v_this_port);}
       return NULL;
     }
 

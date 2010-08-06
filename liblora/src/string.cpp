@@ -193,6 +193,18 @@ void ReadSpacesFromStr (std::stringstream &ss, std::string::const_iterator &firs
 }
 //-------------------------------------------------------------------------------------------
 
+void ReadSymbolsFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last)
+{
+  for (; first!=last; ++first)
+  {
+    if (IsSymbol(*first))
+      ss<<*first;
+    else
+      break;
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 //! \note separators are [,\t\ ]*
 void ReadSeparatorsFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last)
 {
@@ -251,14 +263,17 @@ void ReadEncodedStrFromStr (std::stringstream &ss, std::string::const_iterator &
 }
 //-------------------------------------------------------------------------------------------
 
-//! \note identifier is a string which consists of [0-9A-Za-z_]
+//! \note identifier is a string which is [A-Za-z_][0-9A-Za-z_]*
 void ReadIdentifierFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last)
 {
-  for (; first!=last; ++first)
+  if (first==last)  return;
+  if (IsAlphabet(*first) || *first=='_')
+    ss<<*first;
+  else
+    return;
+  for (++first; first!=last; ++first)
   {
-    if (('0'<=*first && *first<='9') ||
-        ('A'<=*first && *first<='Z') ||
-        ('a'<=*first && *first<='z') || *first=='_')
+    if (IsNumber(*first) || IsAlphabet(*first) || *first=='_')
       ss<<*first;
     else
       break;
@@ -270,7 +285,7 @@ void ReadNumbersFromStr (std::stringstream &ss, std::string::const_iterator &fir
 {
   for (; first!=last; ++first)
   {
-    if (*first<'0' || *first>'9')  break;
+    if (!IsNumber(*first))  break;
     ss<<*first;
   }
 }

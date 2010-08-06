@@ -177,7 +177,7 @@ protected:
       ////////////////////////
       TReal step_cost=  world_.Step (conf_.TimeStep, current_command_);
       if (ModuleMode()==TModuleInterface::mmDebug)
-        {DebugStream()<<slot_step_loop.UniqueCode()<<":  world_.Step is executed (cost="<<step_cost<<")"<<std::endl;}
+        {DebugStream()<<"MAZE(slot_step_loop: "<<&slot_step_loop<<"):  world_.Step is executed (cost="<<step_cost<<")"<<std::endl;}
       ////////////////////////
 
       TSingleReward reward(0.0l);

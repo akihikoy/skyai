@@ -2,7 +2,7 @@
 //NOTE ngnet should be defined as a MBasisFunctionsDCOBNGnet
 
 include_once "dcob2"
-module MDCOB dcob
+module MDCOB2 dcob
 
 /// initialization process:
 connect  env.signal_initialization       , behavior.slot_initialize

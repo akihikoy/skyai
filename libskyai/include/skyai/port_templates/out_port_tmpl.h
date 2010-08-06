@@ -53,7 +53,7 @@ public:
   t_return Get (FUNC_OBJ_FUNC_PARAMS) const
     {
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
-        {outer_base_.DebugStream()<<"OUT-PORT: "<<UniqueCode()<<" ))))"<<std::endl;}
+        {outer_base_.DebugStream()<<"OUT-PORT: "<<this<<" ))))"<<std::endl;}
       return get_ (FUNC_OBJ_FUNC_ARGS);
     }
 
@@ -90,7 +90,7 @@ public:
 
   TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
   TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
-  TConnectedPortIterator  ConnectedPortFind (const std::string &unique_code) const  {return port_connector_.FindByUniqueCode(unique_code);}
+  TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
 
 protected:
 

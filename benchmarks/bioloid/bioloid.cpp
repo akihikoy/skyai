@@ -588,7 +588,7 @@ void sig_handler(int signo)
         PtrEnvironment->ForceFinishEpisode();
         break;
       }
-      else if(res=='g'|res=='G')
+      else if(res=='g'||res=='G')
       {
         std::cerr<<"emit penalty..."<<std::endl;
         PtrEnvironment->ForcePenalty();

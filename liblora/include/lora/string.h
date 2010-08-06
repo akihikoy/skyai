@@ -136,6 +136,32 @@ inline char DecodeChar (const char *c)
 }
 //-------------------------------------------------------------------------------------------
 
+inline bool IsNumber (char c)
+{
+  if('0'<=c && c<='9')  return true;
+  return false;
+}
+
+inline bool IsAlphabetL (char c)
+{
+  if('a'<=c && c<='z')  return true;
+  return false;
+}
+inline bool IsAlphabetH (char c)
+{
+  if('A'<=c && c<='Z')  return true;
+  return false;
+}
+inline bool IsAlphabet (char c)  {return IsAlphabetL(c)||IsAlphabetH(c);}
+inline bool IsSymbol (char c)
+{
+  if(IsNumber(c) || IsAlphabet(c) || c=='_')  return false;
+  if(' '<=c && c<='~')  return true;
+  if(c=='\t')  return true;
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+
 /*!\brief encode string STR to "STR" where special characters are escaped */
 std::string EncodeString (const std::string &str);
 
@@ -309,6 +335,7 @@ struct TEnumMapCell
 //===========================================================================================
 
 void ReadSpacesFromStr        (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
+void ReadSymbolsFromStr       (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadSeparatorsFromStr    (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadNonSeparatorsFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadEncodedStrFromStr    (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
@@ -339,6 +366,7 @@ public:
 
   #define GEN_FUNC(x_func)  std::string x_func()  {std::stringstream ss; x_func ## FromStr (ss, pos_, last_); return ss.str();}
   GEN_FUNC( ReadSpaces        )
+  GEN_FUNC( ReadSymbols       )
   GEN_FUNC( ReadSeparators    )
   GEN_FUNC( ReadNonSeparators )
   GEN_FUNC( ReadEncodedStr    )

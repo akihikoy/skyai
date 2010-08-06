@@ -35,10 +35,8 @@ using namespace std;
 // using namespace boost;
 
 
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream)
+static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, std::list<std::string> &included_list)
 {
-  std::list<std::string>  included_list;
-
   if (ConvertFromStr<bool>(option("available_mods","false")))
   {
     LMESSAGE("TModuleManager::ShowAllModules():");
@@ -73,6 +71,12 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
   if (option("outdir")!="")  agent.SetConfig().DataDir= option("outdir");
     // NOTE: this line should be after loading agent files since DataDir can be changed by the agent files
 
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, std::list<std::string> &included_list, std::ostream &debug_stream)
+{
   bool overwrite(true);
 
   using namespace boost::filesystem;
@@ -143,13 +147,23 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
 
   if (ConvertFromStr<bool>(option("dump_debug","false")))
   {
-    agent.SetDebugStream (debug_stream);
     agent.SetAllModuleMode (TModuleInterface::mmDebug);
+    agent.SetAllDebugStream (debug_stream);
+    agent.DumpPortInfo(debug_stream);
+    debug_stream<<endl<<"--------------------------------------------------"<<endl<<endl;
   }
 
-  if (ConvertFromStr<bool>(option("export_dot","false")))
+  if (option("export_dot")!="")
   {
-    agent.ExportToDOT(cout);
+    if (option("export_dot")==".")
+      agent.ExportToDOT(cout);
+    else
+    {
+      TCompositeModule cmodule(option("export_dot"), "temporary");
+      cmodule.SetAgent(agent);
+      agent.CompositeModuleGenerator().Create(cmodule, option("export_dot"), cmodule.InstanceName());
+      cmodule.ExportToDOT(cout);
+    }
     return false;
   }
 
@@ -157,11 +171,30 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
 }
 //-------------------------------------------------------------------------------------------
 
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream)
+{
+  std::list<std::string>  included_list;
+
+  if (!parse_cmd_line_option_step1(agent, option, included_list))  return false;
+
+  if (!parse_cmd_line_option_step2(agent, option, included_list, debug_stream))  return false;
+
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream)
 {
+  std::list<std::string>  included_list;
+
+  if (!parse_cmd_line_option_step1(agent, option, included_list))  return false;
+
   if (ConvertFromStr<bool>(option("dump_debug","false")))
     debug_fstream.open(agent.GetDataFileName("debug.dat").c_str());
-  return ParseCmdLineOption(agent,option,static_cast<std::ostream&>(debug_fstream));
+
+  if (!parse_cmd_line_option_step2(agent, option, included_list, debug_fstream))  return false;
+
+  return true;
 }
 //-------------------------------------------------------------------------------------------
 

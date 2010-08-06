@@ -36,15 +36,16 @@ using namespace std;
 
 
 template <typename t_port>
-void ShowAllPortNames (const typename TModuleInterface::TPortSet<t_port>::type &ports,
-                        std::ostream &os,
-                        bool show_connection,
-                        bool show_max_connection,
-                        const std::string &prefix)
+static void show_all_port_names (
+    const typename TModuleInterface::TPortSet<t_port>::type &ports,
+    std::ostream &os,
+    bool show_connection,
+    bool show_max_connection,
+    const std::string &prefix )
 {
   for (typename TModuleInterface::TPortSet<t_port>::type::const_iterator itr(ports.begin()); itr!=ports.end(); ++itr)
   {
-    os<<prefix<<itr->second->Name();
+    os<<prefix<<itr->first;
     if (show_connection||show_max_connection) os<<"  cnct: ";
     if (show_connection) os<<itr->second->ConnectionSize()<<"(cur)";
     if (show_connection&&show_max_connection) os<<"/";
@@ -59,16 +60,24 @@ void ShowAllPortNames (const typename TModuleInterface::TPortSet<t_port>::type &
 // class TPortInterface
 //===========================================================================================
 
-const std::string  TPortInterface::UniqueCode() const
-{
-  return outer_base_.InstanceName()+"."+name_;
-}
-//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
 // class TModuleInterface
 //===========================================================================================
+
+bool TModuleInterface::DecomposePortUniqueCode(const std::string &unique_code, std::string &module_name, std::string &port_name)
+{
+  TTokenizer token(unique_code);
+  module_name= token.ReadIdentifier();
+  std::string delim= token.ReadSymbols();
+  TrimBoth(delim);
+  port_name= token.ReadIdentifier();
+  if(module_name=="" || port_name=="" || delim!=SKYAI_MODULE_PORT_DELIMITER || !token.EOL())
+    {LERROR("invalid port unique-code: "<<unique_code); return false;}
+  return true;
+}
+//-------------------------------------------------------------------------------------------
 
 #define X_SEARCH_PORT(x_type,x_set_name)                                  \
   TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);  \
@@ -213,20 +222,48 @@ const TPortInterface&  TModuleInterface::Port (const std::string &v_name) const
 }
 //-------------------------------------------------------------------------------------------
 
-std::string TModuleInterface::SearchPortByPtr(const TPortInterface *port_ptr) const
+bool TModuleInterface::SearchPortByPtr (const TPortInterface *port_ptr, TConstPortInfo &info) const
 {
+  info.Kind= pkUnknown;
+  info.Name= "";
+  info.Ptr= NULL;
+  info.OuterModule= NULL;
 #define X_SEARCH_PORT(x_type,x_port)  \
-  for (TPortSet<x_type*>::type::const_iterator itr(x_port.begin()),last(x_port.end()); itr!=last; ++itr)  \
-    if (itr->second==port_ptr)  return itr->first;
-  X_SEARCH_PORT(TOutPortInterface    , out_ports_   );
-  X_SEARCH_PORT(TInPortInterface     , in_ports_    );
-  X_SEARCH_PORT(TSignalPortInterface , signal_ports_);
-  X_SEARCH_PORT(TSlotPortInterface   , slot_ports_  );
+  for (TPortSet<T##x_type##PortInterface*>::type::const_iterator itr(x_port.begin()),last(x_port.end()); itr!=last; ++itr)  \
+    if (itr->second==port_ptr)        \
+    {                                 \
+      info.Kind= pk##x_type;          \
+      info.Name= itr->first;          \
+      info.Ptr= port_ptr;             \
+      info.OuterModule= this;         \
+      return true;                    \
+    }
+  X_SEARCH_PORT(Out    , out_ports_   );
+  X_SEARCH_PORT(In     , in_ports_    );
+  X_SEARCH_PORT(Signal , signal_ports_);
+  X_SEARCH_PORT(Slot   , slot_ports_  );
 #undef X_SEARCH_PORT
-  return "";
+  return false;
 }
 //-------------------------------------------------------------------------------------------
-
+bool TModuleInterface::SearchPortByPtr (TPortInterface *port_ptr, TPortInfo &info)
+{
+  TConstPortInfo i;
+  if(!SearchPortByPtr(port_ptr,i))
+  {
+    info.Kind= pkUnknown;
+    info.Name= "";
+    info.Ptr= NULL;
+    info.OuterModule= NULL;
+    return false;
+  }
+  info.Kind = i.Kind;
+  info.Name = i.Name;
+  info.Ptr  = const_cast<TPortInterface*>(i.Ptr);
+  info.OuterModule = const_cast<TModuleInterface*>(i.OuterModule);
+  return true;
+}
+//-------------------------------------------------------------------------------------------
 
 /*static*/void TModuleInterface::ParseShowConfOption (const std::string &option, TModuleInterface::TShowConf &conf)
 {
@@ -246,10 +283,9 @@ std::string TModuleInterface::SearchPortByPtr(const TPortInterface *port_ptr) co
 
 void TModuleInterface::ShowModule (const TModuleInterface::TShowConf &conf, std::ostream &os) const
 {
-  const string delim(" - ");
   const string prefix("  ");
   os<<ioscc::blue<<InheritedModuleName();
-  if (conf.ShowInstanceName) os<<delim<<InstanceName();
+  if (conf.ShowInstanceName) os<<SKYAI_MODULE_NAME_DELIMITER<<InstanceName();
   if (conf.ShowUniqueCode)   os<<" ("<<ModuleUniqueCode()<<")";
   os<<ioscc::none<<endl;
   if (conf.ShowParamsConfig)
@@ -265,13 +301,13 @@ void TModuleInterface::ShowModule (const TModuleInterface::TShowConf &conf, std:
   if (conf.ShowPorts)
   {
     os<<ioscc::green<<prefix<<"out_ports:"<<endl;
-    ShowAllPortNames<TOutPortInterface*>    (out_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
+    show_all_port_names<TOutPortInterface*>    (out_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
     os<<ioscc::green<<prefix<<"in_ports:"<<endl;
-    ShowAllPortNames<TInPortInterface*>     (in_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
+    show_all_port_names<TInPortInterface*>     (in_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
     os<<ioscc::green<<prefix<<"signal_ports:"<<endl;
-    ShowAllPortNames<TSignalPortInterface*> (signal_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
+    show_all_port_names<TSignalPortInterface*> (signal_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
     os<<ioscc::green<<prefix<<"slot_ports:"<<endl;
-    ShowAllPortNames<TSlotPortInterface*>   (slot_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
+    show_all_port_names<TSlotPortInterface*>   (slot_ports_, os, conf.ShowPortsConnection, conf.ShowPortsMaxConnection, prefix*2);
   }
 }
 //-------------------------------------------------------------------------------------------
@@ -312,23 +348,23 @@ void TModuleInterface::ShowModule (const std::string &option, std::ostream &os) 
 
 /*protected*/void TModuleInterface::add_out_port    (TOutPortInterface    &v_port)
 {
-  add_out_port(v_port,v_port.Name());
+  add_out_port(v_port,v_port.OriginalName());
 }
 /*protected*/void TModuleInterface::add_in_port     (TInPortInterface     &v_port)
 {
-  add_in_port(v_port,v_port.Name());
+  add_in_port(v_port,v_port.OriginalName());
 }
 /*protected*/void TModuleInterface::add_signal_port (TSignalPortInterface &v_port)
 {
-  add_signal_port(v_port,v_port.Name());
+  add_signal_port(v_port,v_port.OriginalName());
 }
 /*protected*/void TModuleInterface::add_slot_port   (TSlotPortInterface   &v_port)
 {
-  add_slot_port(v_port,v_port.Name());
+  add_slot_port(v_port,v_port.OriginalName());
   // [-- for signal forwarding
-  if (v_port.ForwardingSinalPortBase().Name() != SKYAI_DISABLED_FWD_PORT_NAME)
+  if (v_port.ForwardingSinalPortBase().OriginalName() != SKYAI_DISABLED_FWD_PORT_NAME)
   {
-    add_signal_port(v_port.ForwardingSinalPortBase(), v_port.ForwardingSinalPortBase().Name());
+    add_signal_port(v_port.ForwardingSinalPortBase(), v_port.ForwardingSinalPortBase().OriginalName());
   }
   // for signal forwarding  --]
 }
@@ -380,7 +416,7 @@ const TModuleInterface& TCompositeModule::SubModule (const std::string &module_n
 
 /*! search a module named module_name.
     if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-TModuleInterface* TCompositeModule::SearchModule (const std::string &module_name, int max_depth)
+TModuleInterface* TCompositeModule::SearchSubModule (const std::string &module_name, int max_depth)
 {
   list<TCompositeModule*> buf1, buf2, *current_depth(&buf1), *next_depth(&buf2);
   current_depth->push_back(this);
@@ -406,7 +442,7 @@ TModuleInterface* TCompositeModule::SearchModule (const std::string &module_name
 
 /*! search a module named module_name.
     if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-const TModuleInterface* TCompositeModule::SearchModule (const std::string &module_name, int max_depth) const
+const TModuleInterface* TCompositeModule::SearchSubModule (const std::string &module_name, int max_depth) const
 {
   list<const TCompositeModule*> buf1, buf2, *current_depth(&buf1), *next_depth(&buf2);
   current_depth->push_back(this);
@@ -427,6 +463,51 @@ const TModuleInterface* TCompositeModule::SearchModule (const std::string &modul
     next_depth->clear();
   }
   return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TCompositeModule::SearchSubPort (TPortInterface *port_ptr, TPortInfo &info)
+{
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+    if(mod_itr->Ptr->SearchPortByPtr(port_ptr,info))  return true;
+  info= TPortInfo();
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+bool TCompositeModule::SearchSubPort (const TPortInterface *port_ptr, TConstPortInfo &info) const
+{
+  // copy SearchSubPort; replace iterator by const_iterator
+  for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+    if(mod_itr->Ptr->SearchPortByPtr(port_ptr,info))  return true;
+  info= TConstPortInfo();
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+
+TPortInterface*  TCompositeModule::SearchSubPort (const std::string &unique_code)
+{
+  std::string module_name, port_name;
+  if (!DecomposePortUniqueCode(unique_code, module_name, port_name))  return NULL;
+  if (TModuleInterface *module= SubModulePtr(module_name))
+    return module->PortPtr(port_name);
+  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+const TPortInterface*  TCompositeModule::SearchSubPort (const std::string &unique_code) const
+{
+  std::string module_name, port_name;
+  if (!DecomposePortUniqueCode(unique_code, module_name, port_name))  return NULL;
+  if (const TModuleInterface *module= SubModulePtr(module_name))
+    return module->PortPtr(port_name);
+  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+std::string  TCompositeModule::SearchSubPortUniqueCode (const TPortInterface *port_ptr) const
+{
+  TConstPortInfo  port_info;
+  SearchSubPort(port_ptr,port_info);
+  return port_info.OuterModule->PortUniqueCode(port_info.Name);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -486,32 +567,6 @@ void TCompositeModule::AddUnmanagedSubModule (TModuleInterface *p, const std::st
 }
 //-------------------------------------------------------------------------------------------
 
-bool TCompositeModule::SubConnectIO(
-    TModuleInterface &start_module, const std::string &out_port_name,
-    TModuleInterface &end_module,   const std::string &in_port_name)
-{
-  TOutPortInterface &start (start_module.OutPort(out_port_name));
-  TInPortInterface  &end (end_module.InPort(in_port_name));
-
-  if(start.Connect(end) && end.Connect(start))
-    return true;
-  return false;
-}
-//-------------------------------------------------------------------------------------------
-
-bool TCompositeModule::SubConnectEvent(
-    TModuleInterface &start_module, const std::string &signal_port_name,
-    TModuleInterface &end_module,   const std::string &slot_port_name)
-{
-  TSignalPortInterface &start (start_module.SignalPort(signal_port_name));
-  TSlotPortInterface &end (end_module.SlotPort(slot_port_name));
-
-  if(start.Connect(end) && end.Connect(start))
-    return true;
-  return false;
-}
-//-------------------------------------------------------------------------------------------
-
 /*! add edge.  the port types are automatically determined */
 bool TCompositeModule::SubConnect(
     TModuleInterface &start_module, const std::string &start_port_name,
@@ -522,6 +577,9 @@ bool TCompositeModule::SubConnect(
 
   if(start.Connect(end) && end.Connect(start))
     return true;
+  std::cerr<<"  failed to connect ports:"<<std::endl;
+  std::cerr<<"    from port: "<<&start<<", "<<start_module.InstanceName()<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
+  std::cerr<<"    to port:   "<<&end<<", "<<end_module.InstanceName()<<SKYAI_MODULE_PORT_DELIMITER<<end_port_name<<std::endl;
   return false;
 }
 //-------------------------------------------------------------------------------------------
@@ -532,14 +590,17 @@ bool TCompositeModule::SubConnect(
     const std::string &end_module_name,   const std::string &end_port_name)
 {
   TModuleSet::iterator itr_start_module (sub_modules_.find(TModuleCell(start_module_name)));
-  if (itr_start_module==sub_modules_.end())  {LERROR(start_module_name<<" does not exist"); lexit(df);}
+  if (itr_start_module==sub_modules_.end())  {LERROR(start_module_name<<" does not exist"); return false;}
   TModuleSet::iterator itr_end_module (sub_modules_.find(TModuleCell(end_module_name)));
-  if (itr_end_module==sub_modules_.end())  {LERROR(end_module_name<<" does not exist"); lexit(df);}
+  if (itr_end_module==sub_modules_.end())  {LERROR(end_module_name<<" does not exist"); return false;}
   TPortInterface &start (itr_start_module->Ptr->Port(start_port_name));
   TPortInterface &end (itr_end_module->Ptr->Port(end_port_name));
 
   if(start.Connect(end) && end.Connect(start))
     return true;
+  std::cerr<<"  failed to connect ports:"<<std::endl;
+  std::cerr<<"    from port: "<<&start<<", "<<start_module_name<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
+  std::cerr<<"    to port:   "<<&end<<", "<<end_module_name<<SKYAI_MODULE_PORT_DELIMITER<<end_port_name<<std::endl;
   return false;
 }
 //-------------------------------------------------------------------------------------------
@@ -590,9 +651,32 @@ void TCompositeModule::ForEachSubModuleCell (boost::function<bool(const TModuleC
 }
 //-------------------------------------------------------------------------------------------
 
-/*!\brief for each connected port, apply the function f */
-void TCompositeModule::ForEachSubConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f)
+/*protected*/bool TCompositeModule::apply_f_if_to_port_exists (const TPortInfo *from_port, TPortInterface *to_port_ptr, TConnectionManipulator f)
 {
+  TPortInfo to_port;
+  if (SearchSubPort(to_port_ptr,to_port))
+  {
+    LASSERT(to_port.Kind==pkIn||to_port.Kind==pkSlot);
+    f(from_port,&to_port);
+  }
+  return true;
+}
+/*protected*/bool TCompositeModule::apply_f_if_to_port_exists_c (const TConstPortInfo *from_port, const TPortInterface *to_port_ptr, TConstConnectionManipulator f) const
+{
+  TConstPortInfo to_port;
+  if (SearchSubPort(to_port_ptr,to_port))
+  {
+    LASSERT(to_port.Kind==pkIn||to_port.Kind==pkSlot);
+    f(from_port,&to_port);
+  }
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief for each connected port, apply the function f */
+void TCompositeModule::ForEachSubConnection (TConnectionManipulator f)
+{
+  TPortInfo from_port;
   // for each module in sub_modules_ :
   for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
@@ -601,27 +685,37 @@ void TCompositeModule::ForEachSubConnection (boost::function<bool(TPortInterface
                 op_itr(mod_itr->Ptr->OutPortBegin()), opiend(mod_itr->Ptr->OutPortEnd());
             op_itr!=opiend;  ++op_itr)
     {
+      from_port.Kind = pkOut;
+      from_port.Name = op_itr->first;
+      from_port.Ptr  = op_itr->second;
+      from_port.OuterModule = mod_itr->Ptr;
       // for each port connected to op_itr :
-      // NOTE :  from_port_ptr is op_itr->second,  to_port_ptr is _1
-      op_itr->second->ForEachConnectedPort (boost::bind(f, op_itr->second, _1));
+      op_itr->second->ForEachConnectedPort (boost::bind(&TCompositeModule::apply_f_if_to_port_exists, this, &from_port, _1, f));
     }
 
-    // for each slot-port :
-    for (TModuleInterface::TPortSet<TSlotPortInterface*>::type::iterator
-                sp_itr(mod_itr->Ptr->SlotPortBegin()), spiend(mod_itr->Ptr->SlotPortEnd());
+    // for each signal-port :
+    for (TModuleInterface::TPortSet<TSignalPortInterface*>::type::iterator
+                sp_itr(mod_itr->Ptr->SignalPortBegin()), spiend(mod_itr->Ptr->SignalPortEnd());
             sp_itr!=spiend;  ++sp_itr)
     {
+      from_port.Kind = pkSignal;
+      from_port.Name = sp_itr->first;
+      from_port.Ptr  = sp_itr->second;
+      from_port.OuterModule = mod_itr->Ptr;
       // for each port connected to sp_itr :
-      // NOTE :  from_port_ptr is _1,  to_port_ptr is sp_itr->second
-      sp_itr->second->ForEachConnectedPort (boost::bind(f, _1, sp_itr->second));
+      sp_itr->second->ForEachConnectedPort (boost::bind(&TCompositeModule::apply_f_if_to_port_exists, this, &from_port, _1, f));
     }
   }
 }
 //-------------------------------------------------------------------------------------------
 
 /*!\brief for each connected port, apply the function f */
-void TCompositeModule::ForEachSubConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const
+void TCompositeModule::ForEachSubConnection (TConstConnectionManipulator f) const
 {
+  // copy ForEachSubConnection; iterator --> const_iterator: apply_f_if_to_port_exists --> apply_f_if_to_port_exists_c;
+  // TPortInfo --> TConstPortInfo; op_itr->second --> const_cast<const TOutPortInterface*>(op_itr->second)
+  // sp_itr->second --> const_cast<const TSignalPortInterface*>(sp_itr->second)
+  TConstPortInfo from_port;
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
@@ -630,19 +724,25 @@ void TCompositeModule::ForEachSubConnection (boost::function<bool(const TPortInt
                 op_itr(mod_itr->Ptr->OutPortBegin()), opiend(mod_itr->Ptr->OutPortEnd());
             op_itr!=opiend;  ++op_itr)
     {
+      from_port.Kind = pkOut;
+      from_port.Name = op_itr->first;
+      from_port.Ptr  = op_itr->second;
+      from_port.OuterModule = mod_itr->Ptr;
       // for each port connected to op_itr :
-      // NOTE :  from_port_ptr is op_itr->second,  to_port_ptr is _1
-      op_itr->second->ForEachConnectedPort (boost::bind(f, op_itr->second, _1));
+      const_cast<const TOutPortInterface*>(op_itr->second)->ForEachConnectedPort (boost::bind(&TCompositeModule::apply_f_if_to_port_exists_c, this, &from_port, _1, f));
     }
 
-    // for each slot-port :
-    for (TModuleInterface::TPortSet<TSlotPortInterface*>::type::const_iterator
-                sp_itr(mod_itr->Ptr->SlotPortBegin()), spiend(mod_itr->Ptr->SlotPortEnd());
+    // for each signal-port :
+    for (TModuleInterface::TPortSet<TSignalPortInterface*>::type::const_iterator
+                sp_itr(mod_itr->Ptr->SignalPortBegin()), spiend(mod_itr->Ptr->SignalPortEnd());
             sp_itr!=spiend;  ++sp_itr)
     {
+      from_port.Kind = pkSignal;
+      from_port.Name = sp_itr->first;
+      from_port.Ptr  = sp_itr->second;
+      from_port.OuterModule = mod_itr->Ptr;
       // for each port connected to sp_itr :
-      // NOTE :  from_port_ptr is _1,  to_port_ptr is sp_itr->second
-      sp_itr->second->ForEachConnectedPort (boost::bind(f, _1, sp_itr->second));
+      const_cast<const TSignalPortInterface*>(sp_itr->second)->ForEachConnectedPort (boost::bind(&TCompositeModule::apply_f_if_to_port_exists_c, this, &from_port, _1, f));
     }
   }
 }
@@ -709,7 +809,7 @@ void TCompositeModule::SetAllSubModuleMode (const TModuleInterface::TModuleMode 
 }
 //-------------------------------------------------------------------------------------------
 
-void TCompositeModule::SetDebugStream (std::ostream &os)
+void TCompositeModule::SetAllSubDebugStream (std::ostream &os)
 {
   for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
     mod_itr->Ptr->SetDebugStream (os);
@@ -725,11 +825,11 @@ void TCompositeModule::ShowAllSubModules (const std::string &option, std::ostrea
 }
 //-------------------------------------------------------------------------------------------
 
-static bool print_connection (std::ostream *os, const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)
+static bool print_connection (std::ostream *os, const TConstPortInfo *from_port, const TConstPortInfo *to_port)
 {
-  if (from_port_ptr && to_port_ptr)
-    *os<<"connect "<<from_port_ptr->UniqueCode()
-        <<"  ---->  "<<to_port_ptr->UniqueCode()<<std::endl;
+  if (from_port && to_port)
+    *os<<"connect "<<from_port->OuterModule->PortUniqueCode(from_port->Name)
+        <<"  ---->  "<<to_port->OuterModule->PortUniqueCode(to_port->Name)<<std::endl;
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -742,22 +842,23 @@ void TCompositeModule::ShowAllSubConnections (std::ostream &os) const
 
 static bool export_connection_to_dot (
     std::ostream *os, const std::string &indent,
-    const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)
+    const TConstPortInfo *from_port, const TConstPortInfo *to_port)
 {
-  if (from_port_ptr && to_port_ptr)
+  if (from_port && to_port)
   {
-    if (const TSlotPortInterface *slot_port_ptr= dynamic_cast<const TSlotPortInterface *>(to_port_ptr))
+    if (to_port->Kind==pkSlot)
     {
-      *os<<indent<< "cluster_"<<from_port_ptr->OuterBase().InstanceName()<<"_"<<from_port_ptr->Name()
-          <<" -> "<<"cluster_"<<slot_port_ptr->OuterBase().InstanceName()<<"_"<<slot_port_ptr->Name()//<<":s"
+      *os<<indent<< "cluster_"<<from_port->OuterModule->InstanceName()<<"_"<<from_port->Name
+          <<" -> "<<"cluster_"<<to_port->OuterModule->InstanceName()<<"_"<<to_port->Name//<<":s"
           <<" [style=dashed,color=blue];"<<std::endl;
     }
-    else
+    else if (to_port->Kind==pkIn)
     {
-      *os<<indent<< "cluster_"<<from_port_ptr->OuterBase().InstanceName()<<"_"<<from_port_ptr->Name()
-          <<" -> "<<"cluster_"<<to_port_ptr->OuterBase().InstanceName()<<"_"<<to_port_ptr->Name()
+      *os<<indent<< "cluster_"<<from_port->OuterModule->InstanceName()<<"_"<<from_port->Name
+          <<" -> "<<"cluster_"<<to_port->OuterModule->InstanceName()<<"_"<<to_port->Name
           <<" [style=solid,color=red];"<<std::endl;
     }
+    else {LERROR("fatal!"); lexit(df);}
   }
   return true;
 }
@@ -779,7 +880,7 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
 {
   const std::string indent("  ");
   std::string cluster_name, port_name;
-  os<<"digraph hoge"<<std::endl;
+  os<<"digraph agent"<<std::endl;
   os<<"{"<<std::endl;
 
   os<<indent<<"bgcolor=\"transparent\";"<<std::endl;
@@ -858,10 +959,11 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
                 sp_itr(mod_itr->Ptr->SlotPortBegin()), spiend(mod_itr->Ptr->SlotPortEnd());
             sp_itr!=spiend;  ++sp_itr)
     {
-      if (sp_itr->second->ForwardingSinalPortBase().Name()==SKYAI_DISABLED_FWD_PORT_NAME)  continue;
-      TSignalPortInterface *fwds_port_ptr (&(sp_itr->second->ForwardingSinalPortBase()));
-      os<<indent<< "cluster_"<<sp_itr->second->OuterBase().InstanceName()<<"_"<<sp_itr->second->Name()
-         <<" -> "<<"cluster_"<<fwds_port_ptr->OuterBase().InstanceName()<<"_"<<fwds_port_ptr->Name()//<<":s"
+      if (sp_itr->second->ForwardingSinalPortBase().OriginalName()==SKYAI_DISABLED_FWD_PORT_NAME)  continue;
+      TConstPortInfo fwds_port_info;
+      LASSERT(mod_itr->Ptr->SearchPortByPtr(&(sp_itr->second->ForwardingSinalPortBase()),fwds_port_info));
+      os<<indent<< "cluster_"<<mod_itr->Name<<"_"<<sp_itr->first
+         <<" -> "<<"cluster_"<<mod_itr->Name<<"_"<<fwds_port_info.Name//<<":s"
          <<" [style=dotted,color=green];"<<std::endl;
     }
   }
@@ -1002,6 +1104,67 @@ std::string TAgent::GetDataFileName (const std::string &filename) const
 }
 //-------------------------------------------------------------------------------------------
 
+
+struct TCompletePortInfo
+{
+  TPortKind Kind;
+  std::list<std::pair<std::string, std::string> >  UniqueCodes;
+};
+
+static bool dump_port_info (const TCompositeModule::TModuleCell &mcell, std::map<TPortInterface*,TCompletePortInfo> *port_info)
+{
+  typedef TModuleInterface::TPortSet<TOutPortInterface*>::type::const_iterator    t_Out_itr;
+  typedef TModuleInterface::TPortSet<TInPortInterface*>::type::const_iterator     t_In_itr;
+  typedef TModuleInterface::TPortSet<TSignalPortInterface*>::type::const_iterator t_Signal_itr;
+  typedef TModuleInterface::TPortSet<TSlotPortInterface*>::type::const_iterator   t_Slot_itr;
+
+  #define DUMP_EVERY_PORT_INFO(x_type) \
+    for (t_##x_type##_itr itr(mcell.Ptr->x_type##PortBegin()),                          \
+                          last(mcell.Ptr->x_type##PortEnd()); itr!=last; ++itr)         \
+    {                                                                                   \
+      std::pair<std::string, std::string> unique_code(mcell.Name,itr->first);           \
+      std::map<TPortInterface*,TCompletePortInfo>::iterator                             \
+                                                pi_itr(port_info->find(itr->second));   \
+      if(pi_itr!=port_info->end())                                                      \
+      {                                                                                 \
+        LASSERT1op1(pi_itr->second.Kind,==,pk##x_type);                                 \
+        pi_itr->second.UniqueCodes.push_front(unique_code);                             \
+      }                                                                                 \
+      else                                                                              \
+      {                                                                                 \
+        TCompletePortInfo tmp;                                                          \
+        tmp.Kind= pk##x_type;                                                           \
+        tmp.UniqueCodes.push_front(unique_code);                                        \
+        port_info->insert(                                                              \
+            std::map<TPortInterface*,TCompletePortInfo>::value_type(itr->second,tmp));  \
+      }                                                                                 \
+    }
+  DUMP_EVERY_PORT_INFO(Out);
+  DUMP_EVERY_PORT_INFO(In);
+  DUMP_EVERY_PORT_INFO(Signal);
+  DUMP_EVERY_PORT_INFO(Slot);
+  #undef DUMP_EVERY_PORT_INFO
+
+  if (const TCompositeModule *cmod= dynamic_cast<const TCompositeModule*>(mcell.Ptr))
+    cmod->ForEachSubModuleCell(boost::bind(&dump_port_info,_1,port_info));
+
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief write all port information (port kind, port pointer, every outer module name and port name) to os */
+void TAgent::DumpPortInfo (std::ostream &os) const
+{
+  std::map<TPortInterface*,TCompletePortInfo>  port_info;
+  modules_.ForEachSubModuleCell(boost::bind(&dump_port_info,_1,&port_info));
+  for (std::map<TPortInterface*,TCompletePortInfo>::const_iterator itr(port_info.begin()),last(port_info.end()); itr!=last; ++itr)
+  {
+    os<<"port "<<itr->first<<" ("<<ConvertToStr(itr->second.Kind)<<"):"<<std::endl;
+    for (std::list<std::pair<std::string, std::string> >::const_iterator uc_itr(itr->second.UniqueCodes.begin()),uc_last(itr->second.UniqueCodes.end()); uc_itr!=uc_last; ++uc_itr)
+      os<<"  "<<uc_itr->first<<SKYAI_MODULE_PORT_DELIMITER<<uc_itr->second<<std::endl;
+  }
+}
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------

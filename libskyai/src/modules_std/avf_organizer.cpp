@@ -3,6 +3,7 @@
     \brief   libskyai - function approximator organizer module for action value function (source)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Dec.21, 2009-
+    \date    May.14, 2010
 
     Copyright (C) 2009, 2010  Akihiko Yamaguchi
 
@@ -695,17 +696,20 @@ void MAVFOrganizer::make_lowerc_map (void)
   }
 
   /*set iterators of port-connections to lower function approximators*/{
+    TConstPortInfo  port_info;
     #define REGISTER_A(x_port)  \
       for (GET_PORT_TYPE(x_port)::TConnectedPortIterator itr(x_port.ConnectedPortBegin()); itr!=x_port.ConnectedPortEnd(); ++itr) \
       {                                                                           \
-        order_itr= conf_.OrderOfLower.find((*itr)->OuterBase().InstanceName());   \
+        ParentCModule().SearchSubPort(*itr,port_info);                            \
+        order_itr= conf_.OrderOfLower.find(port_info.OuterModule->InstanceName());\
         if (order_itr != conf_.OrderOfLower.end())                                \
           lowerc_map_[order_itr->second].x_port##_citr(itr);                      \
       }
     #define REGISTER_B(x_port,x_action_type)  \
       for (GET_PORT_TYPE(x_port)::TConnectedPortIterator itr(x_port.ConnectedPortBegin()); itr!=x_port.ConnectedPortEnd(); ++itr) \
       {                                                                           \
-        order_itr= conf_.OrderOfLower.find((*itr)->OuterBase().InstanceName());   \
+        ParentCModule().SearchSubPort(*itr,port_info);                            \
+        order_itr= conf_.OrderOfLower.find(port_info.OuterModule->InstanceName());\
         if (order_itr != conf_.OrderOfLower.end())                                \
         {                                                                         \
           lowerc_map_[order_itr->second].x_port##_citr(itr);                      \
@@ -715,7 +719,8 @@ void MAVFOrganizer::make_lowerc_map (void)
     #define REGISTER_C(x_port,x_state_type)  \
       for (GET_PORT_TYPE(x_port)::TConnectedPortIterator itr(x_port.ConnectedPortBegin()); itr!=x_port.ConnectedPortEnd(); ++itr) \
       {                                                                           \
-        order_itr= conf_.OrderOfLower.find((*itr)->OuterBase().InstanceName());   \
+        ParentCModule().SearchSubPort(*itr,port_info);                            \
+        order_itr= conf_.OrderOfLower.find(port_info.OuterModule->InstanceName());\
         if (order_itr != conf_.OrderOfLower.end())                                \
         {                                                                         \
           lowerc_map_[order_itr->second].x_port##_citr(itr);                      \
@@ -725,7 +730,8 @@ void MAVFOrganizer::make_lowerc_map (void)
     #define REGISTER_D(x_port,x_state_type,x_action_type)  \
       for (GET_PORT_TYPE(x_port)::TConnectedPortIterator itr(x_port.ConnectedPortBegin()); itr!=x_port.ConnectedPortEnd(); ++itr) \
       {                                                                           \
-        order_itr= conf_.OrderOfLower.find((*itr)->OuterBase().InstanceName());   \
+        ParentCModule().SearchSubPort(*itr,port_info);                            \
+        order_itr= conf_.OrderOfLower.find(port_info.OuterModule->InstanceName());\
         if (order_itr != conf_.OrderOfLower.end())                                \
         {                                                                         \
           lowerc_map_[order_itr->second].x_port##_citr(itr);                      \
@@ -736,7 +742,7 @@ void MAVFOrganizer::make_lowerc_map (void)
     #define REGISTER_CTRL(x_port,x_action_type)  \
       for (GET_PORT_TYPE(x_port)::TConnectedPortIterator itr(x_port.ConnectedPortBegin()); itr!=x_port.ConnectedPortEnd(); ++itr) \
       {                                                                   \
-        order_itr= conf_.OrderOfController.find((*itr)->UniqueCode());    \
+        order_itr= conf_.OrderOfController.find(ParentCModule().SearchSubPortUniqueCode(*itr)); \
         if (order_itr != conf_.OrderOfController.end())                   \
         {                                                                 \
           lowerc_map_[order_itr->second].x_port##_citr(itr);              \

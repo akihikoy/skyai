@@ -202,8 +202,9 @@ void MUniversalDataLogger::make_data_list (void)
     for (GET_PORT_TYPE(x_in_data)::TConnectedPortIterator itr(x_in_data.ConnectedPortBegin());        \
             itr!=x_in_data.ConnectedPortEnd(); ++itr)                                                 \
     {                                                                                                 \
-      order_itr= conf2_.OrderOfColumns.find((*itr)->UniqueCode());                                    \
-      TObserver  observer ((*itr)->UniqueCode(),                                                      \
+      std::string unique_code= ParentCModule().SearchSubPortUniqueCode((*itr));                       \
+      order_itr= conf2_.OrderOfColumns.find(unique_code);                                             \
+      TObserver  observer (unique_code,                                                               \
                             boost::bind (observe_data<GET_PORT_TYPE(x_in_data)>, x_in_data, itr));    \
       if (order_itr != conf2_.OrderOfColumns.end() && order_itr->second>0)                            \
       {                                                                                               \

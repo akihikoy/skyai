@@ -84,7 +84,7 @@ public:
 
   TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
   TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
-  TConnectedPortIterator  ConnectedPortFind (const std::string &unique_code) const  {return port_connector_.FindByUniqueCode(unique_code);}
+  TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
 
   t_return ExecFirst (FUNC_OBJ_FUNC_PARAMS) const
     {
@@ -100,7 +100,7 @@ public:
         lexit(df); return dummy_return<t_return>::value();
       }
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
-        {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<UniqueCode()<<" >>>> "<<(*current_itr)->UniqueCode()<<std::endl;}
+        {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>> "<<(*current_itr)<<std::endl;}
       return (*current_itr)->Exec(FUNC_OBJ_FUNC_ARGS);
     }
 
@@ -110,11 +110,11 @@ public:
     {
       bool is_debug (outer_base_.ModuleMode()==TModuleInterface::mmDebug);
       if (is_debug)
-        {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<UniqueCode()<<" >>>>"<<std::endl;}
+        {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>>"<<std::endl;}
       for (TConnectedPortIterator itr(ConnectedPortBegin()); itr!=ConnectedPortEnd(); ++itr)
       {
         if (is_debug)
-          {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<UniqueCode()<<" >>>> "<<(*itr)->UniqueCode()<<std::endl;}
+          {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>> "<<(*itr)<<std::endl;}
         (*itr)->Exec(FUNC_OBJ_FUNC_ARGS);
       }
     }
@@ -132,7 +132,7 @@ protected:
         return p;
       }
       else
-        {LERROR("the port "<<v_port.UniqueCode()<<" cannot be connected to the port "<<v_this_port.UniqueCode());}
+        {LERROR("the port "<<&v_port<<" cannot be connected to the port "<<&v_this_port);}
       return NULL;
     }
 

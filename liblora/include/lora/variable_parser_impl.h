@@ -102,6 +102,14 @@ private:
 };
 //-------------------------------------------------------------------------------------------
 
+template <typename t_container>
+void AddToKeywordSet (t_container &container)
+{
+  container.insert("true");
+  container.insert("false");
+  container.insert("inf");
+}
+//-------------------------------------------------------------------------------------------
 
 template <typename t_iterator>
 class TParserAgent

@@ -127,7 +127,7 @@ public:
     {
       if (!is_initialized_)
       {
-        LERROR(slot_initialize.UniqueCode()<<" is not initialized! execute Initialize before StartLearning()");
+        LERROR(PortUniqueCode(slot_initialize)<<" is not initialized! execute Initialize before StartLearning()");
         lexit(df);
       }
       slot_start_episode.Exec();

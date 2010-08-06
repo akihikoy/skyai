@@ -26,6 +26,7 @@
 #define skyai_base_h
 //-------------------------------------------------------------------------------------------
 #include <lora/common.h>
+#include <lora/string.h>
 #include <lora/variable_space.h>
 #include <climits>
 #include <string>
@@ -46,7 +47,6 @@ namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
 
-
 //-------------------------------------------------------------------------------------------
 static const int SKYAI_CONNECTION_SIZE_MAX (INT_MAX);
 //-------------------------------------------------------------------------------------------
@@ -54,7 +54,41 @@ static const char * const SKYAI_DISABLED_FWD_PORT_NAME ("-");  //!< used to be a
 //-------------------------------------------------------------------------------------------
 static const char * const SKYAI_MODULE_NAME_DELIMITER ("-");
 //-------------------------------------------------------------------------------------------
+static const char * const SKYAI_MODULE_PORT_DELIMITER (".");
+//-------------------------------------------------------------------------------------------
 
+class  TPortInterface;
+class  TModuleInterface;
+class  TCompositeModule;
+class  TAgent;
+
+enum TPortKind {pkUnknown=0,pkOut,pkIn,pkSignal,pkSlot};
+
+ENUM_STR_MAP_BEGIN(TPortKind)
+  ENUM_STR_MAP_ADD(pkUnknown )
+  ENUM_STR_MAP_ADD(pkOut     )
+  ENUM_STR_MAP_ADD(pkIn      )
+  ENUM_STR_MAP_ADD(pkSignal  )
+  ENUM_STR_MAP_ADD(pkSlot    )
+ENUM_STR_MAP_END  (TPortKind)
+
+struct TPortInfo
+{
+  TPortKind         Kind;
+  std::string       Name;
+  TPortInterface    *Ptr;
+  TModuleInterface  *OuterModule;
+  TPortInfo() : Kind(pkUnknown), Name(""), Ptr(NULL), OuterModule(NULL) {}
+};
+struct TConstPortInfo
+{
+  TPortKind               Kind;
+  std::string             Name;
+  const TPortInterface    *Ptr;
+  const TModuleInterface  *OuterModule;
+  TConstPortInfo() : Kind(pkUnknown), Name(""), Ptr(NULL), OuterModule(NULL) {}
+};
+//-------------------------------------------------------------------------------------------
 
 //===========================================================================================
 /*!\brief define the interface of ports */
@@ -89,9 +123,11 @@ public:
             else the iteration is continued.  */
   virtual void ForEachConnectedPort (boost::function<bool(const TPortInterface*)> f) const = 0;
 
-  const TModuleInterface& OuterBase() const {return outer_base_;}
-  const std::string& Name() const {return name_;}
-  const std::string  UniqueCode() const;
+  /*!\brief get the original name of the port
+      \note a port of a module can be exported as a port of the module's parent_cmodule_.
+            in this case, the name of the exported port is arbitrary, i.e. not equal to the OriginalName().  */
+  const std::string& OriginalName() const {return name_;}
+
   const int&         MaxConnectionSize() const {return max_connection_size_;}
 
 protected:
@@ -221,10 +257,6 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
-class  TAgent;
-class  TCompositeModule;
-
-
 //===========================================================================================
 /*!\brief Base class of every module (every skyai module is required to be inherited from this class) */
 class TModuleInterface
@@ -248,6 +280,15 @@ public:
   std::string ModuleUniqueCode() const
     {return InheritedModuleName() + SKYAI_MODULE_NAME_DELIMITER + instance_name_;}
 
+  static std::string PortUniqueCode(const std::string &module_name, const std::string &port_name)
+    {return module_name+SKYAI_MODULE_PORT_DELIMITER+port_name;}
+  std::string PortUniqueCode(const std::string &port_name) const {return PortUniqueCode(InstanceName(), port_name);}
+
+  std::string PortUniqueCode(const TPortInterface &port) const
+    {TConstPortInfo pi; if(!SearchPortByPtr(&port,pi)) return ""; return PortUniqueCode(pi.Name);}
+
+  static bool DecomposePortUniqueCode(const std::string &unique_code, std::string &module_name, std::string &port_name);
+
   var_space::TVariable& ParamBoxConfig()  {return param_box_config_;}
   const var_space::TVariable& ParamBoxConfig() const {return param_box_config_;}
 
@@ -270,10 +311,10 @@ public:
   virtual ~TModuleInterface(void) {}
 
   const TModuleMode&  ModuleMode () const {return module_mode_;}
-  void  SetModuleMode (const TModuleMode &mm)  {module_mode_= mm;}
+  virtual void  SetModuleMode (const TModuleMode &mm)  {module_mode_= mm;}
 
   std::ostream& DebugStream () const {return (debug_stream_==NULL) ? std::cerr : *debug_stream_;}
-  void SetDebugStream (std::ostream &os) {debug_stream_= &os;}
+  virtual void SetDebugStream (std::ostream &os) {debug_stream_= &os;}
 
 
   TOutPortInterface*          OutPortPtr (const std::string &v_name);          //!<\brief access an out-port by its name
@@ -299,7 +340,8 @@ public:
   TPortInterface&             Port (const std::string &v_name);             //!<\brief access a port by its name
   const TPortInterface&       Port (const std::string &v_name) const;       //!<\brief access a port by its name
 
-  std::string  SearchPortByPtr (const TPortInterface *port_ptr) const;
+  bool  SearchPortByPtr (const TPortInterface *port_ptr, TConstPortInfo &info) const;
+  bool  SearchPortByPtr (TPortInterface *port_ptr, TPortInfo &info);
 
 
   // accessors to iterators
@@ -330,7 +372,8 @@ public:
   void  SetAgent(const TAgent &agent)  {pagent_= &agent;}
 
   //!\brief return the pointer to the host composite module
-  const TCompositeModule*  ParentCModule() const {return parent_cmodule_;}
+  const TCompositeModule&  ParentCModule() const {LASSERT(parent_cmodule_); return *parent_cmodule_;}
+  const TCompositeModule*  ParentCModulePtr() const {return parent_cmodule_;}
   void SetParentCModule(const TCompositeModule *parent)  {parent_cmodule_= parent;}
 
 
@@ -422,7 +465,7 @@ public:
 
   struct TModuleCell
     {
-      std::string       Name;
+      std::string       Name;  //! == Ptr->InstanceName
       TModuleInterface  *Ptr;
       bool              Managed;  //! if true, Ptr is freed in Clear() if not NULL
       TModuleCell(void) : Name(""), Ptr(NULL), Managed(true) {}
@@ -432,6 +475,10 @@ public:
 
   /*! Type of module set (map) whose key is module.InstanceName() */
   typedef std::set<TModuleCell>  TModuleSet;
+
+  typedef boost::function<bool(const TPortInfo *from_port, const TPortInfo *to_port)> TConnectionManipulator;
+  typedef boost::function<bool(const TConstPortInfo *from_port, const TConstPortInfo *to_port)> TConstConnectionManipulator;
+
 
   //! clear all modules (memories are freed)
   void Clear();
@@ -456,10 +503,18 @@ public:
 
   /*! search a module named module_name.
       if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-  TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5);
+  TModuleInterface* SearchSubModule (const std::string &module_name, int max_depth=5);
   /*! search a module named module_name.
       if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-  const TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5) const;
+  const TModuleInterface* SearchSubModule (const std::string &module_name, int max_depth=5) const;
+
+  bool  SearchSubPort (TPortInterface *port_ptr, TPortInfo &info);
+  bool  SearchSubPort (const TPortInterface *port_ptr, TConstPortInfo &info) const;
+
+  TPortInterface*  SearchSubPort (const std::string &unique_code);
+  const TPortInterface*  SearchSubPort (const std::string &unique_code) const;
+
+  std::string  SearchSubPortUniqueCode (const TPortInterface *port_ptr) const;
 
   template <typename t_module>
   t_module& SubModuleAs (const std::string &module_name);
@@ -479,19 +534,12 @@ public:
   void AddUnmanagedSubModule (TModuleInterface *p, const std::string &v_instance_name);
 
 
-  bool SubConnectIO(
-      TModuleInterface &start_module, const std::string &out_port_name,
-      TModuleInterface &end_module,   const std::string &in_port_name);
-  bool SubConnectEvent(
-      TModuleInterface &start_module, const std::string &signal_port_name,
-      TModuleInterface &end_module,   const std::string &slot_port_name);
-
-  /*! add edge.  the port types are automatically determined */
+  /*! connect the two ports.  the port types are automatically determined */
   bool SubConnect(
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name);
 
-  /*! add edge. the modules are indicated by names. the port types are automatically determined */
+  /*! connect the two ports. the modules are indicated by names. the port types are automatically determined */
   bool SubConnect(
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name);
@@ -517,10 +565,10 @@ public:
   void ForEachSubModuleCell (boost::function<bool(const TModuleCell &mcell)> f) const;
 
   /*!\brief for each connected port, apply the function f */
-  void ForEachSubConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f);
+  void ForEachSubConnection (TConnectionManipulator f);
 
   /*!\brief for each connected port, apply the function f */
-  void ForEachSubConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const;
+  void ForEachSubConnection (TConstConnectionManipulator f) const;
 
 
   /*!\brief export a port sub_module_name.port_name as export_name */
@@ -538,7 +586,9 @@ public:
 
 
   void SetAllSubModuleMode (const TModuleMode &mm);
-  void SetDebugStream (std::ostream &os);
+  void SetAllSubDebugStream (std::ostream &os);
+  override void SetModuleMode (const TModuleMode &mm)  {TModuleInterface::SetModuleMode(mm); SetAllSubModuleMode(mm);}
+  override void SetDebugStream (std::ostream &os)  {TModuleInterface::SetDebugStream(os); SetAllSubDebugStream(os);}
 
   void ShowAllSubModules (const std::string &format="", std::ostream &os=std::cerr) const;
 
@@ -557,6 +607,9 @@ protected:
   std::list<std::pair<std::string,std::string> >  export_list_;  //!< stored in Export{Port,Memory,Config} to be used in WriteToStream
 
   inline TModuleInterface* find_sub_module (const std::string &module_name, bool error=false) const;
+
+  bool apply_f_if_to_port_exists (const TPortInfo *from_port, TPortInterface *to_port_ptr, TConnectionManipulator f);
+  bool apply_f_if_to_port_exists_c (const TConstPortInfo *from_port, const TPortInterface *to_port_ptr, TConstConnectionManipulator f) const;
 
 };
 //-------------------------------------------------------------------------------------------
@@ -698,10 +751,10 @@ public:
 
   /*! search a module named module_name.
       if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-  TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5)  {return modules_.SearchModule(module_name,max_depth);}
+  TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5)  {return modules_.SearchSubModule(module_name,max_depth);}
   /*! search a module named module_name.
       if a sub-module is a composite one and max_depth>0, module_name is searched recursively */
-  const TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5) const {return modules_.SearchModule(module_name,max_depth);}
+  const TModuleInterface* SearchModule (const std::string &module_name, int max_depth=5) const {return modules_.SearchSubModule(module_name,max_depth);}
 
   template <typename t_module>
   t_module& ModuleAs (const std::string &module_name)  {return modules_.SubModuleAs<t_module>(module_name);}
@@ -718,34 +771,25 @@ public:
     {return modules_.AddSubModule(v_module_class, v_instance_name);}
 
 
-  bool ConnectIO(
-      TModuleInterface &start_module, const std::string &out_port_name,
-      TModuleInterface &end_module,   const std::string &in_port_name)
-    {return modules_.SubConnectIO(start_module, out_port_name, end_module, in_port_name);}
-  bool ConnectEvent(
-      TModuleInterface &start_module, const std::string &signal_port_name,
-      TModuleInterface &end_module,   const std::string &slot_port_name)
-    {return modules_.SubConnectEvent(start_module, signal_port_name, end_module, slot_port_name);}
-
-  /*! add edge.  the port types are automatically determined */
+  /*! connect the two ports.  the port types are automatically determined */
   bool Connect(
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name)
     {return modules_.SubConnect(start_module, start_port_name, end_module, end_port_name);}
 
-  /*! add edge. the modules are indicated by names. the port types are automatically determined */
+  /*! connect the two ports. the modules are indicated by names. the port types are automatically determined */
   bool Connect(
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name)
     {return modules_.SubConnect(start_module_name, start_port_name, end_module_name, end_port_name);}
 
-  /*! disconnect edge */
+  /*! disconnect the ports */
   void Disconnect(
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name)
     {return modules_.SubDisconnect(start_module, start_port_name, end_module, end_port_name);}
 
-  /*! disconnect edge */
+  /*! disconnect the ports */
   void Disconnect(
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name)
@@ -769,11 +813,11 @@ public:
     {modules_.ForEachSubModule(f);}
 
   /*!\brief for each connected port, apply the function f */
-  void ForEachConnection (boost::function<bool(TPortInterface* from_port_ptr, TPortInterface* to_port_ptr)> f)
+  void ForEachConnection (TCompositeModule::TConnectionManipulator f)
     {modules_.ForEachSubConnection(f);}
 
   /*!\brief for each connected port, apply the function f */
-  void ForEachConnection (boost::function<bool(const TPortInterface* from_port_ptr, const TPortInterface* to_port_ptr)> f) const
+  void ForEachConnection (TCompositeModule::TConstConnectionManipulator f) const
     {modules_.ForEachSubConnection(f);}
 
 
@@ -808,9 +852,12 @@ public:
   std::string GetDataFileName (const std::string &filename) const;
 
 
+  /*!\brief write all port information (port kind, port pointer, every outer module name and port name) to os */
+  void DumpPortInfo (std::ostream &os=std::cerr) const;
+
   void SetAllModuleMode (const TModuleInterface::TModuleMode &mm)
-    {modules_.SetAllSubModuleMode(mm);}
-  void SetDebugStream (std::ostream &os)
+    {modules_.SetModuleMode(mm);}
+  void SetAllDebugStream (std::ostream &os)
     {modules_.SetDebugStream(os);}
 
   void ShowAllModules (const std::string &format="", std::ostream &os=std::cerr) const

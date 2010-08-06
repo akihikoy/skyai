@@ -1,6 +1,6 @@
 // Discrete action set DCOB (Cp and Cd are defined as MConstMultiplier_TRealMatrix_TRealVector)
 
-composite MDCOB
+composite MDCOB2
 {
   module  MActionSetDCOB                     dcob
   module  MBFTrans                           bftrans
@@ -49,9 +49,9 @@ composite MDCOB
   export Cd.config.Factor  as  Cd
 }
 
-composite MOldDCOB
+composite MOldDCOB2
 {
-  inherit MDCOB
+  inherit MDCOB2
 
   /// parameter setting:
   bftrans.config ={

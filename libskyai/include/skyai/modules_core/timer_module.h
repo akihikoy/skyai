@@ -175,7 +175,7 @@ protected:
     {
       // LDEBUG(InstanceName()<<"->slot_start_step is activated at "<<cont_time_);
       if (ModuleMode()==TModuleInterface::mmDebug)
-        {DebugStream()<<slot_start_step.UniqueCode()<<":  "<<cont_time_<<"[s] ("<<disc_time_<<"[steps])"<<std::endl;}
+        {DebugStream()<<"TIMER(slot_start_step: "<<&slot_start_step<<"): "<<cont_time_<<"[s] ("<<disc_time_<<"[steps])"<<std::endl;}
       signal_start_of_step.ExecAll(dt);
 
       #define SIGNAL_START_OF_STEP_UD(x_idx)             \
@@ -199,7 +199,7 @@ protected:
       disc_time_++;
       // LDEBUG(InstanceName()<<"->slot_finish_step is activated at "<<cont_time_);
       if (ModuleMode()==TModuleInterface::mmDebug)
-        {DebugStream()<<slot_finish_step.UniqueCode()<<":  "<<cont_time_<<"[s] ("<<disc_time_<<"[steps])"<<std::endl;}
+        {DebugStream()<<"TIMER(slot_finish_step: "<<&slot_finish_step<<"): "<<cont_time_<<"[s] ("<<disc_time_<<"[steps])"<<std::endl;}
       signal_end_of_step.ExecAll(dt);
 
       #define SIGNAL_END_OF_STEP_UD(x_idx)              \
