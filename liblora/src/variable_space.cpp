@@ -237,8 +237,25 @@ SPECIALIZE_GENERATE_INT(unsigned long )
 SPECIALIZE_GENERATE_INT(signed short  )
 SPECIALIZE_GENERATE_INT(signed int    )
 SPECIALIZE_GENERATE_INT(signed long   )
-SPECIALIZE_GENERATE_INT(bool          )
 #undef SPECIALIZE_GENERATE_INT
+//-------------------------------------------------------------------------------------------
+
+void TVariable::generator<pt_bool>::operator() (pt_bool &x)
+{
+  o.is_primitive_ = true;
+  o.f_primitive_get_as_int_      = GET_AS(pt_bool, pt_int      );
+  o.f_primitive_get_as_real_     = GET_AS(pt_bool, pt_real     );
+  o.f_primitive_get_as_bool_     = GET_AS(pt_bool, pt_bool     );
+  o.f_primitive_get_as_string_   = GET_AS(pt_bool, pt_string   );
+
+  o.f_primitive_set_by_int_      = SET_BY(pt_bool, pt_int      );
+  o.f_primitive_set_by_real_     = SET_BY(pt_bool, pt_real     );
+  o.f_primitive_set_by_bool_     = SET_BY(pt_bool, pt_bool     );
+  o.f_primitive_set_by_string_   = SET_BY(pt_bool, pt_string   );
+
+  o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<pt_bool, pt_bool>,&x,_1,_2);
+  o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<pt_bool>,&x,_1,_2,_3,_4);
+}
 //-------------------------------------------------------------------------------------------
 
 #define SPECIALIZE_GENERATE_REAL(x_type)  \

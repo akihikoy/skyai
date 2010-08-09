@@ -398,12 +398,18 @@ void XCLASS::AssignAgentConfigS (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("global `config\'"))  return;
   LASSERT(!cmodule_stack_.empty());
-  var_pagent_.StartSubParse (cmodule_stack_.back()->ParamBoxConfig(), line_num_, file_name_);
+  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->ParamBoxConfig());
+  pinfo.FileName= file_name_;
+  pinfo.StartLineNum= line_num_;
+  pinfo.LiteralTable= NULL;
+  var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
 void XCLASS::AssignAgentConfigE (t_iterator first, t_iterator last)
 {
-  if (!var_pagent_.EndSubParse(&line_num_))  error_= true;
+  var_space::TParserInfoOut poutinfo;
+  if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
+  line_num_= poutinfo.LastLineNum;
 }
 
 TEMPLATE_DEC
@@ -413,12 +419,18 @@ void XCLASS::AssignConfigS (t_iterator first, t_iterator last)
   std::string identifier(pop_id());
   // std::cout<<"assign config to "<<identifier<<std::endl; sf.PrintToStream(std::cout,"  ");
   LASSERT(!cmodule_stack_.empty());
-  var_pagent_.StartSubParse (cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig(), line_num_, file_name_);
+  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig());
+  pinfo.FileName= file_name_;
+  pinfo.StartLineNum= line_num_;
+  pinfo.LiteralTable= NULL;
+  var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
 void XCLASS::AssignConfigE (t_iterator first, t_iterator last)
 {
-  if (!var_pagent_.EndSubParse(&line_num_))  error_= true;
+  var_space::TParserInfoOut poutinfo;
+  if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
+  line_num_= poutinfo.LastLineNum;
 }
 
 TEMPLATE_DEC
@@ -427,12 +439,18 @@ void XCLASS::AssignMemoryS (t_iterator first, t_iterator last)
   LASSERT(!id_stack_.empty());
   std::string identifier(pop_id());
   LASSERT(!cmodule_stack_.empty());
-  var_pagent_.StartSubParse (cmodule_stack_.back()->SubModule(identifier).ParamBoxMemory(), line_num_, file_name_);
+  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->SubModule(identifier).ParamBoxMemory());
+  pinfo.FileName= file_name_;
+  pinfo.StartLineNum= line_num_;
+  pinfo.LiteralTable= NULL;
+  var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
 void XCLASS::AssignMemoryE (t_iterator first, t_iterator last)
 {
-  if (!var_pagent_.EndSubParse(&line_num_))  error_= true;
+  var_space::TParserInfoOut poutinfo;
+  if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
+  line_num_= poutinfo.LastLineNum;
 }
 
 TEMPLATE_DEC

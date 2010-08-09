@@ -23,6 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser_impl.h>
+#include <lora/stl_ext.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -36,13 +37,113 @@ template class TParserAgent <file_iterator<char> >;
 template class TCodeParser <file_iterator<char> >;
 
 
-bool ParseFile (TVariable &var, const std::string &filename, bool *is_last)
+//===========================================================================================
+// class TLiteralTable
+//===========================================================================================
+
+TLiteralTable::TLiteralTable(void)
+{
+  AddToKeywordSet(keywords_);
+}
+//-------------------------------------------------------------------------------------------
+
+const TLiteralTable::TLiteral* TLiteralTable::Find(const TIdentifier &id) const
+{
+  TTable::const_iterator itr(table_.find(id));
+  if (itr==table_.end())  return NULL;
+  return &(itr->second);
+}
+//-------------------------------------------------------------------------------------------
+
+TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, const TLiteral &value)
+{
+  if (keywords_.find(id)!=keywords_.end())
+  {
+    LERROR(id<<" is a reserved keyword");
+    return arFailed;
+  }
+  TTable::iterator itr(table_.find(id));
+  if (itr!=table_.end())
+  {
+    itr->second= value;
+    return arOverwritten;
+  }
+  table_.insert(TTable::value_type(id,value));
+  return arInserted;
+}
+//-------------------------------------------------------------------------------------------
+
+TLiteralTable::TAddResult TLiteralTable::AddIdentifier(const TIdentifier &id, const TIdentifier &value)
+{
+  TLiteral l;
+  l.LType= ltIdentifier;
+  l.LString= value;
+  return add_to_table(id,l);
+}
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_int     &value)
+{
+  TLiteral l;
+  l.LType= ltInt;
+  l.LInt= value;
+  return add_to_table(id,l);
+}
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_real    &value)
+{
+  TLiteral l;
+  l.LType= ltReal;
+  l.LReal= value;
+  return add_to_table(id,l);
+}
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_bool    &value)
+{
+  TLiteral l;
+  l.LType= ltBool;
+  l.LBool= value;
+  return add_to_table(id,l);
+}
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_string  &value)
+{
+  TLiteral l;
+  l.LType= ltString;
+  l.LString= value;
+  return add_to_table(id,l);
+}
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const std::list<pt_real>  &value)
+{
+  TLiteral l;
+  l.LType= ltRealList;
+  l.LRealList= value;
+  return add_to_table(id,l);
+}
+//-------------------------------------------------------------------------------------------
+
+
+std::ostream& operator<<(std::ostream &lhs, const TLiteralTable::TLiteral &rhs)
+{
+  switch(rhs.LType)
+  {
+  case TLiteralTable::ltIdentifier  :  lhs<<rhs.LString<<"[identifier]";            break;
+  case TLiteralTable::ltInt         :  lhs<<ConvertToStr(rhs.LInt)<<"[int]";        break;
+  case TLiteralTable::ltReal        :  lhs<<ConvertToStr(rhs.LReal)<<"[real]";      break;
+  case TLiteralTable::ltBool        :  lhs<<ConvertToStr(rhs.LBool)<<"[bool]";      break;
+  case TLiteralTable::ltString      :  lhs<<ConvertToStr(rhs.LString)<<"[string]";  break;
+  case TLiteralTable::ltRealList    :  lhs<<"("<<NumericalContainerToString(rhs.LRealList, ", ")<<")[vector]";  break;
+  default : LERROR("fatal!"); LDBGVAR(int(rhs.LType)); lexit(df);
+  }
+  return lhs;
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+
+bool ParseFile (TParserInfoIn &in, TParserInfoOut *out)
 {
   typedef file_iterator<char> TIterator;
-  TIterator  first(filename);
+  TIterator  first(in.FileName);
   if (!first)
   {
-    LERROR("failed to open file: "<<filename);
+    LERROR("failed to open file: "<<in.FileName);
     return false;
   }
 
@@ -50,8 +151,8 @@ bool ParseFile (TVariable &var, const std::string &filename, bool *is_last)
 
   TIterator last= first.make_end();
 
-  parse_info<TIterator> info= pagent.Parse(var, filename, first, last);
-  if (is_last)  *is_last= (info.stop==last);
+  parse_info<TIterator> info= pagent.Parse(in, first, last, out);
+  if (out)  out->IsLast= (info.stop==last);
   return !pagent.Error();
 }
 //-------------------------------------------------------------------------------------------

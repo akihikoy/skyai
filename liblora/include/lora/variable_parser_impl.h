@@ -118,9 +118,9 @@ public:
 
   TParserAgent () : error_(false) {}
 
-  boost::spirit::classic::parse_info<t_iterator> Parse (TVariable &var, const std::string &file_name, t_iterator first, t_iterator last);
-  void StartSubParse (TVariable &var, int line_num, const std::string &file_name);
-  bool EndSubParse (int *line_num);
+  boost::spirit::classic::parse_info<t_iterator> Parse (TParserInfoIn &in, t_iterator first, t_iterator last, TParserInfoOut *out);
+  void StartSubParse (TParserInfoIn &in);
+  bool EndSubParse (TParserInfoOut *out);
 
   bool Error() const {return error_;}
 
@@ -130,6 +130,7 @@ public:
   void SyntaxError (t_iterator first, t_iterator last);
   void PushIdentifier (t_iterator first, t_iterator last);
   // void PushLiteral (t_iterator first, t_iterator last);
+  void PushLiteralIdentifier (t_iterator first, t_iterator last);
   void PushLiteralInt (t_iterator first, t_iterator last);
   void PushLiteralReal (t_iterator first, t_iterator last);
   void PushLiteralBool (t_iterator first, t_iterator last);
@@ -153,7 +154,7 @@ private:
   //! \todo FIXME: very inefficient code
   struct TLiteral
     {
-      enum TType {ltBeginListAny=0, ltInt, ltReal, ltBool, ltString, ltRealList};
+      enum TType {ltBeginListAny=0, ltIdentifier, ltInt, ltReal, ltBool, ltString, ltRealList};
       TType        LType;
       pt_int       LInt;
       pt_real      LReal;
@@ -167,6 +168,7 @@ private:
           TVariable var;
           switch(LType)
           {
+          case ltIdentifier : LERROR("cannot convert an identifier ("<<LString<<") to a TVariable"); lexit(df);
           case ltInt      :  var.Generate(LInt);      break;
           case ltReal     :  var.Generate(LReal);     break;
           case ltBool     :  var.Generate(LBool);     break;
@@ -187,18 +189,85 @@ private:
   bool error_;
   int  line_num_;
   std::string  file_name_;
+  TParseMode  parse_mode_;
+  const TLiteralTable  *literal_table_;
 
   TLiteralList literal_stack_;
   bool in_literal_list_;
 
   LORA_MESSAGE_FORMAT_FUNCTION tmp_lora_msg_format_;
 
-  // TLiteral pop_literal_stack ()
-    // {
-      // res= literal_stack_.back();
-      // literal_stack_.pop_back();
-      // return res;
-    // }
+  TLiteral evaluate_literal (const TLiteral &src, bool exit_by_error=true)
+    {
+      if (src.LType==TLiteral::ltIdentifier)
+      {
+        const TLiteralTable::TLiteral *alt;
+        if(literal_table_ && (alt=literal_table_->Find(src.LString))!=NULL)
+        {
+          TLiteral res;
+          switch(alt->LType)
+          {
+          case TLiteralTable::ltIdentifier :
+            res.LType=TLiteral::ltIdentifier; res.LString = alt->LString;
+            res= evaluate_literal(res,false);  // NOTE: comment out this line not to evaluate recursively
+            break;
+          case TLiteralTable::ltInt        :  res.LType=TLiteral::ltInt       ; res.LInt      = alt->LInt      ;  break;
+          case TLiteralTable::ltReal       :  res.LType=TLiteral::ltReal      ; res.LReal     = alt->LReal     ;  break;
+          case TLiteralTable::ltBool       :  res.LType=TLiteral::ltBool      ; res.LBool     = alt->LBool     ;  break;
+          case TLiteralTable::ltString     :  res.LType=TLiteral::ltString    ; res.LString   = alt->LString   ;  break;
+          case TLiteralTable::ltRealList   :  res.LType=TLiteral::ltRealList  ; res.LRealList = alt->LRealList ;  break;
+          default : LERROR("fatal!"); LDBGVAR(int(alt->LType)); lexit(df);
+          }
+          if (res.LType==TLiteral::ltIdentifier)
+          {
+            LERROR("failed to evaluate "<<src.LString);
+            error_= true;
+            if(exit_by_error) lexit(df);
+          }
+          return res;
+        }
+        else
+        {
+          LERROR("identifier "<<src.LString<<" is not registered in the literal-table.");
+          error_= true;
+          if(exit_by_error) lexit(df);
+          TLiteral res;  res.LType=TLiteral::ltIdentifier;  return res;
+        }
+      }
+      else
+      {
+        return src;
+      }
+    }
+
+  std::string pop_id_x (void)
+    {
+      LASSERT(!id_stack_.empty());
+      std::string identifier(id_stack_.back());  id_stack_.pop_back();
+      if(literal_table_)
+      {
+        const TLiteralTable::TLiteral *alt(NULL);
+        if((alt=literal_table_->Find(identifier))!=NULL)  // NOTE: replace "if" by "while" to search recursively
+        {
+          if(alt->LType==TLiteralTable::ltIdentifier)
+            identifier= alt->LString;
+          else
+          {
+            LERROR("identifier "<<identifier<<" is registered in the literal-table, but does not indicate an identifier.");
+            LERROR(identifier<<" in the literal-table is: "<<*alt);
+            error_= true;
+            return identifier;
+          }
+        }
+      }
+      return identifier;
+    }
+  TLiteral pop_literal_x (void)
+    {
+      LASSERT(!literal_stack_.empty());
+      TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
+      return evaluate_literal(value);
+    }
 
   static std::string join_iterators (t_iterator first, t_iterator last)
     {
@@ -208,11 +277,12 @@ private:
       return ss.str();
     }
 
-  void print_error (const std::string &str) const
+  void print_error (const std::string &str)
     {
-        std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
+      error_= true;
+      std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
     }
-  void lora_error (message_system::TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss) const
+  void lora_error (message_system::TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss)
     {
       if(type==message_system::mtError)
         print_error(ss.str());
@@ -241,7 +311,7 @@ public:
       rule_t  literal_any, literal_primitive;
       // rule_t  literal_bracketed_list;
       rule_t  literal_parenthesized_list;
-      rule_t  literal_int, literal_real, literal_boolean, literal_string;
+      rule_t  literal_identifier, literal_int, literal_real, literal_boolean, literal_string;
       rule_t  lcomment;
       rule_t  end_of_line, blank_eol_p;
       rule_t  op_semicolon, op_comma, op_dot, op_eq, op_at;
@@ -304,15 +374,17 @@ private:
   }
 
 TEMPLATE_DEC
-boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, const std::string &file_name, t_iterator first, t_iterator last)
+boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TParserInfoIn &in, t_iterator first, t_iterator last, TParserInfoOut *out)
 {
   using namespace boost::spirit::classic;
   error_= false;
-  line_num_= 1;
-  file_name_= file_name;
+  line_num_= in.StartLineNum;
+  file_name_= in.FileName;
+  parse_mode_= in.ParseMode;
+  literal_table_= in.LiteralTable;
   in_literal_list_= false;
   TCodeParser<t_iterator> parser(*this);
-  variable_stack_.push_back(TExtVariable(var));
+  variable_stack_.push_back(TExtVariable(in.Var));
 
   tmp_lora_msg_format_= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
   message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&XCLASS::lora_error,this,_1,_2,_3,_4,_5)) );
@@ -331,30 +403,36 @@ boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TVariable &var, co
   STACK_CHECK(literal_stack_);
   #undef STACK_CHECK
 
+  if(out) out->LastLineNum= line_num_;
+
   return res;
 }
 //-------------------------------------------------------------------------------------------
 
 TEMPLATE_DEC
-void XCLASS::StartSubParse (TVariable &var, int line_num, const std::string &file_name)
+void XCLASS::StartSubParse (TParserInfoIn &in)
 {
   using namespace boost::spirit::classic;
   error_= false;
-  line_num_= line_num;
-  file_name_= file_name;
+  line_num_= in.StartLineNum;
+  file_name_= in.FileName;
+  parse_mode_= in.ParseMode;
+  literal_table_= in.LiteralTable;
   in_literal_list_= false;
-  variable_stack_.push_back(TExtVariable(var));
+  variable_stack_.push_back(TExtVariable(in.Var));
   tmp_lora_msg_format_= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
   message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&XCLASS::lora_error,this,_1,_2,_3,_4,_5)) );
 }
 //-------------------------------------------------------------------------------------------
 
 TEMPLATE_DEC
-bool XCLASS::EndSubParse (int *line_num)
+bool XCLASS::EndSubParse (TParserInfoOut *out)
 {
   message_system::SetFormat(tmp_lora_msg_format_);
   LASSERT(!variable_stack_.empty());
   variable_stack_.pop_back();
+
+  literal_table_= NULL;
 
   #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty:"); error_=true;}} while(0)
   if(!error_)
@@ -366,7 +444,7 @@ bool XCLASS::EndSubParse (int *line_num)
   }
   #undef STACK_CHECK
 
-  if(line_num) *line_num= line_num_;
+  if(out) out->LastLineNum= line_num_;
 
   return !error_;
 }
@@ -410,7 +488,6 @@ void XCLASS::DebugMessage (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
-  error_= true;
   print_error("syntax error:");
   std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
 }
@@ -428,6 +505,23 @@ void XCLASS::PushIdentifier (t_iterator first, t_iterator last)
   // literal.LType= TLiteral::ltString;
   // literal_stack_.push_back(literal);
 // }
+TEMPLATE_DEC
+void XCLASS::PushLiteralIdentifier (t_iterator first, t_iterator last)
+{
+  TLiteral literal;
+  literal.LString= join_iterators(first,last);
+  literal.LType= TLiteral::ltIdentifier;
+  if(!in_literal_list_)
+  {
+    literal_stack_.push_back(literal);
+  }
+  else
+  {
+    LASSERT(!literal_stack_.empty());
+    literal_stack_.back().LRealList.push_back(
+        evaluate_literal(literal).ToVariable().template PrimitiveGetAs<pt_real>());
+  }
+}
 TEMPLATE_DEC
 void XCLASS::PushLiteralInt (t_iterator first, t_iterator last)
 {
@@ -520,11 +614,9 @@ void XCLASS::EndLiteralListPrimitive (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::PrimitiveAssignToMember (t_iterator first, t_iterator last)
 {
-  LASSERT(!literal_stack_.empty());
-  LASSERT(!id_stack_.empty());
   LASSERT(!variable_stack_.empty());
-  TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
-  std::string identifier(id_stack_.back());  id_stack_.pop_back();
+  TLiteral value= pop_literal_x();
+  std::string identifier(pop_id_x());
 
   CONV_ERR_CATCHER_S
   variable_stack_.back().SetMember(TVariable(identifier), value.ToVariable());
@@ -534,9 +626,8 @@ void XCLASS::PrimitiveAssignToMember (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::CompositeAssignToMemberS (t_iterator first, t_iterator last)
 {
-  LASSERT(!id_stack_.empty());
   LASSERT(!variable_stack_.empty());
-  std::string identifier(id_stack_.back());  id_stack_.pop_back();
+  std::string identifier(pop_id_x());
 
   TExtVariable  member;
   VAR_ERR_CATCHER_S
@@ -550,10 +641,9 @@ void XCLASS::CompositeAssignToMemberS (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::ElementalPrimitiveAssignToMember (t_iterator first, t_iterator last)
 {
-  LASSERT1op1(literal_stack_.size(),>=,2);
   LASSERT(!variable_stack_.empty());
-  TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
-  TLiteral key= literal_stack_.back();  literal_stack_.pop_back();
+  TLiteral value= pop_literal_x();
+  TLiteral key= pop_literal_x();
 
   CONV_ERR_CATCHER_S
   variable_stack_.back().SetMember(key.ToVariable(), value.ToVariable());
@@ -563,9 +653,8 @@ void XCLASS::ElementalPrimitiveAssignToMember (t_iterator first, t_iterator last
 TEMPLATE_DEC
 void XCLASS::ElementalCompositeAssignToMemberS (t_iterator first, t_iterator last)
 {
-  LASSERT(!literal_stack_.empty());
   LASSERT(!variable_stack_.empty());
-  TLiteral key= literal_stack_.back();  literal_stack_.pop_back();
+  TLiteral key= pop_literal_x();
 
   TExtVariable  member;
   VAR_ERR_CATCHER_S
@@ -579,9 +668,8 @@ void XCLASS::ElementalCompositeAssignToMemberS (t_iterator first, t_iterator las
 TEMPLATE_DEC
 void XCLASS::PushPrimitive (t_iterator first, t_iterator last)
 {
-  LASSERT(!literal_stack_.empty());
   LASSERT(!variable_stack_.empty());
-  TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
+  TLiteral value= pop_literal_x();
 
   CONV_ERR_CATCHER_S
   variable_stack_.back().Push().DirectAssign(value.ToVariable());
@@ -605,9 +693,8 @@ void XCLASS::PushComposite (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::FillAllPrimitive (t_iterator first, t_iterator last)
 {
-  LASSERT(!literal_stack_.empty());
   LASSERT(!variable_stack_.empty());
-  TLiteral value= literal_stack_.back();  literal_stack_.pop_back();
+  TLiteral value= pop_literal_x();
   TVariable  var_value (value.ToVariable());
   TExtForwardIterator itr,ilast;
 
@@ -640,10 +727,9 @@ void XCLASS::FillAllComposite (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::FunctionCall (t_iterator first, t_iterator last)
 {
-  LASSERT(!id_stack_.empty());
   LASSERT(!variable_stack_.empty());
 
-  std::string identifier(id_stack_.back());  id_stack_.pop_back();
+  std::string identifier(pop_id_x());
   TVariableList  argv;
   argv.push_back(TVariable()); // means TVariable of void
   typename TLiteralList::iterator  ilast(literal_stack_.end()),ifirst(literal_stack_.begin());
@@ -651,7 +737,7 @@ void XCLASS::FunctionCall (t_iterator first, t_iterator last)
   for(--itr; itr!=ifirst && itr->LType!=TLiteral::ltBeginListAny; --itr) {}
   if(itr->LType!=TLiteral::ltBeginListAny)  {LERROR("fatal!"); lexit(df);}
   for(++itr; itr!=ilast; ++itr)
-    argv.push_back(itr->ToVariable());
+    argv.push_back(evaluate_literal(*itr).ToVariable());
 
   CONV_ERR_CATCHER_S
   variable_stack_.back().FunctionCall(identifier, argv);
@@ -685,6 +771,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   ALIAS_ACTION(EndOfLine, f_end_of_line);
   ALIAS_ACTION(PushIdentifier, f_push_identifier);
   // ALIAS_ACTION(PushLiteral, f_push_literal);
+  ALIAS_ACTION(PushLiteralIdentifier, f_push_literal_identifier);
   ALIAS_ACTION(PushLiteralInt, f_push_literal_int);
   ALIAS_ACTION(PushLiteralReal, f_push_literal_real);
   ALIAS_ACTION(PushLiteralBool, f_push_literal_bool);
@@ -720,10 +807,11 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 
   literal_primitive
     = (
-        literal_real      [f_push_literal_real]
-        | literal_int     [f_push_literal_int]
-        | literal_boolean [f_push_literal_bool]
-        | literal_string  [f_push_literal_string]
+        literal_real         [f_push_literal_real]
+        | literal_int        [f_push_literal_int]
+        | literal_boolean    [f_push_literal_bool]
+        | literal_string     [f_push_literal_string]
+        | literal_identifier [f_push_literal_identifier]
       ) >> *blank_p;
 
   // NOTE: we do not use a bracketed list as a vector
@@ -737,6 +825,9 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
     = op_parenthesis_l  [f_begin_list_literal_primitive]
         >> list_literal_primitive
           >> op_parenthesis_r  [f_end_list_literal_primitive];
+
+  literal_identifier
+    = identifier_p;
 
   literal_int
     = int_parser<pt_int, 10, 1, -1>();

@@ -136,6 +136,46 @@ std::string DecodeString (const std::string &str, std::string *rest)
 
 
 //===========================================================================================
+// TYPE IDENTIFICATION
+//===========================================================================================
+
+bool IsNumberSeq (const std::string &str)
+{
+  for (std::string::const_iterator itr(str.begin()),last(str.end()); itr!=last; ++itr)
+    if (!IsNumber(*itr))  return false;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool IsAlphabetSeq (const std::string &str)
+{
+  for (std::string::const_iterator itr(str.begin()),last(str.end()); itr!=last; ++itr)
+    if (!IsAlphabet(*itr))  return false;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool IsAlphNumSeq (const std::string &str)
+{
+  for (std::string::const_iterator itr(str.begin()),last(str.end()); itr!=last; ++itr)
+    if (!IsAlphNum(*itr))  return false;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool IsIdentifier (const std::string &str)
+{
+  std::string::const_iterator itr(str.begin()),last(str.end());
+  if (itr==last)  return false;
+  if (!IsAlphabet(*itr) && *itr!='_')  return false;
+  for (++itr; itr!=last; ++itr)
+    if (!IsNumber(*itr) && !IsAlphabet(*itr) && *itr!='_')  return false;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 // TYPE CONVERSIONS
 //===========================================================================================
 

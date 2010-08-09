@@ -16,7 +16,7 @@
     http://kate.kde.org/doc/hlhowto.php
     -->
 
-<language version="1.1" kateversion="2.4" name="Agent Modules" section="Other" extensions="*.agent" mimetype="" author="akihiko" licence="GPL">
+<language version="1.1" kateversion="2.4" name="Agent Modules" section="Other" extensions="*.agent;*.var" mimetype="" author="akihiko" licence="GPL">
   <highlighting>
 
     <list name="kwList1">

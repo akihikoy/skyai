@@ -136,6 +136,21 @@ inline char DecodeChar (const char *c)
 }
 //-------------------------------------------------------------------------------------------
 
+/*!\brief encode string STR to "STR" where special characters are escaped */
+std::string EncodeString (const std::string &str);
+
+/*!\brief decode string "STR" to STR where escaped characters are also decoded into special characters
+    \note "STR", "STR, STR", and STR becomes STR
+    \note if STR includes un-escaped `"' , the obtained STR terminated at that point. in this case,
+          the remaining string is stored into rest if the rest is not NULL */
+std::string DecodeString (const std::string &str, std::string *rest=NULL);
+
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+// TYPE IDENTIFICATION
+//===========================================================================================
+
 inline bool IsNumber (char c)
 {
   if('0'<=c && c<='9')  return true;
@@ -153,6 +168,7 @@ inline bool IsAlphabetH (char c)
   return false;
 }
 inline bool IsAlphabet (char c)  {return IsAlphabetL(c)||IsAlphabetH(c);}
+inline bool IsAlphNum (char c)  {return IsAlphabet(c)||IsNumber(c);}
 inline bool IsSymbol (char c)
 {
   if(IsNumber(c) || IsAlphabet(c) || c=='_')  return false;
@@ -162,15 +178,10 @@ inline bool IsSymbol (char c)
 }
 //-------------------------------------------------------------------------------------------
 
-/*!\brief encode string STR to "STR" where special characters are escaped */
-std::string EncodeString (const std::string &str);
-
-/*!\brief decode string "STR" to STR where escaped characters are also decoded into special characters
-    \note "STR", "STR, STR", and STR becomes STR
-    \note if STR includes un-escaped `"' , the obtained STR terminated at that point. in this case,
-          the remaining string is stored into rest if the rest is not NULL */
-std::string DecodeString (const std::string &str, std::string *rest=NULL);
-
+bool IsNumberSeq (const std::string &str);
+bool IsAlphabetSeq (const std::string &str);
+bool IsAlphNumSeq (const std::string &str);
+bool IsIdentifier (const std::string &str);
 //-------------------------------------------------------------------------------------------
 
 
@@ -220,7 +231,9 @@ inline const bool StrToBool (const std::string &str)
 {
   if (str=="true"||str=="TRUE"||str=="True"||str=="1")  return true;
   if (str=="false"||str=="FALSE"||str=="False"||str=="0")  return false;
-  std::cerr << "failed to convert " << str << " to bool" << std::endl;
+  if (IsNumberSeq(str))  return StrToInt(str);
+  LERROR("failed to convert " << str << " to bool");
+  lexit(df);
   return false;
 }
 //-------------------------------------------------------------------------------------------

@@ -30,6 +30,8 @@
 #include <lora/common.h>
 #include <string>
 #include <list>
+#include <map>
+#include <set>
 #include <sstream>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -39,9 +41,74 @@ namespace var_space
 {
 //-------------------------------------------------------------------------------------------
 
+//===========================================================================================
+class TLiteralTable
+//===========================================================================================
+{
+public:
 
+  enum TLiteralType {ltIdentifier=0, ltInt, ltReal, ltBool, ltString, ltRealList};
+  enum TAddResult {arFailed=0, arInserted, arOverwritten};
 
-bool ParseFile (TVariable &var, const std::string &filename, bool *is_last=NULL);
+  //! \todo FIXME: very inefficient code (using a lot of memory)
+  struct TLiteral
+    {
+      TLiteralType LType;
+      pt_int       LInt;
+      pt_real      LReal;
+      pt_bool      LBool;
+      pt_string    LString;
+      std::list<pt_real>  LRealList;
+    };
+
+  typedef std::map<TIdentifier,TLiteral> TTable;
+
+  TLiteralTable(void);
+
+  const TLiteral* Find(const TIdentifier &id) const;
+
+  TAddResult AddIdentifier(const TIdentifier &id, const TIdentifier &value);
+  TAddResult AddLiteral(const TIdentifier &id, const pt_int     &value);
+  TAddResult AddLiteral(const TIdentifier &id, const pt_real    &value);
+  TAddResult AddLiteral(const TIdentifier &id, const pt_bool    &value);
+  TAddResult AddLiteral(const TIdentifier &id, const pt_string  &value);
+  TAddResult AddLiteral(const TIdentifier &id, const std::list<pt_real>  &value);
+
+private:
+
+  TTable table_;
+  std::set<pt_string>  keywords_;
+
+  TAddResult add_to_table(const TIdentifier &id, const TLiteral &value);
+
+};
+//-------------------------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream &lhs, const TLiteralTable::TLiteral &rhs);
+//-------------------------------------------------------------------------------------------
+
+enum TParseMode {pmNormal=0, pmPhantom}
+
+struct TParserInfoIn
+{
+  TVariable      &Var;
+  TParseMode     ParseMode;
+  std::string    FileName;
+  int            StartLineNum;
+  TLiteralTable  *LiteralTable;
+  TParserInfoIn(TVariable &v) : Var(v), ParseMode(pmNormal), StartLineNum(1), LiteralTable(NULL)  {}
+};
+struct TParserInfoOut
+{
+  bool  IsLast;
+  int   LastLineNum;
+  TParserInfoOut (void) : IsLast(false), LastLineNum(-1)  {}
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+
+bool ParseFile (TParserInfoIn &in, TParserInfoOut *out);
 
 //-------------------------------------------------------------------------------------------
 
