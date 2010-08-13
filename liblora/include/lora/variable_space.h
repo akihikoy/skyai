@@ -158,7 +158,7 @@ public:
     }
 
   template <typename T>
-  bool AddMemberVariable(const TIdentifier &id, T &x)  {return AddToVarMap<x>(members_,id,x);}
+  bool AddMemberVariable(const TIdentifier &id, T &x)  {return AddToVarMap<T>(members_,id,x);}
   bool AddMemberVariable(const TIdentifier &id, TVariable var)  {return AddToVarMap(members_,id,var);}
 
   const TVariableMap& MemberMap() const {return members_;}
@@ -535,6 +535,15 @@ SPECIALIZER(pt_string       )
 
 //-------------------------------------------------------------------------------------------
 
+// specialization of TAnyPrimitive
+template<> struct TVariable::generator<TAnyPrimitive>
+{
+  TVariable &o;
+  generator(TVariable &outer) : o(outer) {}
+  void operator() (TAnyPrimitive &x);
+};
+//-------------------------------------------------------------------------------------------
+
 /*!\brief partial specialization for std::vector
     \note include variable_space_impl.h to use this partial specialization
     \note already instantiated for signed int, double, and long double
@@ -579,6 +588,13 @@ struct TVariable::generator<std::map<t_key,t_elem> >
 //===========================================================================================
 // supplementary functions
 //===========================================================================================
+
+inline std::ostream& operator<< (std::ostream &lhs, const TVariable &rhs)
+{
+  rhs.WriteToStream(lhs);
+  return lhs;
+}
+//-------------------------------------------------------------------------------------------
 
 template <typename T>
 inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, T &x)

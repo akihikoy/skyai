@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser_impl.h>
 #include <lora/stl_ext.h>
+#include <lora/string_impl.h>  // NumericalContainerToString
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -36,6 +37,21 @@ using namespace boost::spirit::classic;
 template class TParserAgent <file_iterator<char> >;
 template class TCodeParser <file_iterator<char> >;
 
+//-------------------------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream &lhs, const TLiteral &rhs)
+{
+  switch(rhs.LType)
+  {
+  case TLiteral::ltIdentifier  :  lhs<<rhs.LPrimitive.EString<<"[identifier]";    break;
+  case TLiteral::ltPrimitive   :  lhs<<rhs.LPrimitive<<"[primitive]";  break;
+  case TLiteral::ltList        :  lhs<<"("<<NumericalContainerToString(rhs.LList, ", ")<<")[list]";  break;
+  default : LERROR("fatal!"); LDBGVAR(int(rhs.LType)); lexit(df);
+  }
+  return lhs;
+}
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 // class TLiteralTable
@@ -47,7 +63,7 @@ TLiteralTable::TLiteralTable(void)
 }
 //-------------------------------------------------------------------------------------------
 
-const TLiteralTable::TLiteral* TLiteralTable::Find(const TIdentifier &id) const
+const TLiteral* TLiteralTable::Find(const TIdentifier &id) const
 {
   TTable::const_iterator itr(table_.find(id));
   if (itr==table_.end())  return NULL;
@@ -59,7 +75,7 @@ TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, con
 {
   if (keywords_.find(id)!=keywords_.end())
   {
-    LERROR(id<<" is a reserved keyword");
+    LERROR("`"<<id<<"\' is a reserved keyword");
     return arFailed;
   }
   TTable::iterator itr(table_.find(id));
@@ -76,64 +92,81 @@ TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, con
 TLiteralTable::TAddResult TLiteralTable::AddIdentifier(const TIdentifier &id, const TIdentifier &value)
 {
   TLiteral l;
-  l.LType= ltIdentifier;
-  l.LString= value;
+  l.LType= TLiteral::ltIdentifier;
+  l.LPrimitive= TAnyPrimitive(pt_string(value));
   return add_to_table(id,l);
 }
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_int     &value)
+TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const std::list<TAnyPrimitive>  &value)
 {
   TLiteral l;
-  l.LType= ltInt;
-  l.LInt= value;
-  return add_to_table(id,l);
-}
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_real    &value)
-{
-  TLiteral l;
-  l.LType= ltReal;
-  l.LReal= value;
-  return add_to_table(id,l);
-}
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_bool    &value)
-{
-  TLiteral l;
-  l.LType= ltBool;
-  l.LBool= value;
-  return add_to_table(id,l);
-}
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const pt_string  &value)
-{
-  TLiteral l;
-  l.LType= ltString;
-  l.LString= value;
-  return add_to_table(id,l);
-}
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const std::list<pt_real>  &value)
-{
-  TLiteral l;
-  l.LType= ltRealList;
-  l.LRealList= value;
+  l.LType= TLiteral::ltList;
+  l.LList= value;
   return add_to_table(id,l);
 }
 //-------------------------------------------------------------------------------------------
 
-
-std::ostream& operator<<(std::ostream &lhs, const TLiteralTable::TLiteral &rhs)
+TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error)
 {
-  switch(rhs.LType)
+  if (src.LType==TLiteral::ltIdentifier)
   {
-  case TLiteralTable::ltIdentifier  :  lhs<<rhs.LString<<"[identifier]";            break;
-  case TLiteralTable::ltInt         :  lhs<<ConvertToStr(rhs.LInt)<<"[int]";        break;
-  case TLiteralTable::ltReal        :  lhs<<ConvertToStr(rhs.LReal)<<"[real]";      break;
-  case TLiteralTable::ltBool        :  lhs<<ConvertToStr(rhs.LBool)<<"[bool]";      break;
-  case TLiteralTable::ltString      :  lhs<<ConvertToStr(rhs.LString)<<"[string]";  break;
-  case TLiteralTable::ltRealList    :  lhs<<"("<<NumericalContainerToString(rhs.LRealList, ", ")<<")[vector]";  break;
-  default : LERROR("fatal!"); LDBGVAR(int(rhs.LType)); lexit(df);
+    const TIdentifier &src_id(src.LPrimitive.EString);
+    const TLiteral *alt(NULL);
+    if(literal_table && (alt=literal_table->Find(src_id))!=NULL)
+    {
+      TLiteral res;
+      if(alt->LType==TLiteral::ltIdentifier)
+      {
+        TEvaluateLiteralConfig sub_config(config); sub_config.ExitByError= false;
+        res= EvaluateLiteral(*alt,literal_table,sub_config,error);  // NOTE: comment out this line not to evaluate recursively
+      }
+      else
+        res= *alt;
+      if (res.LType==TLiteral::ltIdentifier)
+      {
+        LERROR("failed to evaluate `"<<src_id<<"\'");
+        error= true;
+        if(config.ExitByError) lexit(df);
+      }
+      return res;
+    }
+    else
+    {
+      if (config.AllowId)  return src;
+      LERROR("identifier `"<<src_id<<"\' is not registered in the literal-table");
+      error= true;
+      if(config.ExitByError) lexit(df);
+      TLiteral res;  res.LType=TLiteral::ltIdentifier;  return res;
+    }
   }
-  return lhs;
+  else
+  {
+    return src;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
+std::string ExpandIdentifier (const std::string &id, const TLiteralTable *literal_table, bool &error)
+{
+  std::string identifier(id);
+  if(literal_table)
+  {
+    const TLiteral *alt(NULL);
+    if((alt=literal_table->Find(identifier))!=NULL)  // NOTE: replace "if" by "while" to search recursively
+    {
+      if(alt->LType==TLiteral::ltIdentifier)
+        identifier= alt->LPrimitive.EString;
+      else
+      {
+        LERROR("`"<<identifier<<"\' does not store an identifier");
+        LERROR("but, `"<<identifier<<" stores: "<<*alt);
+        error= true;
+        return identifier;
+      }
+    }
+  }
+  return identifier;
+}
+//-------------------------------------------------------------------------------------------
 
 //===========================================================================================
 

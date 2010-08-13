@@ -702,6 +702,8 @@ SPECIALIZER(pt_bool         )
 SPECIALIZER(float           )
 SPECIALIZER(double          )
 SPECIALIZER(long double     )
+
+SPECIALIZER(TAnyPrimitive   )
 #undef SPECIALIZER
 
 //!\brief partial specialization for std::list

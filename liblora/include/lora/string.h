@@ -151,6 +151,22 @@ std::string DecodeString (const std::string &str, std::string *rest=NULL);
 // TYPE IDENTIFICATION
 //===========================================================================================
 
+inline bool IsSpace (char c)
+{
+  if(c==' '||c=='\t')  return true;
+  return false;
+}
+inline bool IsEOL (char c)
+{
+  if(c=='\n'||c=='\r')  return true;
+  return false;
+}
+inline bool IsSpaceEOL (char c)
+{
+  if(IsSpace(c)||IsEOL(c))  return true;
+  return false;
+}
+
 inline bool IsNumber (char c)
 {
   if('0'<=c && c<='9')  return true;
@@ -348,6 +364,7 @@ struct TEnumMapCell
 //===========================================================================================
 
 void ReadSpacesFromStr        (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
+void ReadSpaceEOLsFromStr     (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadSymbolsFromStr       (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadSeparatorsFromStr    (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
 void ReadNonSeparatorsFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last);
@@ -379,6 +396,7 @@ public:
 
   #define GEN_FUNC(x_func)  std::string x_func()  {std::stringstream ss; x_func ## FromStr (ss, pos_, last_); return ss.str();}
   GEN_FUNC( ReadSpaces        )
+  GEN_FUNC( ReadSpaceEOLs     )
   GEN_FUNC( ReadSymbols       )
   GEN_FUNC( ReadSeparators    )
   GEN_FUNC( ReadNonSeparators )

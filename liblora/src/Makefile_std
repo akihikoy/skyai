@@ -34,6 +34,7 @@ OBJS= common.o              \
       string_list_ext.o     \
       sys.o                 \
       type_gen.o            \
+      variable_any.o        \
       variable_parser.o     \
       variable_space.o
 ##------------------------------------------------------------------

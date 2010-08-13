@@ -49,7 +49,7 @@ void TrimLeft (std::string &str)
 {
   std::string::iterator last (str.begin());
   while (last!=str.end())
-    if (*last==' ' || *last=='\t') ++last;
+    if (IsSpaceEOL(*last)) ++last;
     else break;
   if (last!=str.begin())
     str.erase (str.begin(),last);
@@ -62,7 +62,7 @@ void TrimRight (std::string &str)
   std::string::iterator first (str.end());
   --first;
   while (first!=str.begin())
-    if (*first==' ' || *first=='\t') --first;
+    if (IsSpaceEOL(*first)) --first;
     else break;
   ++first;
   if (first!=str.end())
@@ -225,7 +225,19 @@ void ReadSpacesFromStr (std::stringstream &ss, std::string::const_iterator &firs
 {
   for (; first!=last; ++first)
   {
-    if (*first==' '||*first=='\t')
+    if (IsSpace(*first))
+      ss<<*first;
+    else
+      break;
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+void ReadSpaceEOLsFromStr (std::stringstream &ss, std::string::const_iterator &first, const std::string::const_iterator &last)
+{
+  for (; first!=last; ++first)
+  {
+    if (IsSpaceEOL(*first))
       ss<<*first;
     else
       break;
@@ -250,7 +262,7 @@ void ReadSeparatorsFromStr (std::stringstream &ss, std::string::const_iterator &
 {
   for (; first!=last; ++first)
   {
-    if (*first==','||*first==' '||*first=='\t')
+    if (*first==','||IsSpace(*first))
       ss<<*first;
     else
       break;
@@ -263,7 +275,7 @@ void ReadNonSeparatorsFromStr (std::stringstream &ss, std::string::const_iterato
 {
   for (; first!=last; ++first)
   {
-    if (*first==','||*first==' '||*first=='\t')
+    if (*first==','||IsSpace(*first))
       break;
     else
       ss<<*first;

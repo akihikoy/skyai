@@ -989,9 +989,6 @@ bool TCompositeModuleGenerator::AddGenerator(const std::string &cmodule_name, co
   if(GeneratorExists(cmodule_name))  {LERROR(cmodule_name<<" already exists.");  return false;}
   generators_[cmodule_name]= generator;
   cmodule_name_list_.push_back(cmodule_name);
-// LDEBUG("#####ADDED GENERATOR: "<<cmodule_name
-// <<"("<<generators_[cmodule_name].FileName<<":"<<generators_[cmodule_name].LineNum<<")"<<endl
-// <<generators_[cmodule_name].Script<<"#####");
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -1003,9 +1000,45 @@ bool TCompositeModuleGenerator::GeneratorExists(const std::string &cmodule_name)
 }
 //-------------------------------------------------------------------------------------------
 
-// NOTE: the following member function is defined in parser.cpp
+// NOTE: the following member functions are defined in parser.cpp
 // bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export) const;
 // bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::string &indent) const;
+
+
+//===========================================================================================
+// class TFunctionManager
+//===========================================================================================
+//! Added: return true, failed: return false
+bool TFunctionManager::AddFunction(const std::string &func_name, const TFunctionInfo &function)
+{
+  if(FunctionExists(func_name))  {LERROR(func_name<<" already exists.");  return false;}
+  functions_[func_name]= function;
+std::stringstream plist;PrintContainer(functions_[func_name].ParamList.begin(),functions_[func_name].ParamList.end(),plist, ",");
+LDEBUG("#####ADDED FUNCTION: "<<func_name
+<<"("<<plist.str()<<"); defined in "<<functions_[func_name].FileName<<":"<<functions_[func_name].LineNum<<endl
+<<functions_[func_name].Script<<"#####");
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TFunctionManager::FunctionExists(const std::string &func_name) const
+{
+  std::map<std::string, TFunctionInfo>::const_iterator  itr(functions_.find(func_name));
+  return itr!=functions_.end();
+}
+//-------------------------------------------------------------------------------------------
+
+const TFunctionManager::TFunctionInfo* TFunctionManager::Function(const std::string &func_name) const
+{
+  std::map<std::string, TFunctionInfo>::const_iterator  itr(functions_.find(func_name));
+  if (itr==functions_.end())
+  {
+    LERROR(func_name<<": function not found");
+    return NULL;
+  }
+  return &(itr->second);
+}
+//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -1023,7 +1056,7 @@ void TAgent::Clear()
 //-------------------------------------------------------------------------------------------
 
 // NOTE: the following member functions are defined in parser.cpp
-// bool TAgent::LoadFromFile (const std::string &filename, bool *is_last, std::list<std::string> *included_list);
+// bool TAgent::LoadFromFile (const std::string &filename, std::list<std::string> *included_list);
 // bool TAgent::SaveToFile (const std::string &filename) const;
 
 /*!\brief add dir_name (native format path) to the path-list */

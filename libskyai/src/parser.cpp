@@ -50,25 +50,28 @@ inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_p
 
 //===========================================================================================
 template <typename t_iterator>
-class TSKYAIParseAgent
+class TSKYAIParseAgent : public var_space::TBasicParserAgent
 //===========================================================================================
 {
 public:
 
   TSKYAIParseAgent (const boost::filesystem::path &current_dir,
                     std::list<boost::filesystem::path> &path_list, std::list<std::string> &included_list,
-                    TCompositeModuleGenerator &cmp_module_generator)
+                    TCompositeModuleGenerator &cmp_module_generator, TFunctionManager &function_manager,
+                    std::stringstream &equivalent_code)
     :
+      var_space::TBasicParserAgent(),
       current_dir_    (current_dir),
       path_list_      (path_list),
       included_list_  (included_list),
       cmp_module_generator_ (cmp_module_generator),
-      var_cparser_    (var_pagent_),
-      error_          (false),
-      no_export_      (false)
+      function_manager_     (function_manager),
+      equivalent_code_(equivalent_code),
+      var_cparser_    (var_pagent_)
     {
       keywords_.insert("as");
       keywords_.insert("as_is");
+      keywords_.insert("def");
       keywords_.insert("composite");
       keywords_.insert("edit");
       keywords_.insert("include");
@@ -84,80 +87,78 @@ public:
       var_space::AddToKeywordSet(keywords_);
     }
 
-  boost::spirit::classic::parse_info<t_iterator>  Parse (TCompositeModule &cmodule, const std::string &file_name, t_iterator first, t_iterator last, int start_line_num=1, bool no_export=false);
+  boost::spirit::classic::parse_info<t_iterator>  Parse (TCompositeModule &cmodule, const std::string &file_name, t_iterator first, t_iterator last, int start_line_num, TAgentParseMode parse_mode);
 
   const var_space::TCodeParser<t_iterator>&  VarCParser() const {return var_cparser_;}
 
   bool Error() const {return error_;}
+  int  LineNum() const {return line_num_;}
 
-  void IncludeFile (t_iterator first, t_iterator last);
-  void IncludeFileOnce (t_iterator first, t_iterator last);
-  void EndOfLine (t_iterator first, t_iterator last);
-  void SyntaxError (t_iterator first, t_iterator last);
-  void PushIdentifier (t_iterator first, t_iterator last);
-  void PushAsAsis (t_iterator first, t_iterator last);
-  void PushLiteralString (t_iterator first, t_iterator last);
-  void AddModule (t_iterator, t_iterator);
-  void Connect (t_iterator, t_iterator);
-  void AssignAgentConfigS (t_iterator first, t_iterator last);
-  void AssignAgentConfigE (t_iterator first, t_iterator last);
-  void AssignConfigS (t_iterator first, t_iterator last);
-  void AssignConfigE (t_iterator first, t_iterator last);
-  void AssignMemoryS (t_iterator first, t_iterator last);
-  void AssignMemoryE (t_iterator first, t_iterator last);
-  void CompositeDefS (t_iterator first, t_iterator last);
-  void CompositeDefE (t_iterator first, t_iterator last);
-  void EditS (t_iterator first, t_iterator last);
-  void EditE (t_iterator first, t_iterator last);
-  void Inherit (t_iterator, t_iterator);
-  void InheritPrv (t_iterator, t_iterator);
-  void ExportPort (t_iterator, t_iterator);
-  void ExportConfig (t_iterator, t_iterator);
-  void ExportMemory (t_iterator, t_iterator);
+  void SetLiteralTable (const var_space::TLiteralTable *ltable) {literal_table_= ltable;}
+
+  #define DECL_ACTION(x_func)  void x_func (t_iterator first, t_iterator last)
+  DECL_ACTION(IncludeFile);
+  DECL_ACTION(IncludeFileOnce);
+  DECL_ACTION(SyntaxError);
+  DECL_ACTION(PushIdentifier);
+  DECL_ACTION(PushKeyword);
+  DECL_ACTION(AddModule);
+  DECL_ACTION(Connect);
+  DECL_ACTION(AssignAgentConfigS);
+  DECL_ACTION(AssignAgentConfigE);
+  DECL_ACTION(AssignConfigS);
+  DECL_ACTION(AssignConfigE);
+  DECL_ACTION(AssignMemoryS);
+  DECL_ACTION(AssignMemoryE);
+  DECL_ACTION(CompositeDefS);
+  DECL_ACTION(CompositeDefE);
+  DECL_ACTION(EditS);
+  DECL_ACTION(EditE);
+  DECL_ACTION(Inherit);
+  DECL_ACTION(InheritPrv);
+  DECL_ACTION(ExportPort);
+  DECL_ACTION(ExportConfig);
+  DECL_ACTION(ExportMemory);
+  DECL_ACTION(FunctionDefS);
+  DECL_ACTION(FunctionDefE);
+  DECL_ACTION(FunctionCall);
+  #undef DECL_ACTION
 
 private:
+
   std::list<TCompositeModule*>         cmodule_stack_;
   boost::filesystem::path              current_dir_;
   std::list<boost::filesystem::path>   &path_list_;
   std::list<std::string>               &included_list_;
   TCompositeModuleGenerator            &cmp_module_generator_;
+  TFunctionManager                     &function_manager_;
+  std::stringstream                    &equivalent_code_;
   var_space::TParserAgent<t_iterator>  var_pagent_;
   var_space::TCodeParser<t_iterator>   var_cparser_;
 
   std::list<std::string>               id_stack_;
-  std::list<std::string>               str_stack_;
   std::list<TCompositeModule>          cmodule_entity_stack_;
-  bool  error_;
-  int  line_num_;
-  std::string  file_name_;
-  bool  no_export_;  // if true, export sentences are ignored (used in a private inheritance)
+  std::list<int>                       line_num_stack_;
+  std::list<std::string>               func_param_stack_;
+  TAgentParseMode                      parse_mode_;
+  std::set<std::string>                keywords_;
 
-  std::set<std::string>  keywords_;
+  std::string                          tmp_func_name_;
 
-  int  tmp_line_num_;
   LORA_MESSAGE_FORMAT_FUNCTION tmp_lora_msg_format_;
 
-  std::string pop_id() {std::string res(id_stack_.back()); id_stack_.pop_back(); return res;}
-  std::string pop_str() {std::string res(str_stack_.back()); str_stack_.pop_back(); return res;}
-
-  static std::string join_iterators (t_iterator first, t_iterator last)
+  void set_parse_mode (const TAgentParseMode &parse_mode)
     {
-      std::stringstream ss;
-      for(;first!=last;++first)
-        ss<<*first;
-      return ss.str();
+      parse_mode_= parse_mode;
+      expand_id_= !parse_mode_.Phantom;
     }
 
-  void print_error (const std::string &str) const
+  std::string pop_id_x (void)
     {
-        std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
-    }
-  void lora_error (message_system::TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss) const
-    {
-      if(type==message_system::mtError)
-        print_error(ss.str());
-      else
-        DefaultFormat(type, linenum, filename, functionname, ss);
+      LASSERT(!id_stack_.empty());
+      std::string identifier(id_stack_.back());  id_stack_.pop_back();
+      if(identifier=="as" || identifier=="as_is" || identifier=="def" || identifier=="") return identifier;
+      return expand_id_ ? ExpandIdentifier(identifier, literal_table_, error_) : identifier;
     }
 
   bool search_agent_file (const boost::filesystem::path &file_path, boost::filesystem::path &complete_path);
@@ -168,8 +169,16 @@ private:
     {
       if(cmodule_entity_stack_.size()>0)
       {
-        print_error (x+" is not allowed within a composite module definition");
-        error_= true;
+        PRINT_ERROR (x<<" is not allowed within a composite module definition");
+        return false;
+      }
+      return true;
+    }
+  bool is_allowed_in_funcdef(const std::string &x)
+    {
+      if(parse_mode_.FunctionDef)
+      {
+        PRINT_ERROR (x<<" is not allowed within a function definition");
         return false;
       }
       return true;
@@ -192,27 +201,48 @@ public:
     }
 
   template <typename ScannerT>
-  struct definition
+  struct definition : var_space::basic_parser_definition<t_iterator,ScannerT>
     {
+      typedef var_space::basic_parser_definition<t_iterator,ScannerT> TParent;
+      using TParent::identifier_p                   ;
+      using TParent::parenthesized_list_literal_any ;
+      using TParent::list_literal_any               ;
+      using TParent::list_literal_primitive         ;
+      using TParent::literal_any                    ;
+      using TParent::literal_primitive              ;
+      using TParent::literal_parenthesized_list     ;
+      using TParent::literal_identifier             ;
+      using TParent::literal_int                    ;
+      using TParent::literal_real                   ;
+      using TParent::literal_boolean                ;
+      using TParent::literal_string                 ;
+      using TParent::lcomment                       ;
+      using TParent::end_of_line                    ;
+      using TParent::blank_eol_p                    ;
+      using TParent::op_semicolon                   ;
+      using TParent::op_comma                       ;
+      using TParent::op_dot                         ;
+      using TParent::op_eq                          ;
+      using TParent::op_at                          ;
+      using TParent::op_brace_l                     ;
+      using TParent::op_brace_r                     ;
+      using TParent::op_parenthesis_l               ;
+      using TParent::op_parenthesis_r               ;
+      using TParent::op_bracket_l                   ;
+      using TParent::op_bracket_r                   ;
+
       typedef boost::spirit::classic::rule<ScannerT> rule_t;
-      rule_t  keyword_p;
-      rule_t  identifier_p;
-      rule_t  literal_string;
-      rule_t  lcomment;
-      rule_t  end_of_line, blank_eol_p;
-      rule_t  op_semicolon, op_comma, op_dot, op_eq, op_at;
-      rule_t  op_brace_l, op_brace_r, op_parenthesis_l, op_parenthesis_r;
-      rule_t  op_bracket_l, op_bracket_r;
+      rule_t  list_identifier;
       rule_t  block_as;
       rule_t  statements, statement, end_of_statement;
-      rule_t  statement_composite, statement_edit;
+      rule_t  statement_composite, statement_edit, statement_def;
       rule_t  statement_std;
       rule_t  statement_include, statement_include_once;
       rule_t  statement_module, statement_connect;
       rule_t  statement_inherit, statement_inherit_prv;
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
       rule_t  statement_assign_agent_config;
-      rule_t  statement_assign, statement_assign_config, statement_assign_memory;
+      rule_t  statement_starting_with_identifier, statement_assign_config, statement_assign_memory, statement_function_call;
       rule_t  statement_unexpected;
 
       typename var_space::TCodeParser<t_iterator>::template definition<ScannerT>  var_cparser_def;
@@ -237,13 +267,14 @@ private:
 #define XCLASS        TSKYAIParseAgent <t_iterator>
 
 TEMPLATE_DEC
-boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule &cmodule, const std::string &file_name, t_iterator first, t_iterator last, int start_line_num, bool no_export)
+boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule &cmodule, const std::string &file_name, t_iterator first, t_iterator last, int start_line_num, TAgentParseMode parse_mode)
 {
   using namespace boost::spirit::classic;
   error_= false;
+  in_literal_list_= false;
   line_num_= start_line_num;
   file_name_= file_name;
-  no_export_= no_export;
+  set_parse_mode(parse_mode);
   TSKYAICodeParser<t_iterator> parser(*this);
   cmodule_stack_.push_back(&cmodule);
 
@@ -263,8 +294,10 @@ boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule 
   {
     STACK_CHECK(cmodule_stack_);
     STACK_CHECK_S(id_stack_);
-    STACK_CHECK_S(str_stack_);
+    STACK_CHECK(literal_stack_);
     STACK_CHECK(cmodule_entity_stack_);
+    STACK_CHECK_S(line_num_stack_);
+    STACK_CHECK_S(func_param_stack_);
   }
   #undef STACK_CHECK
   #undef STACK_CHECK_S
@@ -300,28 +333,50 @@ bool  XCLASS::search_agent_file (const boost::filesystem::path &file_path, boost
 TEMPLATE_DEC
 void XCLASS::include_file (bool once)
 {
-  LASSERT(!str_stack_.empty());
-  std::string  filename(pop_str());
+  var_space::TLiteral  lfilename(pop_literal_x());
+  LASSERT1op1(lfilename.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lfilename.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &filename(lfilename.LPrimitive.EString);
   boost::filesystem::path file_path;
   if (!search_agent_file(filename,file_path))
   {
-    error_= true;
-    print_error(filename+" : no such file");
+    PRINT_ERROR(filename<<" : no such file");
     return;
   }
   filename= file_path.file_string();
   if (once && std::find(included_list_.begin(),included_list_.end(), filename)!=included_list_.end())
     return;
-  // LDEBUG("including file: "<<filename);
-  bool is_last;
-  LASSERT(!cmodule_stack_.empty());
-  if (!LoadAgentFromFile(*cmodule_stack_.back(), file_path, &is_last, &path_list_, &included_list_, &cmp_module_generator_))
+
+  TCompositeModule null_cmod("NULL","null"), *cmod_ptr(&null_cmod);
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmod_ptr= cmodule_stack_.back();
+  }
+  else
+  {
+    equivalent_code_<<"// start[include from "<<file_path.file_string()<<"]:"<<std::endl;
+  }
+  TAgentParserInfoIn  in(*cmod_ptr);
+  TAgentParserInfoOut out;
+  in.ParseMode          = parse_mode_;
+  in.PathList           = &path_list_;
+  in.IncludedList       = &included_list_;
+  in.CmpModuleGenerator = &cmp_module_generator_;
+  in.FunctionManager    = &function_manager_;
+  out.EquivalentCode    = &equivalent_code_;
+
+  if (!LoadAgentFromFile(file_path, in, out))
     error_= true;
 
-  if(!is_last)
+  if(!out.IsLast)
   {
     error_= true;
     LERROR("unexpected end of file in "<<filename);
+  }
+  if(parse_mode_.Phantom)
+  {
+    equivalent_code_<<"// end[include from "<<file_path.file_string()<<"]"<<std::endl;
   }
 }
 
@@ -338,16 +393,9 @@ void XCLASS::IncludeFileOnce (t_iterator first, t_iterator last)
 }
 
 TEMPLATE_DEC
-void XCLASS::EndOfLine (t_iterator first, t_iterator last)
-{
-  ++line_num_;
-}
-
-TEMPLATE_DEC
 void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
-  error_= true;
-  print_error("syntax error:");
+  PRINT_ERROR("syntax error:");
   std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
 }
 
@@ -356,52 +404,67 @@ void XCLASS::PushIdentifier (t_iterator first, t_iterator last)
 {
   id_stack_.push_back(join_iterators(first,last));
   if(keywords_.find(id_stack_.back())!=keywords_.end())
-    print_error(id_stack_.back()+" is a reserved keyword, but used as an identifier");
+    PRINT_ERROR(id_stack_.back()<<" is a reserved keyword, but used as an identifier");
 }
 
 TEMPLATE_DEC
-void XCLASS::PushAsAsis (t_iterator first, t_iterator last)
+void XCLASS::PushKeyword (t_iterator first, t_iterator last)
 {
-  id_stack_.push_back(join_iterators(first,last));
+  std::string kw(join_iterators(first,last));
+  TrimBoth(kw);
+  id_stack_.push_back(kw);
   if(id_stack_.back()=="as_is")  id_stack_.push_back("");  // dummy id
-}
-
-TEMPLATE_DEC
-void XCLASS::PushLiteralString (t_iterator first, t_iterator last)
-{
-  str_stack_.push_back (DecodeString(join_iterators(first,last)));
 }
 
 TEMPLATE_DEC
 void XCLASS::AddModule (t_iterator, t_iterator)
 {
-  LASSERT1op1(id_stack_.size(),>=,2);
-  std::string identifier(pop_id()), type(pop_id());
-  // std::cout<<"add module: "<<type<<": "<<identifier<<std::endl;
-  LASSERT(!cmodule_stack_.empty());
-  cmodule_stack_.back()->AddSubModule(type, identifier);
+  std::string identifier(pop_id_x()), type(pop_id_x());
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->AddSubModule(type, identifier);
+  }
+  else
+  {
+    equivalent_code_<<"module "<<type<<" "<<identifier<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::Connect (t_iterator, t_iterator)
 {
-  LASSERT1op1(id_stack_.size(),>=,4);
-  std::string port2(pop_id()), module2(pop_id()), port1(pop_id()), module1(pop_id());
-  // std::cout<<"connect cmodule: "
-    // <<module1<<"."<<port1<<" ---> "<<module2<<"."<<port2<<std::endl;
-  LASSERT(!cmodule_stack_.empty());
-  cmodule_stack_.back()->SubConnect(module1, port1,  module2, port2);
+  std::string port2(pop_id_x()), module2(pop_id_x()), port1(pop_id_x()), module1(pop_id_x());
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->SubConnect(module1, port1,  module2, port2);
+  }
+  else
+  {
+    equivalent_code_<<"connect "<<module1<<"."<<port1<<","<<module2<<"."<<port2<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::AssignAgentConfigS (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("global `config\'"))  return;
-  LASSERT(!cmodule_stack_.empty());
-  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->ParamBoxConfig());
+  var_space::TVariable void_var, *var_ptr(&void_var);
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    var_ptr= &(cmodule_stack_.back()->ParamBoxConfig());
+  }
+  else
+  {
+    equivalent_code_<<"config={"<<std::endl;
+  }
+  var_space::TParserInfoIn  pinfo(*var_ptr);
   pinfo.FileName= file_name_;
   pinfo.StartLineNum= line_num_;
-  pinfo.LiteralTable= NULL;
+  pinfo.LiteralTable= literal_table_;
+  if(parse_mode_.Phantom) {pinfo.ParseMode= var_space::pmPhantom; pinfo.EquivalentCode= &equivalent_code_;}
   var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
@@ -410,19 +473,31 @@ void XCLASS::AssignAgentConfigE (t_iterator first, t_iterator last)
   var_space::TParserInfoOut poutinfo;
   if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
   line_num_= poutinfo.LastLineNum;
+  if(parse_mode_.Phantom)
+  {
+    equivalent_code_<<"}"<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::AssignConfigS (t_iterator first, t_iterator last)
 {
-  LASSERT(!id_stack_.empty());
-  std::string identifier(pop_id());
-  // std::cout<<"assign config to "<<identifier<<std::endl; sf.PrintToStream(std::cout,"  ");
-  LASSERT(!cmodule_stack_.empty());
-  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig());
+  std::string identifier(pop_id_x());
+  var_space::TVariable void_var, *var_ptr(&void_var);
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    var_ptr= &(cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig());
+  }
+  else
+  {
+    equivalent_code_<<identifier<<".config={"<<std::endl;
+  }
+  var_space::TParserInfoIn  pinfo(*var_ptr);
   pinfo.FileName= file_name_;
   pinfo.StartLineNum= line_num_;
-  pinfo.LiteralTable= NULL;
+  pinfo.LiteralTable= literal_table_;
+  if(parse_mode_.Phantom) {pinfo.ParseMode= var_space::pmPhantom; pinfo.EquivalentCode= &equivalent_code_;}
   var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
@@ -431,18 +506,31 @@ void XCLASS::AssignConfigE (t_iterator first, t_iterator last)
   var_space::TParserInfoOut poutinfo;
   if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
   line_num_= poutinfo.LastLineNum;
+  if(parse_mode_.Phantom)
+  {
+    equivalent_code_<<"}"<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::AssignMemoryS (t_iterator first, t_iterator last)
 {
-  LASSERT(!id_stack_.empty());
-  std::string identifier(pop_id());
-  LASSERT(!cmodule_stack_.empty());
-  var_space::TParserInfoIn  pinfo(cmodule_stack_.back()->SubModule(identifier).ParamBoxMemory());
+  std::string identifier(pop_id_x());
+  var_space::TVariable void_var, *var_ptr(&void_var);
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    var_ptr= &(cmodule_stack_.back()->SubModule(identifier).ParamBoxMemory());
+  }
+  else
+  {
+    equivalent_code_<<identifier<<".memory={"<<std::endl;
+  }
+  var_space::TParserInfoIn  pinfo(*var_ptr);
   pinfo.FileName= file_name_;
   pinfo.StartLineNum= line_num_;
-  pinfo.LiteralTable= NULL;
+  pinfo.LiteralTable= literal_table_;
+  if(parse_mode_.Phantom) {pinfo.ParseMode= var_space::pmPhantom; pinfo.EquivalentCode= &equivalent_code_;}
   var_pagent_.StartSubParse (pinfo);
 }
 TEMPLATE_DEC
@@ -451,30 +539,48 @@ void XCLASS::AssignMemoryE (t_iterator first, t_iterator last)
   var_space::TParserInfoOut poutinfo;
   if (!var_pagent_.EndSubParse(&poutinfo))  error_= true;
   line_num_= poutinfo.LastLineNum;
+  if(parse_mode_.Phantom)
+  {
+    equivalent_code_<<"}"<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::CompositeDefS (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("`composite\'"))  return;
-  LASSERT(!id_stack_.empty());
-  std::string module_name(pop_id());
-  cmodule_entity_stack_.push_back (TCompositeModule(module_name,"temporary"));
-  cmodule_entity_stack_.back().SetAgent (cmodule_stack_.back()->Agent());
-  cmodule_stack_.push_back (&(cmodule_entity_stack_.back()));
-  tmp_line_num_= line_num_;
+  std::string module_name(pop_id_x());
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_entity_stack_.push_back (TCompositeModule(module_name,"temporary"));
+    cmodule_entity_stack_.back().SetAgent (cmodule_stack_.back()->Agent());
+    cmodule_stack_.push_back (&(cmodule_entity_stack_.back()));
+    line_num_stack_.push_back(line_num_);
+  }
+  else
+  {
+    cmodule_entity_stack_.push_back(TCompositeModule("DUMMY","dummy"));
+    equivalent_code_<<"composite "<<module_name<<"{"<<std::endl;
+  }
 }
 TEMPLATE_DEC
 void XCLASS::CompositeDefE (t_iterator first, t_iterator last)
 {
+  if(parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_entity_stack_.empty());
+    cmodule_entity_stack_.pop_back();
+    equivalent_code_<<"}"<<std::endl;
+    return;
+  }
   LASSERT(!cmodule_stack_.empty());
   LASSERT(!cmodule_entity_stack_.empty());
   cmodule_stack_.pop_back();
   std::string  module_name(cmodule_entity_stack_.back().InheritedModuleName());
   if (cmp_module_generator_.GeneratorExists (module_name))
   {
-    error_= true;
-    print_error("composite module "+module_name+" is already defined");
+    PRINT_ERROR("composite module "<<module_name<<" is already defined");
     return;
   }
   TCompositeModuleGenerator::TGeneratorInfo  generator;
@@ -483,7 +589,8 @@ void XCLASS::CompositeDefE (t_iterator first, t_iterator last)
   cmodule_entity_stack_.pop_back();
   generator.Script   =  ss.str();
   generator.FileName =  file_name_;
-  generator.LineNum  =  tmp_line_num_;
+  LASSERT(!line_num_stack_.empty());
+  generator.LineNum  =  line_num_stack_.back();  line_num_stack_.pop_back();
   if (!cmp_module_generator_.AddGenerator (module_name, generator))
   {
     error_= true;
@@ -494,36 +601,54 @@ void XCLASS::CompositeDefE (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::EditS (t_iterator first, t_iterator last)
 {
-  LASSERT(!id_stack_.empty());
-  std::string identifier(pop_id());
-  LASSERT(!cmodule_stack_.empty());
-  TCompositeModule *cmodule= dynamic_cast<TCompositeModule*>(&cmodule_stack_.back()->SubModule(identifier));
-  if (cmodule==NULL)
+  std::string identifier(pop_id_x());
+  if(!parse_mode_.Phantom)
   {
-    error_= true;
-    print_error("not a composite module: "+identifier);
-    return;
+    LASSERT(!cmodule_stack_.empty());
+    TCompositeModule *cmodule= dynamic_cast<TCompositeModule*>(&cmodule_stack_.back()->SubModule(identifier));
+    if (cmodule==NULL)
+    {
+      PRINT_ERROR("not a composite module: "<<identifier);
+      return;
+    }
+    cmodule_stack_.push_back (cmodule);
   }
-  cmodule_stack_.push_back (cmodule);
+  else
+  {
+    equivalent_code_<<"edit "<<identifier<<"{"<<std::endl;
+  }
 }
 TEMPLATE_DEC
 void XCLASS::EditE (t_iterator first, t_iterator last)
 {
-  LASSERT(!cmodule_stack_.empty());
-  cmodule_stack_.pop_back();
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.pop_back();
+  }
+  else
+  {
+    equivalent_code_<<"}"<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::inherit_module (bool no_export)
 {
-  LASSERT(!id_stack_.empty());
-  std::string  cmodule_name(pop_id());
-  LASSERT(!cmodule_stack_.empty());
-  if(!cmp_module_generator_.Create(*cmodule_stack_.back(), cmodule_name, cmodule_stack_.back()->InstanceName(), no_export))
+  std::string  cmodule_name(pop_id_x());
+  if(!parse_mode_.Phantom)
   {
-    error_= true;
-    print_error("failed to inherit "+cmodule_name);
-    return;
+    LASSERT(!cmodule_stack_.empty());
+    if(!cmp_module_generator_.Create(*cmodule_stack_.back(), cmodule_name, cmodule_stack_.back()->InstanceName(), no_export))
+    {
+      PRINT_ERROR("failed to inherit "<<cmodule_name);
+      return;
+    }
+  }
+  else
+  {
+    if(!no_export) equivalent_code_<<"inherit "<<cmodule_name<<std::endl;
+    else           equivalent_code_<<"inherit_prv "<<cmodule_name<<std::endl;
   }
 }
 TEMPLATE_DEC
@@ -540,38 +665,161 @@ void XCLASS::InheritPrv (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::ExportPort (t_iterator, t_iterator)
 {
-  LASSERT1op1(id_stack_.size(),>=,4);
-  std::string  export_name(pop_id()), as_type(pop_id()), port_name(pop_id()), module_name(pop_id());
+  std::string  export_name(pop_id_x()), as_type(pop_id_x()), port_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= port_name;
-  LASSERT(!cmodule_stack_.empty());
-  if(no_export_)  return;
-  cmodule_stack_.back()->ExportPort (module_name, port_name, export_name);
+  if(parse_mode_.NoExport)  return;
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->ExportPort (module_name, port_name, export_name);
+  }
+  else
+  {
+    equivalent_code_<<"export "<<module_name<<"."<<port_name<<" as "<<export_name<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::ExportConfig (t_iterator, t_iterator)
 {
-  LASSERT1op1(id_stack_.size(),>=,4);
-  std::string  export_name(pop_id()), as_type(pop_id()), param_name(pop_id()), module_name(pop_id());
+  std::string  export_name(pop_id_x()), as_type(pop_id_x()), param_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= param_name;
-  LASSERT(!cmodule_stack_.empty());
-  if(no_export_)  return;
-  cmodule_stack_.back()->ExportConfig (module_name, param_name, export_name);
+  if(parse_mode_.NoExport)  return;
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->ExportConfig (module_name, param_name, export_name);
+  }
+  else
+  {
+    equivalent_code_<<"export "<<module_name<<".config."<<param_name<<" as "<<export_name<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
 void XCLASS::ExportMemory (t_iterator, t_iterator)
 {
-  LASSERT1op1(id_stack_.size(),>=,4);
-  std::string  export_name(pop_id()), as_type(pop_id()), param_name(pop_id()), module_name(pop_id());
+  std::string  export_name(pop_id_x()), as_type(pop_id_x()), param_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= param_name;
+  if(parse_mode_.NoExport)  return;
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->ExportMemory (module_name, param_name, export_name);
+  }
+  else
+  {
+    equivalent_code_<<"export "<<module_name<<".memory."<<param_name<<" as "<<export_name<<std::endl;
+  }
+}
+
+TEMPLATE_DEC
+void XCLASS::FunctionDefS (t_iterator first, t_iterator last)
+{
+  if(!is_allowed_in_composite("`def\'"))  return;
+  if(!is_allowed_in_funcdef("`def\'"))  return;
+  LASSERT(func_param_stack_.empty());
+  do
+  {
+    func_param_stack_.push_front(pop_id_x());
+  } while(func_param_stack_.front()!="def");
+  func_param_stack_.pop_front();  // pop "def"
+  tmp_func_name_= func_param_stack_.front();
+  func_param_stack_.pop_front();  // pop tmp_func_name_
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT1op1(equivalent_code_.str(),==,"");
+    parse_mode_.Phantom= true;
+    parse_mode_.FunctionDef= true;
+    set_parse_mode(parse_mode_);
+    line_num_stack_.push_back(line_num_);
+  }
+  else
+  {
+    equivalent_code_<<"def "<<tmp_func_name_<<"(";
+    PrintContainer(func_param_stack_.begin(),func_param_stack_.end(), equivalent_code_, ",");
+    equivalent_code_<<")"<<"{"<<std::endl;
+  }
+}
+TEMPLATE_DEC
+void XCLASS::FunctionDefE (t_iterator first, t_iterator last)
+{
+  if(!parse_mode_.FunctionDef && parse_mode_.Phantom)
+  {
+    func_param_stack_.clear();
+    tmp_func_name_="";
+    equivalent_code_<<"}"<<std::endl;
+    return;
+  }
+  parse_mode_.Phantom= false;
+  parse_mode_.FunctionDef= false;
+  set_parse_mode(parse_mode_);
+  if (function_manager_.FunctionExists (tmp_func_name_))
+  {
+    PRINT_ERROR("function "<<tmp_func_name_<<" is already defined");
+    return;
+  }
+  TFunctionManager::TFunctionInfo  function;
+  function.Script= equivalent_code_.str();  equivalent_code_.str("");
+  function.ParamList= func_param_stack_;  func_param_stack_.clear();
+  function.FileName =  file_name_;
+  LASSERT(!line_num_stack_.empty());
+  function.LineNum  =  line_num_stack_.back();  line_num_stack_.pop_back();
+  if (!function_manager_.AddFunction (tmp_func_name_, function))
+  {
+    error_= true;
+  }
+  tmp_func_name_="";
+}
+
+TEMPLATE_DEC
+void XCLASS::FunctionCall (t_iterator first, t_iterator last)
+{
+  std::string identifier(pop_id_x());
+  std::list<var_space::TLiteral>  argv_entity;
+  var_space::TEvaluateLiteralConfig pop_config; pop_config.AllowId=true;
+  pop_literal_list_x(argv_entity,pop_config);
+  if(parse_mode_.Phantom)
+  {
+    equivalent_code_<<identifier<<"("<<var_space::TVarListFormat(argv_entity.begin(),argv_entity.end())<<")"<<std::endl;
+    return;
+  }
+  const TFunctionManager::TFunctionInfo *pfunction= function_manager_.Function(identifier);
+  if(pfunction==NULL)  {error_=true; return;}
+
+  var_space::TLiteralTable  literal_table;
+  if(pfunction->ParamList.size()!=argv_entity.size())
+  {
+    PRINT_ERROR("the function "<<identifier<<" takes "
+                <<pfunction->ParamList.size()<<" arguments, but given "<<argv_entity.size());
+    return;
+  }
+  std::list<std::string>::const_iterator  param_itr(pfunction->ParamList.begin());
+  for(std::list<var_space::TLiteral>::iterator itr(argv_entity.begin()),last(argv_entity.end()); itr!=last; ++itr)
+    literal_table.AddLiteral(*param_itr, *itr);
+
   LASSERT(!cmodule_stack_.empty());
-  if(no_export_)  return;
-  cmodule_stack_.back()->ExportMemory (module_name, param_name, export_name);
+  TAgentParserInfoIn  in(*cmodule_stack_.back());
+  TAgentParserInfoOut out;
+  in.ParseMode          = parse_mode_;
+  in.StartLineNum       = pfunction->LineNum;
+  in.PathList           = &path_list_;
+  in.IncludedList       = &included_list_;
+  in.CmpModuleGenerator = &cmp_module_generator_;
+  in.FunctionManager    = &function_manager_;
+  in.LiteralTable       = &literal_table;
+  out.EquivalentCode    = NULL;
+
+  if (!ExecuteFunction(pfunction->Script, current_dir_, pfunction->FileName, in, out))
+  {
+    PRINT_ERROR("failed to execute the function "<<identifier);
+  }
 }
 
 #undef TEMPLATE_DEC
 #undef XCLASS
+//-------------------------------------------------------------------------------------------
+#undef PRINT_ERROR
 //-------------------------------------------------------------------------------------------
 
 
@@ -583,6 +831,7 @@ template <typename t_iterator>
 template <typename ScannerT>
 TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICodeParser &self)
   :
+    var_space::basic_parser_definition<t_iterator,ScannerT>(self.pagent_),
     var_cparser_def (self.pagent_.VarCParser()),
     var_parser (var_cparser_def.start())
 {
@@ -591,11 +840,9 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   #define ALIAS_ACTION(x_action,x_as)  \
     boost::function<void(t_iterator,t_iterator)>  \
       x_as= boost::bind(&TPAgent::x_action,&self.pagent_,_1,_2)
-  ALIAS_ACTION(EndOfLine           , f_end_of_line            );
   ALIAS_ACTION(SyntaxError         , f_syntax_error           );
   ALIAS_ACTION(PushIdentifier      , f_push_identifier        );
-  ALIAS_ACTION(PushAsAsis          , f_push_as_asis           );
-  ALIAS_ACTION(PushLiteralString   , f_push_literal_string    );
+  ALIAS_ACTION(PushKeyword         , f_push_keyword           );
   ALIAS_ACTION(IncludeFile         , f_include_file           );
   ALIAS_ACTION(IncludeFileOnce     , f_include_file_once      );
   ALIAS_ACTION(AddModule           , f_add_module             );
@@ -615,50 +862,20 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   ALIAS_ACTION(ExportPort          , f_export_port            );
   ALIAS_ACTION(ExportConfig        , f_export_config          );
   ALIAS_ACTION(ExportMemory        , f_export_memory          );
+  ALIAS_ACTION(FunctionDefS        , f_function_def_s         );
+  ALIAS_ACTION(FunctionDefE        , f_function_def_e         );
+  ALIAS_ACTION(FunctionCall        , f_function_call          );
   #undef ALIAS_ACTION
 
   identifier_p
-    = ( keyword_p [f_syntax_error]
-      | ((alpha_p | '_') >> *(alnum_p | '_')) );
+    = ((alpha_p | '_') >> *(alnum_p | '_'));
 
-  literal_string
-    = confix_p('"', *c_escape_ch_p, '"');
-
-  lcomment
-    = str_p("//")>>*(anychar_p - eol_p)
-      >> *blank_p ;
-
-  end_of_line
-    = eol_p [f_end_of_line];
-  blank_eol_p
-    = blank_p | end_of_line;
-
-  op_semicolon
-    = *blank_p >> ch_p(';') >> *blank_p ;
-  op_comma
-    = *blank_p >> ch_p(',') >> *blank_p ;
-  op_dot
-    = *blank_p >> ch_p('.') >> *blank_p ;
-  op_eq
-    = *blank_p >> ch_p('=') >> *blank_p ;
-  op_at
-    = *blank_p >> ch_p('@') >> *blank_p ;
-  op_brace_l
-    = *blank_p >> ch_p('{') >> *blank_p ;
-  op_brace_r
-    = *blank_p >> ch_p('}') >> *blank_p ;
-  op_parenthesis_l
-    = *blank_p >> ch_p('(') >> *blank_p ;
-  op_parenthesis_r
-    = *blank_p >> ch_p(')') >> *blank_p ;
-  op_bracket_l
-    = *blank_p >> ch_p('[') >> *blank_p ;
-  op_bracket_r
-    = *blank_p >> ch_p(']') >> *blank_p ;
+  list_identifier
+    = !(identifier_p [f_push_identifier] >> *(op_comma >> identifier_p [f_push_identifier]));
 
   block_as
-    = ( str_p("as_is") [f_push_as_asis]
-      | str_p("as")    [f_push_as_asis] >> +blank_eol_p
+    = ( str_p("as_is") [f_push_keyword]
+      | (str_p("as") >> +blank_eol_p) [f_push_keyword]
           >> identifier_p [f_push_identifier] );
 
   statements
@@ -683,6 +900,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
     = (
       statement_composite
       | statement_edit
+      | statement_def
       | statement_include [f_include_file]
       | statement_include_once [f_include_file_once]
       | statement_module [f_add_module]
@@ -691,7 +909,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
       | statement_inherit_prv [f_inherit_prv]
       | statement_export
       | statement_assign_agent_config
-      | statement_assign
+      | statement_starting_with_identifier
       );
 
   statement_composite
@@ -708,13 +926,21 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
           >> statements
             >> op_brace_r [f_edit_e];
 
+  statement_def
+    = (str_p("def") >> +blank_eol_p) [f_push_keyword]
+      >> identifier_p [f_push_identifier] >> *blank_eol_p
+        >> op_parenthesis_l >> list_identifier >> op_parenthesis_r >> *blank_eol_p
+          >> op_brace_l [f_function_def_s]
+            >> statements
+              >> op_brace_r [f_function_def_e];
+
   statement_include
     = str_p("include")
-      >> +blank_p >> literal_string [f_push_literal_string];
+      >> +blank_p >> literal_string;
 
   statement_include_once
     = str_p("include_once")
-      >> +blank_p >> literal_string [f_push_literal_string];
+      >> +blank_p >> literal_string;
 
   statement_module
     = str_p("module")
@@ -765,10 +991,11 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
         >> var_parser >> *blank_eol_p
           >> op_brace_r [f_assign_agent_config_e];
 
-  statement_assign
+  statement_starting_with_identifier
     = identifier_p [f_push_identifier]
       >> (statement_assign_config
-        | statement_assign_memory);
+        | statement_assign_memory
+        | statement_function_call);
 
   statement_assign_config
     = op_dot >> str_p("config") >> op_eq >> *blank_eol_p
@@ -781,6 +1008,9 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
       >> op_brace_l [f_assign_memory_s]
         >> var_parser >> *blank_eol_p
           >> op_brace_r [f_assign_memory_e];
+
+  statement_function_call
+    = parenthesized_list_literal_any [f_function_call];
 
   statement_unexpected
     = (anychar_p - eol_p - op_brace_r) >> *(anychar_p - eol_p);
@@ -799,7 +1029,7 @@ bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::st
   std::map<std::string, TCompositeModuleGenerator::TGeneratorInfo>::const_iterator  igenerator(generators_.find(cmodule_name));
   if (igenerator==generators_.end())
   {
-    LERROR("error in TCompositeModuleGenerator: does not have a generator for "<<cmodule_name);
+    LERROR(cmodule_name<<": module (composite) not found");
     return false;
   }
   typedef std::string::const_iterator TIterator;
@@ -809,10 +1039,14 @@ bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::st
   std::list<boost::filesystem::path>  null_path_list;
   std::list<std::string> null_included_list;
   TCompositeModuleGenerator null_cmp_module_generator;
+  TFunctionManager null_function_manager;
+  std::stringstream dummy_equivalent_code;
 
-  TSKYAIParseAgent<TIterator> pagent(boost::filesystem::path(""), null_path_list, null_included_list, null_cmp_module_generator);
+  TSKYAIParseAgent<TIterator> pagent(boost::filesystem::path(""), null_path_list, null_included_list, null_cmp_module_generator, null_function_manager, dummy_equivalent_code);
 
-  parse_info<TIterator> info= pagent.Parse(instance, igenerator->second.FileName, first, last, igenerator->second.LineNum, no_export);
+  TAgentParseMode parse_mode;
+  parse_mode.NoExport= no_export;
+  parse_info<TIterator> info= pagent.Parse(instance, igenerator->second.FileName, first, last, igenerator->second.LineNum, parse_mode);
   if (info.stop!=last || pagent.Error())
   {
     LERROR("failed to instantiate "<<instance_name<<" as "<<cmodule_name);
@@ -823,27 +1057,63 @@ bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::st
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
+//!\brief Execute a function whose contents is func_script
+bool ExecuteFunction(const std::string &func_script,
+      const boost::filesystem::path &current_dir, const std::string &file_name,
+      TAgentParserInfoIn &in, TAgentParserInfoOut &out)
+//===========================================================================================
+{
+  using namespace boost::spirit::classic;
+  typedef std::string::const_iterator TIterator;
+  TIterator  first(func_script.begin());
+  TIterator  last(func_script.end());
+
+  std::list<boost::filesystem::path>  null_path_list;
+  if (in.PathList==NULL)  in.PathList= &null_path_list;
+  std::list<std::string> null_included_list;
+  if (in.IncludedList==NULL)  in.IncludedList= &null_included_list;
+  TCompositeModuleGenerator null_cmp_module_generator;
+  if (in.CmpModuleGenerator==NULL)  in.CmpModuleGenerator= &null_cmp_module_generator;
+  TFunctionManager null_function_manager;
+  if (in.FunctionManager==NULL)  in.FunctionManager= &null_function_manager;
+  std::stringstream dummy_equivalent_code;
+  if (out.EquivalentCode==NULL)  out.EquivalentCode= &dummy_equivalent_code;
+
+  TSKYAIParseAgent<TIterator> pagent(current_dir, *in.PathList, *in.IncludedList, *in.CmpModuleGenerator, *in.FunctionManager, *out.EquivalentCode);
+  if (in.LiteralTable)  pagent.SetLiteralTable(in.LiteralTable);
+
+  parse_info<TIterator> info= pagent.Parse(in.CModule, file_name, first, last, in.StartLineNum, in.ParseMode);
+
+  out.IsLast= (info.stop==last);
+  out.LastLineNum= pagent.LineNum();
+  return out.IsLast && !pagent.Error();
+}
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
 /*!\brief load modules, connections, configurations from the file [filename] (native path format)
     \param [in,out]included_list  :  included full-path (native) list
     \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
-bool TAgent::LoadFromFile (const std::string &filename, bool *is_last, std::list<std::string> *included_list)
+bool TAgent::LoadFromFile (const std::string &filename, std::list<std::string> *included_list)
 //===========================================================================================
 {
   using namespace  boost::filesystem;
   path  file_path(complete(path(filename,native)));
 
-  return LoadAgentFromFile (Modules(), file_path, is_last, path_list_, included_list, &cmp_module_generator_);
+  TAgentParserInfoIn  in(Modules());
+  TAgentParserInfoOut out;
+  in.PathList           = path_list_;
+  in.IncludedList       = included_list;
+  in.CmpModuleGenerator = &cmp_module_generator_;
+  in.FunctionManager    = &function_manager_;
+
+  return LoadAgentFromFile (file_path, in, out);
 }
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-/*!\brief load modules, connections, configurations from the file [filename]
-    \param [in]path_list : path-list from which an agent file is searched
-    \param [in,out]included_list  :  included full-path (native) list
-    \note  If you use include_once for multiple LoadAgentFromFile, the same included_list should be specified */
-bool LoadAgentFromFile (TCompositeModule &cmodule, boost::filesystem::path file_path, bool *is_last,
-                        std::list<boost::filesystem::path> *path_list, std::list<std::string> *included_list,
-                        TCompositeModuleGenerator *cmp_module_generator)
+/*!\brief load modules, connections, configurations from the file [path_list] */
+bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &in, TAgentParserInfoOut &out)
 //===========================================================================================
 {
   using namespace boost::spirit::classic;
@@ -857,19 +1127,27 @@ bool LoadAgentFromFile (TCompositeModule &cmodule, boost::filesystem::path file_
   }
 
   std::list<boost::filesystem::path>  null_path_list;
-  if (path_list==NULL)  path_list= &null_path_list;
+  if (in.PathList==NULL)  in.PathList= &null_path_list;
   std::list<std::string> null_included_list;
-  if (included_list==NULL)  included_list= &null_included_list;
+  if (in.IncludedList==NULL)  in.IncludedList= &null_included_list;
   TCompositeModuleGenerator null_cmp_module_generator;
-  if (cmp_module_generator==NULL)  cmp_module_generator= &null_cmp_module_generator;
+  if (in.CmpModuleGenerator==NULL)  in.CmpModuleGenerator= &null_cmp_module_generator;
+  TFunctionManager null_function_manager;
+  if (in.FunctionManager==NULL)  in.FunctionManager= &null_function_manager;
+  std::stringstream dummy_equivalent_code;
+  if (out.EquivalentCode==NULL)  out.EquivalentCode= &dummy_equivalent_code;
 
-  included_list->push_back(file_path.file_string());
-  TSKYAIParseAgent<TIterator> pagent(file_path.parent_path(), *path_list, *included_list, *cmp_module_generator);
+  in.IncludedList->push_back(file_path.file_string());
+  TSKYAIParseAgent<TIterator> pagent(file_path.parent_path(), *in.PathList, *in.IncludedList, *in.CmpModuleGenerator, *in.FunctionManager, *out.EquivalentCode);
+  if (in.LiteralTable)  pagent.SetLiteralTable(in.LiteralTable);
 
   TIterator last= first.make_end();
 
-  parse_info<TIterator> info= pagent.Parse(cmodule, file_path.file_string(), first, last);
-  if (is_last)  *is_last= (info.stop==last);
+  parse_info<TIterator> info= pagent.Parse(in.CModule, file_path.file_string(), first, last, in.StartLineNum, in.ParseMode);
+
+  out.IsLast= (info.stop==last);
+  out.LastLineNum= pagent.LineNum();
+
   return !pagent.Error();
 }
 //-------------------------------------------------------------------------------------------
@@ -991,7 +1269,7 @@ bool TAgent::SaveToFile (const std::string &filename) const
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-/*!\brief save modules, connections, configurations to the file [filename] */
+/*!\brief save modules, connections, configurations to the file [path_list] */
 bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path)
 //===========================================================================================
 {

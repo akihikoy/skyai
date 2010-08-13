@@ -363,6 +363,7 @@ SPECIALIZER (bool            )
 SPECIALIZER (float           )
 SPECIALIZERI(double          )
 SPECIALIZERI(long double     )
+#undef SPECIALIZERI
 #undef SPECIALIZER
 
 //-------------------------------------------------------------------------------------------

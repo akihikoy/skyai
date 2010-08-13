@@ -26,6 +26,7 @@
 #define loco_rabbits_variable_parser_h
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space_fwd.h>
+#include <lora/variable_any.h>
 //-------------------------------------------------------------------------------------------
 #include <lora/common.h>
 #include <string>
@@ -42,24 +43,26 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
+struct TLiteral
+//===========================================================================================
+{
+  enum TLiteralType {ltIdentifier=0, ltPrimitive, ltList};
+  TLiteralType    LType;
+  TAnyPrimitive   LPrimitive;
+  std::list<TAnyPrimitive>  LList;
+};
+//-------------------------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream &lhs, const TLiteral &rhs);
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
 class TLiteralTable
 //===========================================================================================
 {
 public:
 
-  enum TLiteralType {ltIdentifier=0, ltInt, ltReal, ltBool, ltString, ltRealList};
   enum TAddResult {arFailed=0, arInserted, arOverwritten};
-
-  //! \todo FIXME: very inefficient code (using a lot of memory)
-  struct TLiteral
-    {
-      TLiteralType LType;
-      pt_int       LInt;
-      pt_real      LReal;
-      pt_bool      LBool;
-      pt_string    LString;
-      std::list<pt_real>  LRealList;
-    };
 
   typedef std::map<TIdentifier,TLiteral> TTable;
 
@@ -68,11 +71,21 @@ public:
   const TLiteral* Find(const TIdentifier &id) const;
 
   TAddResult AddIdentifier(const TIdentifier &id, const TIdentifier &value);
-  TAddResult AddLiteral(const TIdentifier &id, const pt_int     &value);
-  TAddResult AddLiteral(const TIdentifier &id, const pt_real    &value);
-  TAddResult AddLiteral(const TIdentifier &id, const pt_bool    &value);
-  TAddResult AddLiteral(const TIdentifier &id, const pt_string  &value);
-  TAddResult AddLiteral(const TIdentifier &id, const std::list<pt_real>  &value);
+
+  template <typename t_primitive>
+  TAddResult AddLiteral(const TIdentifier &id, const t_primitive &value)
+    {
+      TLiteral l;
+      l.LType= TLiteral::ltPrimitive;
+      l.LPrimitive= TAnyPrimitive(value);
+      return add_to_table(id,l);
+    }
+  TAddResult AddLiteral(const TIdentifier &id, const std::list<TAnyPrimitive>  &value);
+
+  TAddResult AddLiteral(const TIdentifier &id, const TLiteral &l)
+    {
+      return add_to_table(id,l);
+    }
 
 private:
 
@@ -84,19 +97,30 @@ private:
 };
 //-------------------------------------------------------------------------------------------
 
-std::ostream& operator<<(std::ostream &lhs, const TLiteralTable::TLiteral &rhs);
+struct TEvaluateLiteralConfig
+{
+  bool AllowId;
+  bool ExitByError;
+  TEvaluateLiteralConfig() : AllowId(false), ExitByError(true) {}
+};
+TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error);
+std::string ExpandIdentifier (const std::string &id, const TLiteralTable *literal_table, bool &error);
 //-------------------------------------------------------------------------------------------
 
-enum TParseMode {pmNormal=0, pmPhantom}
+
+//===========================================================================================
+
+enum TParseMode {pmNormal=0, pmPhantom};
 
 struct TParserInfoIn
 {
-  TVariable      &Var;
-  TParseMode     ParseMode;
-  std::string    FileName;
-  int            StartLineNum;
-  TLiteralTable  *LiteralTable;
-  TParserInfoIn(TVariable &v) : Var(v), ParseMode(pmNormal), StartLineNum(1), LiteralTable(NULL)  {}
+  TVariable            &Var;
+  TParseMode           ParseMode;
+  std::string          FileName;
+  int                  StartLineNum;
+  const TLiteralTable  *LiteralTable;
+  std::stringstream *EquivalentCode;  //! stored if ParseMode is pmPhantom
+  TParserInfoIn(TVariable &v) : Var(v), ParseMode(pmNormal), StartLineNum(1), LiteralTable(NULL), EquivalentCode(NULL)  {}
 };
 struct TParserInfoOut
 {

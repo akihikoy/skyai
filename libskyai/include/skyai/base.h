@@ -706,6 +706,36 @@ private:
 
 
 //===========================================================================================
+/*!\brief Function manager  */
+class TFunctionManager
+//===========================================================================================
+{
+public:
+
+  struct TFunctionInfo
+    {
+      std::string  Script;
+      std::list<std::string>  ParamList;
+      std::string  FileName;  //!< filename where Script is defined
+      int          LineNum;   //!< line number where Script is defined
+    };
+
+  //! Added: return true, failed: return false
+  bool AddFunction(const std::string &func_name, const TFunctionInfo &function);
+
+  bool FunctionExists(const std::string &func_name) const;
+
+  const TFunctionInfo* Function(const std::string &func_name) const;
+
+private:
+
+  std::map<std::string, TFunctionInfo>  functions_;
+
+};
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 /*!\brief TAgent's Configurations  */
 struct TAgentConfigurations
 //===========================================================================================
@@ -824,7 +854,7 @@ public:
   /*!\brief load modules, connections, configurations from the file [filename] (native path format)
       \param [in,out]included_list  :  included full-path (native) list
       \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
-  bool LoadFromFile (const std::string &filename, bool *is_last=NULL, std::list<std::string> *included_list=NULL);
+  bool LoadFromFile (const std::string &filename, std::list<std::string> *included_list=NULL);
 
   /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
   bool SaveToFile (const std::string &filename) const;
@@ -842,6 +872,7 @@ public:
 
 
   const TCompositeModuleGenerator& CompositeModuleGenerator() const {return cmp_module_generator_;}
+  const TFunctionManager& FunctionManager() const {return function_manager_;}
 
 
   /*!\brief search filename from the path-list, return the native path
@@ -883,6 +914,7 @@ protected:
   TAgentConfigurations conf_;
 
   TCompositeModuleGenerator  cmp_module_generator_;
+  TFunctionManager           function_manager_;
 
   std::list<boost::filesystem::path>  *path_list_;
 

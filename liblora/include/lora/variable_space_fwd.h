@@ -59,6 +59,8 @@ class TConstForwardIterator;
 struct TVariableSpace {void *dummy;};
 inline TVariableSpace VariableSpace()  {TVariableSpace vs; return vs;}
 
+struct TAnyPrimitive;
+
 #ifndef VAR_SPACE_INDENT_STEP
 #define VAR_SPACE_INDENT_STEP  "  "
 #endif

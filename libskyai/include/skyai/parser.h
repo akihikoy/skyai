@@ -31,53 +31,64 @@
 #define skyai_parser_h
 //-------------------------------------------------------------------------------------------
 #include <string>
-//-------------------------------------------------------------------------------------------
-// forward declaration:
-namespace std {
-  template < class T > class allocator;
-  template < class T, class Allocator /*= allocator<T>*/ > class list;
-}
-namespace boost {namespace filesystem {
-  struct path_traits;
-  template<class String, class Traits> class basic_path;
-  typedef basic_path< std::string, path_traits > path;
-}}
+#include <list>
+#include <sstream>
+#include <boost/filesystem/path.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
 class TCompositeModule;
 class TCompositeModuleGenerator;
+class TFunctionManager;
 class TAgent;
+namespace var_space {class TLiteralTable;}
 //-------------------------------------------------------------------------------------------
 
-//===========================================================================================
+struct TAgentParseMode
+{
+  bool  NoExport;  //!< if true, export sentences are ignored (used in a private inheritance)
+  bool  Phantom;
+  bool  FunctionDef;
+  TAgentParseMode() : NoExport(false), Phantom(false), FunctionDef(false)  {}
+};
+struct TAgentParserInfoIn
+{
+  TCompositeModule                     &CModule;
+  TAgentParseMode                      ParseMode;
+  int                                  StartLineNum;
+  std::list<boost::filesystem::path>   *PathList;  //!< path-list from which an agent file is searched
+  std::list<std::string>               *IncludedList;  //!< included full-path (native) list
+                                       /*!\note If you use include_once for multiple LoadAgentFromFile,
+                                                the same included_list should be specified */
+  TCompositeModuleGenerator            *CmpModuleGenerator;
+  TFunctionManager                     *FunctionManager;
+  var_space::TLiteralTable             *LiteralTable;
 
-#define LIST1(x_type)  std::list<x_type, std::allocator<x_type> >
+  TAgentParserInfoIn(TCompositeModule &cmod)
+    : CModule(cmod), StartLineNum(1), PathList(NULL), IncludedList(NULL), CmpModuleGenerator(NULL), FunctionManager(NULL), LiteralTable(NULL)  {}
+};
+struct TAgentParserInfoOut
+{
+  bool                 IsLast;
+  int                  LastLineNum;
+  std::stringstream    *EquivalentCode;  //! stored if Phantom is true
+  TAgentParserInfoOut(void) : IsLast(false), LastLineNum(-1), EquivalentCode(NULL)  {}
+};
+//-------------------------------------------------------------------------------------------
 
-/*!\brief load modules, connections, configurations from the file [filename]
-    \param [in]path_list : path-list from which an agent file is searched
-    \param [in,out]included_list  :  included full-path (native) list
-    \note  If you use include_once for multiple LoadAgentFromFile, the same included_list should be specified */
-bool LoadAgentFromFile (TCompositeModule &modules, boost::filesystem::path file_path, bool *is_last=NULL,
-                        LIST1(boost::filesystem::path) *path_list=NULL, LIST1(std::string) *included_list=NULL,
-                        TCompositeModuleGenerator *cmp_module_generator=NULL);
+//!\brief Execute a function whose contents is func_script
+bool ExecuteFunction(const std::string &func_script,
+      const boost::filesystem::path &current_dir, const std::string &file_name,
+      TAgentParserInfoIn &in, TAgentParserInfoOut &out);
+//-------------------------------------------------------------------------------------------
 
-/*!\brief save modules, connections, configurations to the file [filename] */
+
+/*!\brief load modules, connections, configurations from the file [path_list] */
+bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &in, TAgentParserInfoOut &out);
+
+/*!\brief save modules, connections, configurations to the file [path_list] */
 bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path);
-
-//! \todo implemen LoadAgentFromDir and SaveAgentToDir
-#if 0
-/*!\brief load modules, connections, configurations from the directory [dirname] */
-bool LoadAgentFromDir (TAgent &agent, const std::string &dirname);
-
-/*!\brief save modules, connections, configurations to the directory [dirname] */
-bool SaveAgentToDir (const TAgent &agent, const std::string &dirname);
-#endif
-
-#undef LIST1
-
-//===========================================================================================
 
 
 //-------------------------------------------------------------------------------------------
