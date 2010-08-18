@@ -265,6 +265,14 @@ bool TModuleInterface::SearchPortByPtr (TPortInterface *port_ptr, TPortInfo &inf
 }
 //-------------------------------------------------------------------------------------------
 
+bool TModuleInterface::ExecuteFunction(const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export)
+{
+  LASSERT(pagent_);
+  LASSERT(parent_cmodule_);
+  return pagent_->ExecuteFunction(func_name, argv, *parent_cmodule_, no_export);
+}
+//-------------------------------------------------------------------------------------------
+
 /*static*/void TModuleInterface::ParseShowConfOption (const std::string &option, TModuleInterface::TShowConf &conf)
 {
   TOptionParser poption(option);
@@ -1013,10 +1021,10 @@ bool TFunctionManager::AddFunction(const std::string &func_name, const TFunction
 {
   if(FunctionExists(func_name))  {LERROR(func_name<<" already exists.");  return false;}
   functions_[func_name]= function;
-std::stringstream plist;PrintContainer(functions_[func_name].ParamList.begin(),functions_[func_name].ParamList.end(),plist, ",");
-LDEBUG("#####ADDED FUNCTION: "<<func_name
-<<"("<<plist.str()<<"); defined in "<<functions_[func_name].FileName<<":"<<functions_[func_name].LineNum<<endl
-<<functions_[func_name].Script<<"#####");
+// std::stringstream plist;PrintContainer(functions_[func_name].ParamList.begin(),functions_[func_name].ParamList.end(),plist, ",");
+// LDEBUG("#####ADDED FUNCTION: "<<func_name
+// <<"("<<plist.str()<<"); defined in "<<functions_[func_name].FileName<<":"<<functions_[func_name].LineNum<<endl
+// <<functions_[func_name].Script<<"#####");
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -1093,6 +1101,17 @@ std::list<boost::filesystem::path>&  TAgent::SetPathList()
   using namespace boost::filesystem;
   if (path_list_==NULL)  path_list_= new std::list<path>;
   return *path_list_;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TAgent::ExecuteFunction(
+        const std::string &func_name, const std::list<var_space::TLiteral> &argv,
+        TCompositeModule &context_cmodule,  bool no_export)
+{
+  return function_manager_.ExecuteFunction(func_name, argv, context_cmodule,
+            boost::filesystem::initial_path(),
+            /*path_list=*/NULL, /*included_list=*/NULL,
+            &cmp_module_generator_, no_export);
 }
 //-------------------------------------------------------------------------------------------
 

@@ -36,11 +36,14 @@
 #include <boost/function.hpp>
 #include <skyai/module_manager.h>
 //-------------------------------------------------------------------------------------------
-// forward declaration:
+// forward declarations:
 namespace boost {namespace filesystem {
   struct path_traits;
   template<class String, class Traits> class basic_path;
   typedef basic_path< std::string, path_traits > path;
+}}
+namespace loco_rabbits {namespace var_space {
+  struct TLiteral;
 }}
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -368,13 +371,18 @@ public:
 
 
   //!\brief return the reference to the host agent
+  TAgent&        Agent()       {LASSERT(pagent_); return *pagent_;}
   const TAgent&  Agent() const {LASSERT(pagent_); return *pagent_;}
-  void  SetAgent(const TAgent &agent)  {pagent_= &agent;}
+  void  SetAgent(TAgent &agent)  {pagent_= &agent;}
 
   //!\brief return the pointer to the host composite module
+  TCompositeModule&        ParentCModule()       {LASSERT(parent_cmodule_); return *parent_cmodule_;}
   const TCompositeModule&  ParentCModule() const {LASSERT(parent_cmodule_); return *parent_cmodule_;}
+  TCompositeModule*        ParentCModulePtr()       {return parent_cmodule_;}
   const TCompositeModule*  ParentCModulePtr() const {return parent_cmodule_;}
-  void SetParentCModule(const TCompositeModule *parent)  {parent_cmodule_= parent;}
+  void SetParentCModule(TCompositeModule *parent)  {parent_cmodule_= parent;}
+
+  bool ExecuteFunction(const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export=false);
 
 
   struct TShowConf
@@ -428,8 +436,11 @@ private:
 
 
   const std::string instance_name_;
-  const TAgent *pagent_;    //!< pointer to the host agent
-  const TCompositeModule  *parent_cmodule_;  //!< pointer to the host composite module
+  TAgent *pagent_;    //!< pointer to the host agent
+  TCompositeModule  *parent_cmodule_;  //!< pointer to the host composite module
+    /*!\note We want to let pagent_ and parent_cmodule_ a constant object for safety.
+        But, they should be variable to execute a script's function.
+        Thus, I removed a const from them (@Aug.16,2010) */
 
   /*!\brief parameter box which has links to the configuration parameters of this module */
   var_space::TVariable param_box_config_;
@@ -727,6 +738,13 @@ public:
 
   const TFunctionInfo* Function(const std::string &func_name) const;
 
+  bool ExecuteFunction(
+          const std::string &func_name, const std::list<var_space::TLiteral> &argv,
+          TCompositeModule &context_cmodule,
+          const boost::filesystem::path &current_dir,
+          std::list<boost::filesystem::path> *path_list, std::list<std::string> *included_list,
+          TCompositeModuleGenerator *cmp_module_generator,  bool no_export=false) const;
+
 private:
 
   std::map<std::string, TFunctionInfo>  functions_;
@@ -873,6 +891,10 @@ public:
 
   const TCompositeModuleGenerator& CompositeModuleGenerator() const {return cmp_module_generator_;}
   const TFunctionManager& FunctionManager() const {return function_manager_;}
+
+  bool ExecuteFunction(
+          const std::string &func_name, const std::list<var_space::TLiteral> &argv,
+          TCompositeModule &context_cmodule,  bool no_export=false);
 
 
   /*!\brief search filename from the path-list, return the native path

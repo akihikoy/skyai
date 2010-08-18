@@ -784,33 +784,12 @@ void XCLASS::FunctionCall (t_iterator first, t_iterator last)
     equivalent_code_<<identifier<<"("<<var_space::TVarListFormat(argv_entity.begin(),argv_entity.end())<<")"<<std::endl;
     return;
   }
-  const TFunctionManager::TFunctionInfo *pfunction= function_manager_.Function(identifier);
-  if(pfunction==NULL)  {error_=true; return;}
-
-  var_space::TLiteralTable  literal_table;
-  if(pfunction->ParamList.size()!=argv_entity.size())
-  {
-    PRINT_ERROR("the function "<<identifier<<" takes "
-                <<pfunction->ParamList.size()<<" arguments, but given "<<argv_entity.size());
-    return;
-  }
-  std::list<std::string>::const_iterator  param_itr(pfunction->ParamList.begin());
-  for(std::list<var_space::TLiteral>::iterator itr(argv_entity.begin()),last(argv_entity.end()); itr!=last; ++itr)
-    literal_table.AddLiteral(*param_itr, *itr);
 
   LASSERT(!cmodule_stack_.empty());
-  TAgentParserInfoIn  in(*cmodule_stack_.back());
-  TAgentParserInfoOut out;
-  in.ParseMode          = parse_mode_;
-  in.StartLineNum       = pfunction->LineNum;
-  in.PathList           = &path_list_;
-  in.IncludedList       = &included_list_;
-  in.CmpModuleGenerator = &cmp_module_generator_;
-  in.FunctionManager    = &function_manager_;
-  in.LiteralTable       = &literal_table;
-  out.EquivalentCode    = NULL;
-
-  if (!ExecuteFunction(pfunction->Script, current_dir_, pfunction->FileName, in, out))
+  if (!function_manager_.ExecuteFunction(
+          identifier, argv_entity, *cmodule_stack_.back(),
+          current_dir_, &path_list_, &included_list_,
+          &cmp_module_generator_,  parse_mode_.NoExport))
   {
     PRINT_ERROR("failed to execute the function "<<identifier);
   }
@@ -1053,6 +1032,47 @@ bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::st
     return false;
   }
   return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+bool TFunctionManager::ExecuteFunction(
+        const std::string &func_name, const std::list<var_space::TLiteral> &argv,
+        TCompositeModule &context_cmodule,
+        const boost::filesystem::path &current_dir,
+        std::list<boost::filesystem::path> *path_list, std::list<std::string> *included_list,
+        TCompositeModuleGenerator *cmp_module_generator,  bool no_export) const
+//===========================================================================================
+{
+  const TFunctionInfo *pfunction= Function(func_name);
+  if(pfunction==NULL)  {return false;}
+
+  var_space::TLiteralTable  literal_table;
+  if(pfunction->ParamList.size()!=argv.size())
+  {
+    LERROR("the function "<<func_name<<" takes "
+            <<pfunction->ParamList.size()<<" arguments, but given "<<argv.size());
+    return false;
+  }
+  std::list<std::string>::const_iterator  param_itr(pfunction->ParamList.begin());
+  for(std::list<var_space::TLiteral>::const_iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr,++param_itr)
+    literal_table.AddLiteral(*param_itr, *itr);
+
+  TAgentParserInfoIn  in(context_cmodule);
+  TAgentParserInfoOut out;
+  TAgentParseMode parse_mode;
+  parse_mode.NoExport= no_export;
+  in.ParseMode          = parse_mode;
+  in.StartLineNum       = pfunction->LineNum;
+  in.PathList           = path_list;
+  in.IncludedList       = included_list;
+  in.CmpModuleGenerator = cmp_module_generator;
+  in.FunctionManager    = const_cast<TFunctionManager*>(this);  /*! this const_cast is possible since defining a function
+                                                                  in a function is not allowed (thus, FunctionManager is not changed) */
+  in.LiteralTable       = &literal_table;
+  out.EquivalentCode    = NULL;
+
+  return loco_rabbits::ExecuteFunction(pfunction->Script, current_dir, pfunction->FileName, in, out);
 }
 //-------------------------------------------------------------------------------------------
 
