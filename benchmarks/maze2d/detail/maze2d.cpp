@@ -223,7 +223,7 @@ public:
         }
       state_ += dx;
       time_  += TimeStep;
-      TReal step_cost = GetNormSq(u) * TimeStep;
+      TReal step_cost = SquareSum(u) * TimeStep;
       return step_cost;
     }
 

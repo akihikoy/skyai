@@ -121,7 +121,7 @@ TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_tabl
       }
       else
         res= *alt;
-      if (res.LType==TLiteral::ltIdentifier)
+      if (!config.AllowId && res.LType==TLiteral::ltIdentifier)
       {
         LERROR("failed to evaluate `"<<src_id<<"\'");
         error= true;
@@ -142,29 +142,6 @@ TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_tabl
   {
     return src;
   }
-}
-//-------------------------------------------------------------------------------------------
-
-std::string ExpandIdentifier (const std::string &id, const TLiteralTable *literal_table, bool &error)
-{
-  std::string identifier(id);
-  if(literal_table)
-  {
-    const TLiteral *alt(NULL);
-    if((alt=literal_table->Find(identifier))!=NULL)  // NOTE: replace "if" by "while" to search recursively
-    {
-      if(alt->LType==TLiteral::ltIdentifier)
-        identifier= alt->LPrimitive.EString;
-      else
-      {
-        LERROR("`"<<identifier<<"\' does not store an identifier");
-        LERROR("but, `"<<identifier<<" stores: "<<*alt);
-        error= true;
-        return identifier;
-      }
-    }
-  }
-  return identifier;
 }
 //-------------------------------------------------------------------------------------------
 

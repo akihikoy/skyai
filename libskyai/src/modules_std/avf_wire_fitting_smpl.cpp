@@ -62,8 +62,8 @@ override void TAVFWireFittingSimpleParameter::Zero (void)
 override TReal TAVFWireFittingSimpleParameter::Norm (void) const
 {
   TReal n(0.0l);
-  VcCFOR(Theta,itr)   {n+= GetNormSq(*itr);}
-  VcCFOR(CtrlVec,itr)  {n+= GetNormSq(*itr);}
+  VcCFOR(Theta,itr)   {n+= SquareSum(*itr);}
+  VcCFOR(CtrlVec,itr)  {n+= SquareSum(*itr);}
   return real_sqrt(n);
 }
 //-------------------------------------------------------------------------------------------
@@ -157,8 +157,8 @@ override void MAVFWireFittingSimple::slot_initialize_exec (void)
     }
     else if (conf_.ActionMax.length()==0 || conf_.ActionMax.length()==1)
     {
-      double amax= (conf_.ActionMax.length()==0 ? 1.0  : conf_.ActionMax(1));
-      double amin= (conf_.ActionMin.length()==0 ? -1.0 : conf_.ActionMin(1));
+      double amax= (conf_.ActionMax.length()==0 ? 1.0  : conf_.ActionMax(0));
+      double amin= (conf_.ActionMin.length()==0 ? -1.0 : conf_.ActionMin(0));
       for (std::vector<TRealVector>::iterator desitr (GenBegin(param_.CtrlVec)); desitr!=GenEnd(param_.CtrlVec); ++desitr)
       {
         for (double *qptr(OctBegin(*desitr)); qptr!=OctEnd(*desitr); ++qptr)
@@ -394,7 +394,7 @@ void MAVFWireFittingSimple::init_gauss_noise ()
     ColumnVector  sqdiff (param_.CtrlDim());
     if (conf_.ActionMax.length()==0)                      sqdiff.fill (0.0);
     else if (conf_.ActionMax.length()==param_.CtrlDim())  sqdiff= conf_.ActionMax-conf_.ActionMin;
-    else                                                   sqdiff.fill (conf_.ActionMax(1)-conf_.ActionMin(1));
+    else                                                  sqdiff.fill (conf_.ActionMax(0)-conf_.ActionMin(0));
     for (double *itr(OctBegin(sqdiff)), *const end(OctEnd(sqdiff)); itr!=end; ++itr)
     {
       *itr= Square(0.5*conf_.NoiseFactor) * Square(*itr);
@@ -444,7 +444,7 @@ void MAVFWireFittingSimple::cache_update_a () const
     std::vector<TRealVector>::const_iterator uitr(cache.u_i.begin());
     std::vector<TValue>::const_iterator      qitr(cache.q_i.begin());
     for(std::vector<TValue>::iterator Ditr(cache.D_i.begin()); Ditr!=cache.D_i.end(); ++Ditr,++uitr,++qitr)
-      *Ditr= GetNormSq(cache.a - *uitr) + conf_.SmoothingFactor * (cache.max_q - *qitr) + conf_.Tiny;
+      *Ditr= SquareSum(cache.a - *uitr) + conf_.SmoothingFactor * (cache.max_q - *qitr) + conf_.Tiny;
   }
 }
 //-------------------------------------------------------------------------------------------
@@ -488,7 +488,21 @@ void MAVFWireFittingSimple::cache_select_action (TAVFWFSmplActionSelection Actio
     int i_wire= disc_action::SelectActionFromPolicy(OctBegin(policy),OctEnd(policy));
     // generate an action
     cache.a= cache.u_i[i_wire];
-    loco_rabbits::WeightedAdd (cache.a, 1.0-policy(i_wire), gauss_noise());
+    switch (conf_.ActionNoiseKind)
+    {
+      case ankPolicyBased : loco_rabbits::WeightedAdd (cache.a, 1.0-policy(i_wire), gauss_noise());  break;
+      case ankTauBased    : loco_rabbits::WeightedAdd (cache.a, tau, gauss_noise());  break;
+      default : LERROR("invalid conf_.ActionNoiseKind: "<<static_cast<int>(conf_.ActionNoiseKind));  lexit(df);
+    }
+// LDBGVAR(tau);
+// LDBGVAR(i_wire);
+// LDBGVAR(cache.q_i[i_wire]);
+// LDBGVAR(cache.q_i[0]);
+// LDBGVAR(policy(i_wire));
+// LDBGVAR(param_.CtrlDim());
+// LDBGVAR(conf_.ActionMax.length());
+// LDBGVAR(gauss_noise().length());
+// LDBGVAR(gauss_noise().transpose());
   }
   else
     {LERROR("invalid ActionSelection: "<<static_cast<int>(ActionSelection)); lexit(df);}
@@ -566,8 +580,8 @@ void MAVFWireFittingSimple::apply_min_max_constraint_to_des_i (void)
     }
     else
     {
-      double amax= (conf_.ActionMax.length()==0 ? 1.0  : conf_.ActionMax(1));
-      double amin= (conf_.ActionMin.length()==0 ? -1.0 : conf_.ActionMin(1));
+      double amax= (conf_.ActionMax.length()==0 ? 1.0  : conf_.ActionMax(0));
+      double amin= (conf_.ActionMin.length()==0 ? -1.0 : conf_.ActionMin(0));
       for (double *qptr(GenBegin(*desitr)); qptr!=GenEnd(*desitr); ++qptr)
         *qptr = ApplyRange(*qptr, amin, amax);
     }

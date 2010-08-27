@@ -1008,6 +1008,17 @@ bool TCompositeModuleGenerator::GeneratorExists(const std::string &cmodule_name)
 }
 //-------------------------------------------------------------------------------------------
 
+const TCompositeModuleGenerator::TGeneratorInfo* TCompositeModuleGenerator::Generator(const std::string &cmodule_name) const
+{
+  std::map<std::string, TGeneratorInfo>::const_iterator  itr(generators_.find(cmodule_name));
+  if (itr==generators_.end())
+  {
+    LERROR(cmodule_name<<": module (composite) not found");
+    return NULL;
+  }
+  return &(itr->second);
+}
+
 // NOTE: the following member functions are defined in parser.cpp
 // bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export) const;
 // bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::string &indent) const;

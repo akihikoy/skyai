@@ -1,38 +1,24 @@
 // Discrete action set DCOB
 
-composite MDCOB
+include_once "bftrans"
+
+def make_dcob(bftrans_type)
 {
-  module  MActionSetDCOB                     dcob
-  module  MBFTrans                           bftrans
-  module  MVectorShuffler_TRealVector        Cp
-  module  MVectorShuffler_TRealVector        Cd
+  module  bftrans_type  bftrans
+
+  module  MActionSetDCOB  dcob
+
+  export_bftrans_cmn(bftrans)
 
   /// initialization process:
   export   bftrans.slot_initialize  as_is
 
-  /// start of episode process:
-
-  /// start of time step process:
-  export   bftrans.slot_start_time_step  as_is
-
-  /// end of time step process:
-  export   bftrans.slot_finish_time_step  as_is
-
   /// learning signals:
   export   dcob.slot_execute_action  as_is
   connect  dcob.signal_execute_command , bftrans.slot_execute_action
-  export   bftrans.signal_execute_command  as_is
-  export   bftrans.signal_end_of_action  as_is
-
 
   /// I/O:
   export   dcob.out_action_set_size  as_is
-
-  export   bftrans.in_feature  as_is
-  export   bftrans.in_state  as_is
-  export   bftrans.in_distance_to_nearest_bf  as_is
-  connect  Cp.out_f2 , bftrans.in_extract_proportional
-  connect  Cd.out_f2 , bftrans.in_extract_derivative
   export   dcob.in_center_state_set  as_is
 
 
@@ -40,18 +26,37 @@ composite MDCOB
 
   export dcob.config.IntervalSet  as_is
 
-  export bftrans.config.AbbreviateTrajectory     as_is
-  export bftrans.config.ProportionalDim          as_is
-  export bftrans.config.TrajectoryGeneratorType  as_is
-  export bftrans.config.ZeroUnspecifiedState     as_is
-
-  export Cp.config.Order  as  Cp
-  export Cd.config.Order  as  Cd
+  export bftrans.config.Cp  as_is
+  export bftrans.config.Cd  as_is
 }
 
-composite MOldDCOB
+// Discrete action set DCOB (Cp and Cd are defined as MVectorShuffler_TRealVector)
+composite MDCOB1
 {
-  inherit MDCOB
+  make_dcob(MBFTrans1)
+}
+
+composite MOldDCOB1
+{
+  inherit MDCOB1
+
+  /// parameter setting:
+  bftrans.config ={
+      AbbreviateTrajectory    = false
+      TrajectoryGeneratorType = "tgtJerkMin"
+      ZeroUnspecifiedState    = false
+    }
+}
+
+// Discrete action set DCOB (Cp and Cd are defined as MConstMultiplier_TRealMatrix_TRealVector)
+composite MDCOB2
+{
+  make_dcob(MBFTrans2)
+}
+
+composite MOldDCOB2
+{
+  inherit MDCOB2
 
   /// parameter setting:
   bftrans.config ={

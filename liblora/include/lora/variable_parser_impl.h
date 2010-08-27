@@ -165,6 +165,7 @@ public:
   DECL_ACTION(BeginLiteralListAny);
   DECL_ACTION(BeginLiteralListPrimitive);
   DECL_ACTION(EndLiteralListPrimitive);
+  DECL_ACTION(ConcatenateIdentifiers);
   #undef DECL_ACTION
 
   bool Error() const {return error_;}
@@ -229,6 +230,18 @@ protected:
       literal_stack_.pop_back();
     }
 
+  virtual void on_push_literal_identifier (const std::string &id)
+    {
+    }
+
+  virtual std::string pop_id_x (void)
+    {
+      TEvaluateLiteralConfig config;  config.AllowId= true;
+      TLiteral id(pop_literal_x(config));
+      if(id.LType!=TLiteral::ltIdentifier)  {LERROR("identifier is required, but used: "<<id); lexit(df);}
+      return id.LPrimitive.EString;
+    }
+
   template <typename t_iterator>
   static std::string join_iterators (t_iterator first, t_iterator last)
     {
@@ -271,6 +284,7 @@ void XCLASS::PushLiteralIdentifier (t_iterator first, t_iterator last)
   TLiteral literal;
   literal.LType= TLiteral::ltIdentifier;
   literal.LPrimitive= TAnyPrimitive(pt_string(join_iterators(first,last)));
+  on_push_literal_identifier(literal.LPrimitive.EString);
   if(!in_literal_list_)
   {
     literal_stack_.push_back(TLiteralCell(ltValue,literal));
@@ -369,6 +383,23 @@ void XCLASS::EndLiteralListPrimitive (t_iterator first, t_iterator last)
 {
   in_literal_list_= false;
 }
+TEMPLATE_DEC
+void XCLASS::ConcatenateIdentifiers (t_iterator first, t_iterator last)
+{
+  std::string id2(pop_id_x()), id1(pop_id_x());
+  TLiteral literal;
+  literal.LType= TLiteral::ltIdentifier;
+  if(expand_id_)
+  {
+    literal.LPrimitive= TAnyPrimitive(pt_string(id1+id2));
+    on_push_literal_identifier(literal.LPrimitive.EString);
+  }
+  else
+  {
+    literal.LPrimitive= TAnyPrimitive(pt_string(id1+"##"+id2));
+  }
+  literal_stack_.push_back(TLiteralCell(ltValue,literal));
+}
 
 #undef TEMPLATE_DEC
 #undef XCLASS
@@ -390,7 +421,6 @@ public:
   DECL_ACTION(CloseByBrace);
   DECL_ACTION(DebugMessage);
   DECL_ACTION(SyntaxError);
-  DECL_ACTION(PushIdentifier);
   DECL_ACTION(PrimitiveAssignToMember);
   DECL_ACTION(CompositeAssignToMemberS);
   DECL_ACTION(ElementalPrimitiveAssignToMember);
@@ -407,18 +437,10 @@ private:
   std::list<TExtVariable>  variable_stack_;
   enum TContext {cGlobal=0, cCompositeMemberAssign, cCompositeFillAll};
   std::list<TContext>  context_stack_;
-  std::list<std::string>  id_stack_;
   TParseMode  parse_mode_;
   std::stringstream  *equivalent_code_;
 
   LORA_MESSAGE_FORMAT_FUNCTION tmp_lora_msg_format_;
-
-  std::string pop_id_x (void)
-    {
-      LASSERT(!id_stack_.empty());
-      std::string identifier(id_stack_.back());  id_stack_.pop_back();
-      return expand_id_ ? ExpandIdentifier(identifier, literal_table_, error_) : identifier;
-    }
 
 };
 //-------------------------------------------------------------------------------------------
@@ -428,6 +450,10 @@ struct basic_parser_definition
 {
   typedef boost::spirit::classic::rule<ScannerT> rule_t;
   rule_t  identifier_p;
+  rule_t  parenthesized_list_expr_any, list_expr_any, list_expr_primitive;
+  rule_t  expr_any, expr_primitive;
+  rule_t  expr_parenthesized_list;
+  rule_t  expr_identifier;
   rule_t  parenthesized_list_literal_any, list_literal_any, list_literal_primitive;
   rule_t  literal_any, literal_primitive;
   rule_t  literal_parenthesized_list;
@@ -437,6 +463,7 @@ struct basic_parser_definition
   rule_t  op_semicolon, op_comma, op_dot, op_eq, op_at;
   rule_t  op_brace_l, op_brace_r, op_parenthesis_l, op_parenthesis_r;
   rule_t  op_bracket_l, op_bracket_r;
+  rule_t  op_cat;
 
   basic_parser_definition (TBasicParserAgent &pagent);
 };
@@ -455,6 +482,14 @@ public:
     {
       typedef basic_parser_definition<t_iterator,ScannerT> TParent;
       using TParent::identifier_p                   ;
+      using TParent::expr_identifier                ;
+      using TParent::parenthesized_list_expr_any    ;
+      using TParent::list_expr_any                  ;
+      using TParent::list_expr_primitive            ;
+      using TParent::expr_any                       ;
+      using TParent::expr_primitive                 ;
+      using TParent::expr_parenthesized_list        ;
+      using TParent::expr_identifier                ;
       using TParent::parenthesized_list_literal_any ;
       using TParent::list_literal_any               ;
       using TParent::list_literal_primitive         ;
@@ -480,6 +515,7 @@ public:
       using TParent::op_parenthesis_r               ;
       using TParent::op_bracket_l                   ;
       using TParent::op_bracket_r                   ;
+      using TParent::op_cat                         ;
 
       typedef boost::spirit::classic::rule<ScannerT> rule_t;
       rule_t  statements, statements_b, statement, end_of_statement;
@@ -572,7 +608,6 @@ boost::spirit::classic::parse_info<t_iterator> XCLASS::Parse (TParserInfoIn &in,
   #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty."); error_=true;}} while(0)
   STACK_CHECK(variable_stack_);
   STACK_CHECK(context_stack_);
-  STACK_CHECK(id_stack_);
   STACK_CHECK(literal_stack_);
   #undef STACK_CHECK
 
@@ -623,7 +658,6 @@ bool XCLASS::EndSubParse (TParserInfoOut *out)
   {
     STACK_CHECK(variable_stack_);
     STACK_CHECK(context_stack_);
-    STACK_CHECK(id_stack_);
     STACK_CHECK(literal_stack_);
   }
   #undef STACK_CHECK
@@ -677,12 +711,6 @@ void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
   PRINT_ERROR("syntax error:");
   std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
-}
-
-TEMPLATE_DEC
-void XCLASS::PushIdentifier (t_iterator first, t_iterator last)
-{
-  id_stack_.push_back(join_iterators(first,last));
 }
 
 TEMPLATE_DEC
@@ -881,9 +909,9 @@ void XCLASS::FillAllComposite (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::FunctionCall (t_iterator first, t_iterator last)
 {
-  std::string identifier(pop_id_x());
   std::list<TLiteral>  argv_entity;
   pop_literal_list_x(argv_entity);
+  std::string identifier(pop_id_x());
 
   switch(parse_mode_)
   {
@@ -933,10 +961,46 @@ basic_parser_definition<t_iterator,ScannerT>::basic_parser_definition (TBasicPar
   ALIAS_ACTION(BeginLiteralListAny         , f_begin_list_literal_any         );
   ALIAS_ACTION(BeginLiteralListPrimitive   , f_begin_list_literal_primitive   );
   ALIAS_ACTION(EndLiteralListPrimitive     , f_end_list_literal_primitive     );
+  ALIAS_ACTION(ConcatenateIdentifiers      , f_concatenate_identifiers        );
   #undef ALIAS_ACTION
 
   identifier_p
     = ((alpha_p | '_') >> *(alnum_p | '_'));
+
+  parenthesized_list_expr_any  // FIXME
+    = op_parenthesis_l [f_begin_list_literal_any]
+      >> list_expr_any
+        >> op_parenthesis_r;
+
+  list_expr_any  // FIXME
+    = !(expr_any >> *(op_comma >> expr_any));
+
+  list_expr_primitive  // FIXME
+    = !(expr_primitive >> *(op_comma >> expr_primitive));
+
+  expr_any  // FIXME
+    = ( expr_primitive | expr_parenthesized_list );
+
+  expr_primitive  // FIXME
+    = (
+        literal_real
+        | literal_int
+        | literal_boolean
+        | literal_string
+        | expr_identifier
+      ) >> *blank_p;
+
+  expr_parenthesized_list  // FIXME
+    = op_parenthesis_l  [f_begin_list_literal_primitive]
+        >> list_expr_primitive
+          >> op_parenthesis_r  [f_end_list_literal_primitive];
+
+  expr_identifier
+    = literal_identifier
+      >> (
+        (op_cat >> expr_identifier)  [f_concatenate_identifiers]
+        | eps_p
+        );
 
   parenthesized_list_literal_any
     = op_parenthesis_l [f_begin_list_literal_any]
@@ -1023,6 +1087,8 @@ basic_parser_definition<t_iterator,ScannerT>::basic_parser_definition (TBasicPar
     = *blank_p >> ch_p('[') >> *blank_p ;
   op_bracket_r
     = *blank_p >> ch_p(']') >> *blank_p ;
+  op_cat
+    = *blank_p >> str_p("##") >> *blank_p ;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1037,7 +1103,6 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   #define ALIAS_ACTION(x_action,x_as)  \
     boost::function<void(t_iterator,t_iterator)>  \
       x_as= boost::bind(&TPAgent::x_action,&self.pvar_,_1,_2)
-  ALIAS_ACTION(PushIdentifier                     , f_push_identifier                );
   ALIAS_ACTION(PrimitiveAssignToMember            , f_primitive_assign               );
   ALIAS_ACTION(CompositeAssignToMemberS           , f_composite_assign_s             );
   ALIAS_ACTION(ElementalPrimitiveAssignToMember   , f_elemental_primitive_assign     );
@@ -1086,7 +1151,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       );
 
   statement_starting_with_identifier
-    = identifier_p [f_push_identifier]
+    = expr_identifier
       >> (
         statement_composite_assign
         | statement_function_call
@@ -1094,7 +1159,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
         );
 
   statement_elemental_assign
-    = op_bracket_l >> literal_any >> op_bracket_r
+    = op_bracket_l >> expr_any >> op_bracket_r
       >> (
         statement_elemental_primitive_assign
         | statement_elemental_composite_assign
@@ -1115,35 +1180,35 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
         );
 
   statement_primitive_assign
-    = (op_eq >> literal_any) [f_primitive_assign];
+    = (op_eq >> expr_any) [f_primitive_assign];
   statement_composite_assign
     = op_eq >> *blank_eol_p
       >> op_brace_l [f_composite_assign_s]
         >> statements_b;
 
   statement_elemental_primitive_assign
-    = (op_eq >> literal_any) [f_elemental_primitive_assign];
+    = (op_eq >> expr_any) [f_elemental_primitive_assign];
   statement_elemental_composite_assign
     = op_eq >> *blank_eol_p
       >> op_brace_l [f_elemental_composite_assign_s]
         >> statements_b;
 
   statement_push_primitive
-    = (op_eq >> literal_any) [f_push_primitive];
+    = (op_eq >> expr_any) [f_push_primitive];
   statement_push_composite
     = op_eq >> *blank_eol_p
       >> op_brace_l [f_push_composite]
         >> statements_b;
 
   statement_fill_all_primitive
-    = (op_eq >> literal_any) [f_fill_all_primitive];
+    = (op_eq >> expr_any) [f_fill_all_primitive];
   statement_fill_all_composite
     = op_eq >> *blank_eol_p
       >> op_brace_l [f_fill_all_composite]
         >> statements_b;
 
   statement_function_call
-    = parenthesized_list_literal_any [f_function_call];
+    = parenthesized_list_expr_any [f_function_call];
 
 }
 //-------------------------------------------------------------------------------------------

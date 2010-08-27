@@ -67,13 +67,18 @@ public:
                                                         use zero instead of the internal state
                                                         (set false for OldDCOB) */
 
+  /*! using maximum norm as a distance instead of L-2 norm (in AbbreviateTrajectory)
+      \note this value should be the same as one which used in in_distance_to_nearest_bf */
+  bool                       UsingMaxNorm;
+
   TBFTransConfigurations(var_space::TVariableMap &mmap)
     :
       ProportionalDim          (-1),
       SetTargetByState         (true),
       AbbreviateTrajectory     (true),
       TrajectoryGeneratorType  (tgtAccMin2),
-      ZeroUnspecifiedState     (true)
+      ZeroUnspecifiedState     (true),
+      UsingMaxNorm             (false)
     {
       Register(mmap);
     }
@@ -85,6 +90,7 @@ public:
       ADD( AbbreviateTrajectory      );
       ADD( TrajectoryGeneratorType   );
       ADD( ZeroUnspecifiedState      );
+      ADD( UsingMaxNorm              );
       #undef ADD
     }
 };

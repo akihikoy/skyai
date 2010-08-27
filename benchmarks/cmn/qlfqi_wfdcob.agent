@@ -1,32 +1,50 @@
 // Q(lambda)-learning + fitted Q iteration  modules for continuous action space
 // A hybrid of the Q(Lambda)-learning and the fitted Q-iteration
-// Using wire fitting DCOB
+// Using wire fitting (WF) DCOB
 
 include_once "ql_wfdcob"
 
-composite MTDFQIWFDCOB
+composite MTDFQIWireFittingDCOB
 {
-  inherit_prv  MTDWFDCOB
+  inherit_prv  MTDWireFittingDCOB
+
+  include "qlfqi_cmn_wf"
+
+  export   behavior.signal_execute_action  as_is
+  export   behavior.slot_finish_action  as_is
+
+  export   avf_wire_fitting.in_distance_to_nearest_bf  as_is
+  export   avf_wire_fitting.in_center_state_set  as_is
+
+  export avf_wire_fitting.config.DConstraintKind      as_is
+  export avf_wire_fitting.config.Interval2Set         as_is
+}
+
+// This module includes an action space
+// NOTE:  out_extract_proportional should be connected to MBasisFunctionsDCOBNGnet-ngnet.in_extract_proportional
+composite MTDFQIWireFittingDCOBActSp
+{
+  inherit_prv  MTDWireFittingDCOBActSp
 
   include "qlfqi_cmn_wf"
 
   export   signal_start_of_action.signal_out  as  signal_start_of_action
 
   export   in_distance_to_nearest_bf.in_1  as  in_distance_to_nearest_bf
-  export   wfdcob.slot_start_time_step  as_is
-  export   wfdcob.slot_finish_time_step  as_is
-  export   wfdcob.signal_execute_command  as_is
-  export   wfdcob.in_state  as_is
+  export   bftrans.slot_start_time_step  as_is
+  export   bftrans.slot_finish_time_step  as_is
+  export   bftrans.signal_execute_command  as_is
+  export   bftrans.in_state  as_is
   export   avf_wire_fitting.in_center_state_set  as_is
-  export   wfdcob.out_extract_proportional  as_is
+  export   bftrans.out_extract_proportional  as_is
 
   export avf_wire_fitting.config.DConstraintKind      as_is
   export avf_wire_fitting.config.Interval2Set         as_is
 
-  export wfdcob.config.AbbreviateTrajectory     as_is
-  export wfdcob.config.ProportionalDim          as_is
-  export wfdcob.config.TrajectoryGeneratorType  as_is
-  export wfdcob.config.ZeroUnspecifiedState     as_is
-  export wfdcob.config.Cp                       as_is
-  export wfdcob.config.Cd                       as_is
+  export bftrans.config.AbbreviateTrajectory     as_is
+  export bftrans.config.ProportionalDim          as_is
+  export bftrans.config.TrajectoryGeneratorType  as_is
+  export bftrans.config.ZeroUnspecifiedState     as_is
+  export bftrans.config.Cp                       as_is
+  export bftrans.config.Cd                       as_is
 }

@@ -78,6 +78,20 @@ ENUM_STR_MAP_BEGIN_NS(avf_wire_fitting_detail, TAVFWFSmplConstraintKind)
 ENUM_STR_MAP_END_NS  (avf_wire_fitting_detail, TAVFWFSmplConstraintKind)
 SPECIALIZE_TVARIABLE_TO_ENUM(avf_wire_fitting_detail::TAVFWFSmplConstraintKind)
 
+namespace avf_wire_fitting_detail
+{
+  enum TAVFWFSmplActionNoiseKind
+  {
+    ankPolicyBased    =0,   // action = CtrlVec(wire) + (1.0-policy(wire)) * GaussianNoise
+    ankTauBased             // action = CtrlVec(wire) + tau * GaussianNoise (tau is temperature param for Boltzmann selection)
+  };
+}
+ENUM_STR_MAP_BEGIN_NS(avf_wire_fitting_detail, TAVFWFSmplActionNoiseKind)
+  ENUM_STR_MAP_ADD_NS(avf_wire_fitting_detail, ankPolicyBased    )
+  ENUM_STR_MAP_ADD_NS(avf_wire_fitting_detail, ankTauBased       )
+ENUM_STR_MAP_END_NS  (avf_wire_fitting_detail, TAVFWFSmplActionNoiseKind)
+SPECIALIZE_TVARIABLE_TO_ENUM(avf_wire_fitting_detail::TAVFWFSmplActionNoiseKind)
+
 
 //-------------------------------------------------------------------------------------------
 namespace avf_wire_fitting_detail
@@ -118,6 +132,7 @@ public:
   TReal                 TauDecreasingFactor;  //!< used for piExpReduction. larger is decreasing faster (becoming greedy). do not set a value greater than 1.
   TReal                 NoiseFactor;  //!< used in ActionSelection=asWFBoltzman
   TReal                 MinimumNoiseVar;  //!< ditto
+  TAVFWFSmplActionNoiseKind  ActionNoiseKind;  //!< ditto
 
   int                        WireSize;
   TAVFWFSmplConstraintKind   ConstraintKind;
@@ -140,6 +155,7 @@ public:
       TauDecreasingFactor    (0.002l),
       NoiseFactor            (0.0l),
       MinimumNoiseVar        (1.0e-100l),
+      ActionNoiseKind        (ankPolicyBased),
       WireSize               (10),
       ConstraintKind         (sckMinMax)
     {
@@ -163,6 +179,7 @@ public:
       ADD( TauDecreasingFactor      );
       ADD( NoiseFactor              );
       ADD( MinimumNoiseVar          );
+      ADD( ActionNoiseKind          );
       ADD( WireSize                 );
       ADD( ConstraintKind           );
       #undef ADD
@@ -286,6 +303,9 @@ public:
       add_out_port (out_feature);
       add_in_port (in_episode_number);
     }
+
+  TAVFWireFittingSimpleParameter& Param()  {return param_;}
+  const TAVFWireFittingSimpleParameter& Param() const {return param_;}
 
 protected:
 

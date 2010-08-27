@@ -566,7 +566,7 @@ public:
       TReal tmp1 = cnf.log_PI2_ND2() - 0.5*cnf.rYDIM()*real_log(_sig2)
                    + 0.5*_logDetInvSigma - real_log(static_cast<TReal>(M));
       TReal tmp2 = -0.5*Quadratic(val.x()-_mu, _invSigma)
-                   -0.5/_sig2*GetNormSq(val.y()-Wtx);
+                   -0.5/_sig2*SquareSum(val.y()-Wtx);
 
       return tmp1+tmp2; // real_log(tmp1)+tmp2;
     };
@@ -579,10 +579,10 @@ public:
              * real_exp(-0.5*Quadratic(x-_mu, _invSigma)); };
   TReal lnPy_xt (const ColumnVector &y, const ColumnVector &__xt) const  //! ln(P(y|__xt,i,theta))
     { return real_log(cnf.PI2_D2() / real_pow(_sig2,0.5*cnf.rYDIM()))  // TODO make efficient computation
-             + (-0.5/_sig2*GetNormSq(y-out(__xt))); };
+             + (-0.5/_sig2*SquareSum(y-out(__xt))); };
   TReal Py_xt (const ColumnVector &y, const ColumnVector &__xt) const  //! P(y|__xt,i,theta)
     { return cnf.PI2_D2() / real_pow(_sig2,0.5*cnf.rYDIM())
-             * real_exp(-0.5/_sig2*GetNormSq(y-out(__xt))); };
+             * real_exp(-0.5/_sig2*SquareSum(y-out(__xt))); };
 
   void CalculateParam (const TNGnetDataSetBase &data);  //!< calculate params from data
   void calcMu         (const TNGnetDataSetBase &data);
@@ -1078,7 +1078,7 @@ inline void calcRMSE (const TNGnet &ngnet, TError &er)
    std::vector<TReal>::iterator eitr(et.begin());
    for (data.goFirst();!data.isEnd();++eitr,data.increment())
    {
-     *eitr = GetNormSq (data.current().y()-ngnet.out(data.current().xt()));
+     *eitr = SquareSum (data.current().y()-ngnet.out(data.current().xt()));
      er.rmse += *eitr;
      *eitr = real_sqrt(*eitr);
      er.avr += *eitr;
@@ -1111,7 +1111,7 @@ inline void calcRMSE (const TNGnet &ngnet, TError &er, const std::vector<double>
    double sumweight(0.0l);
    for (data.goFirst();!data.isEnd();++eitr,++witr,data.increment())
    {
-     *eitr = *witr * GetNormSq (data.current().y()-ngnet.out(data.current().xt()));
+     *eitr = *witr * SquareSum (data.current().y()-ngnet.out(data.current().xt()));
      er.rmse += *eitr;
      *eitr = real_sqrt(*eitr);
      er.avr += *eitr;

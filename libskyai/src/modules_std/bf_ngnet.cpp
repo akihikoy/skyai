@@ -98,14 +98,16 @@ void MBasisFunctionsDCOBNGnet::calc_distance_to_nearest_bf (TRealVector &neighbo
   {
     TReal dmin (REAL_MAX), d;
     for (TNGnet::const_iterator snitr(ngnet_.begin()); snitr!=ngnet_.end(); ++snitr)
-      if(sitr!=snitr && (d=GetNorm(snitr->mu()-sitr->mu()))<dmin) dmin=d;
+    {
+      if(!conf_dcobngnet_.UsingMaxNorm)  {if(sitr!=snitr && (d=GetNorm(snitr->mu()-sitr->mu()))<dmin) dmin=d;}
+      else                               {if(sitr!=snitr && (d=GetMaxNorm(snitr->mu()-sitr->mu()))<dmin) dmin=d;}
+    }
     //!calculate eigen-value
     EIG  eig(sitr->Sigma());
-    // TReal eigvmax = real_sqrt(real(eig.eigenvalues().max()));
     TReal eigvmax = get_eigvmax(eig.eigenvalues());
-    // LDBGVAR(eigvmax);
+// LDBGVAR(eigvmax);
     *ditr=std::max(dmin, eigvmax);
-    // LDBGVAR(*ditr);
+// LDBGVAR(*ditr);
   }
   LDEBUG("calc_distance_to_nearest_bf ... done");
 }
@@ -127,7 +129,8 @@ void MBasisFunctionsDCOBNGnet::calc_ext_distance_to_nearest_bf (TRealVector &nei
     for (TNGnet::const_iterator snitr(ngnet_.begin()); snitr!=ngnet_.end(); ++snitr)
     {
       in_extract_proportional.GetFirst (snitr->mu()-sitr->mu(), ext_diff);
-      if(sitr!=snitr && (d=GetNorm(ext_diff))<dmin) dmin=d;
+      if(!conf_dcobngnet_.UsingMaxNorm)  {if(sitr!=snitr && (d=GetNorm(ext_diff))<dmin) dmin=d;}
+      else                               {if(sitr!=snitr && (d=GetMaxNorm(ext_diff))<dmin) dmin=d;}
     }
 
     //!calculate eigen-value
@@ -135,11 +138,10 @@ void MBasisFunctionsDCOBNGnet::calc_ext_distance_to_nearest_bf (TRealVector &nei
           boost::bind(&GET_PORT_TYPE(in_extract_proportional)::GetFirst, in_extract_proportional, _1,_2));
     /*dbg*/LASSERT1op1(ext_diff.length(),==,ext_sigma.rows());
     EIG  eig(ext_sigma);
-    // TReal eigvmax = real_sqrt(real(eig.eigenvalues().max()));
     TReal eigvmax = get_eigvmax(eig.eigenvalues());
-    // LDBGVAR(eigvmax);
+LDBGVAR(eigvmax);
     *ditr=std::max(dmin, eigvmax);
-    // LDBGVAR(*ditr);
+LDBGVAR(*ditr);
   }
   LDEBUG("calc_ext_distance_to_nearest_bf ... done");
 }

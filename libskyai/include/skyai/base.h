@@ -701,6 +701,8 @@ public:
 
   bool GeneratorExists(const std::string &cmodule_name) const;
 
+  const TGeneratorInfo* Generator(const std::string &cmodule_name) const;
+
   //! Create an instance of cmodule_name; return true for success
   bool Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export=false) const;
 

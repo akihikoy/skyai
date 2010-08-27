@@ -191,7 +191,7 @@ void TGaussianUnit::calcSig2 (const TNGnetDataSetBase &data)
   const int T(data.size());
   SetZero(_sig2);
   for (data.goFirst(); !data.isEnd(); data.increment())
-    _sig2 += GetNormSq(data.current().y() - out(data.current().xt()));
+    _sig2 += SquareSum(data.current().y() - out(data.current().xt()));
   _sig2 /= static_cast<TReal>(T-1);
   _sig2 /= static_cast<TReal>(cnf.YDIM());
   setsig2(_sig2);
@@ -840,7 +840,7 @@ void TNGnet::singleMstep (const Matrix &Pit, const iterator &itr, int i)
   tmp_W = tmp_W * OCT_INVERSE(tmp_Wx+cnf->WEIGHT_PENALTY);
   itr->setWt (tmp_W);
 
-  WSUM(tmp1, GetNormSq(Dt.y()));
+  WSUM(tmp1, SquareSum(Dt.y()));
   WSUM(tmp2, Trace( itr->out(Dt.xt()) * Dt.y().transpose() ));
   itr->setsig2 ((tmp1-tmp2)/static_cast<TReal>(cnf->YDIM())/val_1);
   #undef WSUM

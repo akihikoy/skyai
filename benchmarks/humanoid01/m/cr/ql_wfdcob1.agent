@@ -4,7 +4,7 @@ include "env"
 include "task_crawling"
 include_once "ql_wfdcob"
 
-module MTDWFDCOB behavior
+module MTDWireFittingDCOBActSp behavior
 include "cmn_wfdcob"
 
 /// parameter setting:

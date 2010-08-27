@@ -1,0 +1,73 @@
+// Continuous action space BFTrans
+
+def export_bftrans_cmn (bftrans_id)
+{
+  /// start of episode process:
+
+  /// start of time step process:
+  export   bftrans_id.slot_start_time_step  as_is
+
+  /// end of time step process:
+  export   bftrans_id.slot_finish_time_step  as_is
+
+  /// learning signals:
+  export   bftrans_id.signal_execute_command  as_is
+  export   bftrans_id.signal_end_of_action  as_is
+
+  /// I/O:
+  export   bftrans_id.in_feature  as_is
+  export   bftrans_id.in_state  as_is
+  export   bftrans_id.in_distance_to_nearest_bf  as_is
+
+  /// parameter setting:
+
+  export bftrans_id.config.AbbreviateTrajectory     as_is
+  export bftrans_id.config.ProportionalDim          as_is
+  export bftrans_id.config.TrajectoryGeneratorType  as_is
+  export bftrans_id.config.ZeroUnspecifiedState     as_is
+}
+
+def make_bftrans (bftrans_id, Cp_id, Cd_id)
+{
+  module  MBFTrans  bftrans_id
+
+  export_bftrans_cmn(bftrans_id)
+
+  /// initialization process:
+  export   bftrans_id.slot_initialize  as_is
+
+  /// learning signals:
+  export   bftrans_id.slot_execute_action  as_is
+
+  /// I/O:
+  connect  Cp_id.out_f2 , bftrans_id.in_extract_proportional
+  connect  Cd_id.out_f2 , bftrans_id.in_extract_derivative
+
+  /// parameter setting:
+
+  export bftrans_id.config.SetTargetByState  as_is
+}
+
+composite MBFTrans1
+{
+  module  MVectorShuffler_TRealVector        Cp
+  module  MVectorShuffler_TRealVector        Cd
+
+  make_bftrans (bftrans, Cp, Cd)
+
+  export Cp.out_f2  as  out_extract_proportional
+  export Cp.config.Order  as  Cp
+  export Cd.config.Order  as  Cd
+}
+
+composite MBFTrans2
+{
+  module  MConstMultiplier_TRealMatrix_TRealVector        Cp
+  module  MConstMultiplier_TRealMatrix_TRealVector        Cd
+
+  make_bftrans (bftrans, Cp, Cd)
+
+  export Cp.out_f2  as  out_extract_proportional
+  export Cp.config.Factor  as  Cp
+  export Cd.config.Factor  as  Cd
+}

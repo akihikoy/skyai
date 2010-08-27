@@ -95,8 +95,16 @@ override void MBFTrans::slot_execute_action_exec (const TAction &a)
     const TReal d_n= InnerProd (GenBegin(get_feature()),GenEnd(get_feature()), GenBegin(get_distance_to_nearest_bf()));
 
     TReal d(0.0l);
-    if (conf_.SetTargetByState)  d= GetNorm(target_ - get_state());
-    else                         d= GetNorm(target_ - state_proportional_);
+    if (!conf_.UsingMaxNorm)
+    {
+      if (conf_.SetTargetByState)  d= GetNorm(target_ - get_state());
+      else                         d= GetNorm(target_ - state_proportional_);
+    }
+    else
+    {
+      if (conf_.SetTargetByState)  d= GetMaxNorm(target_ - get_state());
+      else                         d= GetMaxNorm(target_ - state_proportional_);
+    }
 
     if(d_n<d)  interval_neighbor_= d_n/d * trj_interval;
     else       interval_neighbor_= trj_interval;

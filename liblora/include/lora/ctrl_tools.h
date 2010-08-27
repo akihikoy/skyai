@@ -26,6 +26,8 @@
 #define loco_rabbits_ctrl_tools_h
 //-------------------------------------------------------------------------------------------
 #include <lora/octave.h>
+#include <lora/stl_math.h>
+#include <lora/type_gen_oct.h>
 #include <lora/small_classes.h>
 #include <lora/variable_space_fwd.h>
 #include <vector>
@@ -177,8 +179,7 @@ public:
   static TReal CalcIntervalFromFactor (int jdim, const ColumnVector &jangle, const ColumnVector &target_angle, const TReal &interval_factor)
     {
       TReal pose_error(0.0);
-      for (int j(0); j<jdim; ++j)
-        pose_error = std::max(pose_error, static_cast<TReal>(real_fabs(target_angle(j)-jangle(j))));
+      pose_error= GetMaxNorm(target_angle-jangle);
       return  (pose_error) * interval_factor;
     }
 };

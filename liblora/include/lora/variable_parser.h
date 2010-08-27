@@ -104,7 +104,6 @@ struct TEvaluateLiteralConfig
   TEvaluateLiteralConfig() : AllowId(false), ExitByError(true) {}
 };
 TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error);
-std::string ExpandIdentifier (const std::string &id, const TLiteralTable *literal_table, bool &error);
 //-------------------------------------------------------------------------------------------
 
 

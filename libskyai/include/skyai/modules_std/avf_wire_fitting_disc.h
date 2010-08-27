@@ -162,10 +162,14 @@ public:
 
   TAVFWFDcobConstraintKind  DConstraintKind;  //!< \note TParent::param_box::ConstraintKind is ignored.
 
+  /*! using maximum norm as a distance instead of L-2 norm (in constraining parameters)
+      \note this value should be the same as one which used in in_distance_to_nearest_bf */
+  bool                       UsingMaxNorm;
 
   TAVFWireFittingDCOBConfigurations(var_space::TVariableMap &mmap)
     :
-      DConstraintKind  (dckSpheres)
+      DConstraintKind  (dckSpheres),
+      UsingMaxNorm     (false)
     {
       Register(mmap);
     }
@@ -178,6 +182,7 @@ public:
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( Interval2Set       );
       ADD( DConstraintKind    );
+      ADD( UsingMaxNorm       );
       #undef ADD
     }
 

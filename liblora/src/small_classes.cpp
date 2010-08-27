@@ -368,8 +368,8 @@ TReal TBubbleSet::Step (const TReal &time_step)
     WeightedAdd (itr->TotalForce, -bubble_dumping_, itr->Velocity);
     WeightedAdd (itr->Center, time_step, itr->Velocity);
     WeightedAdd (itr->Velocity, time_step/bubble_mass_, itr->TotalForce);
-    // spd_norm_sum+= GetNormSq(itr->Velocity);
-    // acc_norm_sum+= Square(1.0l/bubble_mass_)*GetNormSq(itr->TotalForce);
+    // spd_norm_sum+= SquareSum(itr->Velocity);
+    // acc_norm_sum+= Square(1.0l/bubble_mass_)*SquareSum(itr->TotalForce);
     acc_norm_max= std::max(acc_norm_max, 1.0l/bubble_mass_*GetNorm(itr->TotalForce));
   }
 

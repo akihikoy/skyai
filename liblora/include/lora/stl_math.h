@@ -3,6 +3,7 @@
     \brief   liblora - STL extension for mathmatical use  (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Jun.13, 2010-
+    \date    Aug.25, 2010   Added GetMaxNorm
 
     Copyright (C) 2010  Akihiko Yamaguchi
 
@@ -20,6 +21,12 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+    -----------------------------------------------------------------------------------------
+
+    \note Most of the following functions can work with liboctave's vectors, such as ColumnVector.
+      To do this, include lora/type_gen_oct.h
+
 */
 //-------------------------------------------------------------------------------------------
 #ifndef loco_rabbits_stl_math_h
@@ -142,7 +149,7 @@ inline const t_vector1& WeightedAdd (t_vector1 &lhs, const t_real_type &w, const
 //-------------------------------------------------------------------------------------------
 
 template <typename t_vector>
-inline typename TypeExt<t_vector>::value_type  GetNormSq (const t_vector &w)
+inline typename TypeExt<t_vector>::value_type  SquareSum (const t_vector &w)
 {
   typename TypeExt<t_vector>::value_type res;  SetZero(res);
   for (typename TypeExt<t_vector>::const_iterator first(GenBegin(w)),last(GenEnd(w)); first!=last; ++first)
@@ -150,10 +157,21 @@ inline typename TypeExt<t_vector>::value_type  GetNormSq (const t_vector &w)
   return res;
 }
 
+//!\brief return L2 norm of a vector w
 template <typename t_vector>
 inline typename TypeExt<t_vector>::value_type  GetNorm (const t_vector &w)
 {
-  return real_sqrt(GetNormSq(w));
+  return real_sqrt(SquareSum(w));
+}
+
+//!\brief return maximum norm of a vector w
+template <typename t_vector>
+inline typename TypeExt<t_vector>::value_type  GetMaxNorm (const t_vector &w)
+{
+  typename TypeExt<t_vector>::value_type res;  SetZero(res);
+  for (typename TypeExt<t_vector>::const_iterator first(GenBegin(w)),last(GenEnd(w)); first!=last; ++first)
+    res= std::max(res, real_fabs(*first));
+  return res;
 }
 //-------------------------------------------------------------------------------------------
 

@@ -23,7 +23,8 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/parser.h>
-#include <skyai/skyai.h>
+#include <skyai/base.h>
+#include <skyai/types.h>
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser_impl.h>
 #include <lora/stl_ext.h>
@@ -100,7 +101,6 @@ public:
   DECL_ACTION(IncludeFile);
   DECL_ACTION(IncludeFileOnce);
   DECL_ACTION(SyntaxError);
-  DECL_ACTION(PushIdentifier);
   DECL_ACTION(PushKeyword);
   DECL_ACTION(AddModule);
   DECL_ACTION(Connect);
@@ -136,7 +136,6 @@ private:
   var_space::TParserAgent<t_iterator>  var_pagent_;
   var_space::TCodeParser<t_iterator>   var_cparser_;
 
-  std::list<std::string>               id_stack_;
   std::list<TCompositeModule>          cmodule_entity_stack_;
   std::list<int>                       line_num_stack_;
   std::list<std::string>               func_param_stack_;
@@ -153,12 +152,17 @@ private:
       expand_id_= !parse_mode_.Phantom;
     }
 
+  override void on_push_literal_identifier (const std::string &id)
+    {
+      if(keywords_.find(id)!=keywords_.end())
+        PRINT_ERROR(id<<" is a reserved keyword, but used as an identifier");
+    }
+
   std::string pop_id_x (void)
     {
-      LASSERT(!id_stack_.empty());
-      std::string identifier(id_stack_.back());  id_stack_.pop_back();
+      std::string identifier(var_space::TBasicParserAgent::pop_id_x());
       if(identifier=="as" || identifier=="as_is" || identifier=="def" || identifier=="") return identifier;
-      return expand_id_ ? ExpandIdentifier(identifier, literal_table_, error_) : identifier;
+      return identifier;
     }
 
   bool search_agent_file (const boost::filesystem::path &file_path, boost::filesystem::path &complete_path);
@@ -204,7 +208,14 @@ public:
   struct definition : var_space::basic_parser_definition<t_iterator,ScannerT>
     {
       typedef var_space::basic_parser_definition<t_iterator,ScannerT> TParent;
-      using TParent::identifier_p                   ;
+      using TParent::expr_identifier                ;
+      using TParent::parenthesized_list_expr_any    ;
+      using TParent::list_expr_any                  ;
+      using TParent::list_expr_primitive            ;
+      using TParent::expr_any                       ;
+      using TParent::expr_primitive                 ;
+      using TParent::expr_parenthesized_list        ;
+      using TParent::expr_identifier                ;
       using TParent::parenthesized_list_literal_any ;
       using TParent::list_literal_any               ;
       using TParent::list_literal_primitive         ;
@@ -293,7 +304,6 @@ boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule 
   if(!error_)
   {
     STACK_CHECK(cmodule_stack_);
-    STACK_CHECK_S(id_stack_);
     STACK_CHECK(literal_stack_);
     STACK_CHECK(cmodule_entity_stack_);
     STACK_CHECK_S(line_num_stack_);
@@ -400,20 +410,20 @@ void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 }
 
 TEMPLATE_DEC
-void XCLASS::PushIdentifier (t_iterator first, t_iterator last)
-{
-  id_stack_.push_back(join_iterators(first,last));
-  if(keywords_.find(id_stack_.back())!=keywords_.end())
-    PRINT_ERROR(id_stack_.back()<<" is a reserved keyword, but used as an identifier");
-}
-
-TEMPLATE_DEC
 void XCLASS::PushKeyword (t_iterator first, t_iterator last)
 {
+  using namespace var_space;
   std::string kw(join_iterators(first,last));
   TrimBoth(kw);
-  id_stack_.push_back(kw);
-  if(id_stack_.back()=="as_is")  id_stack_.push_back("");  // dummy id
+  TLiteral literal;
+  literal.LType= TLiteral::ltIdentifier;
+  literal.LPrimitive= TAnyPrimitive(pt_string(kw));
+  literal_stack_.push_back(TLiteralCell(ltValue,literal));
+  if(kw=="as_is")
+  {
+    literal.LPrimitive= TAnyPrimitive(pt_string(""));  // dummy id
+    literal_stack_.push_back(TLiteralCell(ltValue,literal));
+  }
 }
 
 TEMPLATE_DEC
@@ -581,6 +591,8 @@ void XCLASS::CompositeDefE (t_iterator first, t_iterator last)
   if (cmp_module_generator_.GeneratorExists (module_name))
   {
     PRINT_ERROR("composite module "<<module_name<<" is already defined");
+    const TCompositeModuleGenerator::TGeneratorInfo *info= cmp_module_generator_.Generator(module_name);
+    PRINT_ERROR("first definition is: "<<info->FileName<<":"<<info->LineNum);
     return;
   }
   TCompositeModuleGenerator::TGeneratorInfo  generator;
@@ -757,6 +769,8 @@ void XCLASS::FunctionDefE (t_iterator first, t_iterator last)
   if (function_manager_.FunctionExists (tmp_func_name_))
   {
     PRINT_ERROR("function "<<tmp_func_name_<<" is already defined");
+    const TFunctionManager::TFunctionInfo *info= function_manager_.Function(tmp_func_name_);
+    PRINT_ERROR("first definition is: "<<info->FileName<<":"<<info->LineNum);
     return;
   }
   TFunctionManager::TFunctionInfo  function;
@@ -775,10 +789,10 @@ void XCLASS::FunctionDefE (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::FunctionCall (t_iterator first, t_iterator last)
 {
-  std::string identifier(pop_id_x());
   std::list<var_space::TLiteral>  argv_entity;
   var_space::TEvaluateLiteralConfig pop_config; pop_config.AllowId=true;
   pop_literal_list_x(argv_entity,pop_config);
+  std::string identifier(pop_id_x());
   if(parse_mode_.Phantom)
   {
     equivalent_code_<<identifier<<"("<<var_space::TVarListFormat(argv_entity.begin(),argv_entity.end())<<")"<<std::endl;
@@ -820,7 +834,6 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
     boost::function<void(t_iterator,t_iterator)>  \
       x_as= boost::bind(&TPAgent::x_action,&self.pagent_,_1,_2)
   ALIAS_ACTION(SyntaxError         , f_syntax_error           );
-  ALIAS_ACTION(PushIdentifier      , f_push_identifier        );
   ALIAS_ACTION(PushKeyword         , f_push_keyword           );
   ALIAS_ACTION(IncludeFile         , f_include_file           );
   ALIAS_ACTION(IncludeFileOnce     , f_include_file_once      );
@@ -846,16 +859,13 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   ALIAS_ACTION(FunctionCall        , f_function_call          );
   #undef ALIAS_ACTION
 
-  identifier_p
-    = ((alpha_p | '_') >> *(alnum_p | '_'));
-
   list_identifier
-    = !(identifier_p [f_push_identifier] >> *(op_comma >> identifier_p [f_push_identifier]));
+    = !(expr_identifier >> *(op_comma >> expr_identifier));
 
   block_as
     = ( str_p("as_is") [f_push_keyword]
       | (str_p("as") >> +blank_eol_p) [f_push_keyword]
-          >> identifier_p [f_push_identifier] );
+          >> expr_identifier );
 
   statements
     = *(+blank_eol_p | statement);
@@ -893,21 +903,21 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
 
   statement_composite
     = str_p("composite") >> +blank_eol_p
-      >> identifier_p [f_push_identifier] >> *blank_eol_p
+      >> expr_identifier >> *blank_eol_p
         >> op_brace_l [f_composite_def_s]
           >> statements
             >> op_brace_r [f_composite_def_e];
 
   statement_edit
     = str_p("edit") >> +blank_eol_p
-      >> identifier_p [f_push_identifier] >> *blank_eol_p
+      >> expr_identifier >> *blank_eol_p
         >> op_brace_l [f_edit_s]
           >> statements
             >> op_brace_r [f_edit_e];
 
   statement_def
     = (str_p("def") >> +blank_eol_p) [f_push_keyword]
-      >> identifier_p [f_push_identifier] >> *blank_eol_p
+      >> expr_identifier >> *blank_eol_p
         >> op_parenthesis_l >> list_identifier >> op_parenthesis_r >> *blank_eol_p
           >> op_brace_l [f_function_def_s]
             >> statements
@@ -923,28 +933,28 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
 
   statement_module
     = str_p("module")
-      >> +blank_p >> identifier_p [f_push_identifier]
+      >> +blank_p >> expr_identifier
         >> (op_comma | +blank_p)
-          >> identifier_p [f_push_identifier];
+          >> expr_identifier;
 
   statement_connect
     = str_p("connect") >> +blank_p
-      >> identifier_p [f_push_identifier]
-        >> op_dot >> identifier_p [f_push_identifier] >> *blank_eol_p
+      >> expr_identifier
+        >> op_dot >> expr_identifier >> *blank_eol_p
           >> op_comma >> *blank_eol_p
-            >> identifier_p [f_push_identifier]
-            >> op_dot >> identifier_p [f_push_identifier] ;
+            >> expr_identifier
+            >> op_dot >> expr_identifier ;
 
   statement_inherit
     = str_p("inherit") >> +blank_eol_p
-      >> identifier_p [f_push_identifier] ;
+      >> expr_identifier ;
   statement_inherit_prv
     = str_p("inherit_prv") >> +blank_eol_p
-      >> identifier_p [f_push_identifier] ;
+      >> expr_identifier ;
 
   statement_export
     = str_p("export") >> +blank_eol_p
-      >> identifier_p [f_push_identifier]
+      >> expr_identifier
         >> op_dot
           >> (statement_export_config [f_export_config]
             | statement_export_memory [f_export_memory]
@@ -952,16 +962,16 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
 
   statement_export_config
     = str_p("config") >> op_dot
-      >> identifier_p [f_push_identifier] >> +blank_eol_p
+      >> expr_identifier >> +blank_eol_p
         >> block_as;
 
   statement_export_memory
     = str_p("memory") >> op_dot
-      >> identifier_p [f_push_identifier] >> +blank_eol_p
+      >> expr_identifier >> +blank_eol_p
         >> block_as;
 
   statement_export_port
-    = identifier_p [f_push_identifier] >> +blank_eol_p
+    = expr_identifier >> +blank_eol_p
       >> block_as;
 
   statement_assign_agent_config
@@ -971,7 +981,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
           >> op_brace_r [f_assign_agent_config_e];
 
   statement_starting_with_identifier
-    = identifier_p [f_push_identifier]
+    = expr_identifier
       >> (statement_assign_config
         | statement_assign_memory
         | statement_function_call);
@@ -989,7 +999,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
           >> op_brace_r [f_assign_memory_e];
 
   statement_function_call
-    = parenthesized_list_literal_any [f_function_call];
+    = parenthesized_list_expr_any [f_function_call];
 
   statement_unexpected
     = (anychar_p - eol_p - op_brace_r) >> *(anychar_p - eol_p);
@@ -1157,7 +1167,8 @@ bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &i
   std::stringstream dummy_equivalent_code;
   if (out.EquivalentCode==NULL)  out.EquivalentCode= &dummy_equivalent_code;
 
-  in.IncludedList->push_back(file_path.file_string());
+  if (std::find(in.IncludedList->begin(),in.IncludedList->end(),file_path.file_string())==in.IncludedList->end())
+    in.IncludedList->push_back(file_path.file_string());
   TSKYAIParseAgent<TIterator> pagent(file_path.parent_path(), *in.PathList, *in.IncludedList, *in.CmpModuleGenerator, *in.FunctionManager, *out.EquivalentCode);
   if (in.LiteralTable)  pagent.SetLiteralTable(in.LiteralTable);
 

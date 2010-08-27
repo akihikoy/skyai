@@ -225,12 +225,23 @@ override void MAVFWireFittingDCOB::slot_add_to_parameter_exec (const TParameter 
                     *diff_itr = GenBegin(des_i_diff);
       // calculate difference vector (des_i_diff) and distance between the center of target and *desitr(1,..)
       distance= 0.0l;
-      for (; bf_itr!=bf_end; ++bf_itr, ++qitr, ++diff_itr)
+      if (!conf_wfdcob_.UsingMaxNorm)
       {
-        *diff_itr = *qitr - *bf_itr;
-        distance += Square(*diff_itr);
+        for (; bf_itr!=bf_end; ++bf_itr, ++qitr, ++diff_itr)
+        {
+          *diff_itr = *qitr - *bf_itr;
+          distance += Square(*diff_itr);
+        }
+        distance= real_sqrt(distance);
       }
-      distance= real_sqrt(distance);
+      else
+      {
+        for (; bf_itr!=bf_end; ++bf_itr, ++qitr, ++diff_itr)
+        {
+          *diff_itr = *qitr - *bf_itr;
+          distance = std::max<TReal>(distance, real_fabs(*diff_itr));
+        }
+      }
       /* if distance is greater than get_distance_to_nearest_bf()(target):
           1. adjust the difference vector (des_i_diff) so that its norm is equal to get_distance_to_nearest_bf()(target)
           2. add the adjusted des_i_diff to the center of target  */

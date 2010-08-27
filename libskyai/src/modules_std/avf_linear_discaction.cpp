@@ -69,7 +69,7 @@ override void TAVFLinearDiscActionParameter::Zero (void)
 override TReal TAVFLinearDiscActionParameter::Norm (void) const
 {
   TReal n(0.0l);
-  VcCFOR(Theta,itr)   {n+= GetNormSq(*itr);}
+  VcCFOR(Theta,itr)   {n+= SquareSum(*itr);}
   return real_sqrt(n);
 }
 //-------------------------------------------------------------------------------------------

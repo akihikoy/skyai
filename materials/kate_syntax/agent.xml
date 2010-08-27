@@ -65,16 +65,19 @@
         <Int attribute="Decimal" context="#stay">
         </Int>
 
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+
         <RegExpr attribute="Function" context="Function Call" String="[a-zA-Z_][a-zA-Z0-9_]*\s*\("/>
         <DetectChar attribute="ExtSymbol" context="Asign" char="="/>
 
         <AnyChar attribute="ExtSymbol" context="#stay" String="{}"/>
         <DetectChar attribute="ExtSymbol" context="#pop" char=";"/>
 
-        <AnyChar attribute="Symbol" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
+        <AnyChar attribute="Symbol" context="#stay" String=":!%#@&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
 
         <keyword attribute="ExtSymbol" context="#stay" String="kwList1" />
-        <DetectIdentifier attribute="Identifier"/>
+        <!--<DetectIdentifier attribute="Identifier"/>-->
+        <RegExpr attribute="Identifier" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
 
@@ -105,45 +108,60 @@
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Module">
-        <DetectIdentifier attribute="ModuleType" context="ModuleInstance"/>
+        <!--<DetectIdentifier attribute="ModuleType" context="ModuleInstance"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="ModuleType" context="ModuleInstance" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
       <context attribute="Normal Text" lineEndContext="#pop" name="ModuleInstance">
         <DetectSpaces />
-        <AnyChar attribute="ExtSymbol" String=","/>
-        <DetectIdentifier attribute="Identifier" context="#pop#pop"/>
+        <DetectChar attribute="ExtSymbol" context="#stay" char=","/>
+        <!--<DetectIdentifier attribute="Identifier" context="#pop#pop"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="Identifier" context="#pop#pop" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Connect">
         <DetectSpaces />
-        <AnyChar attribute="ExtSymbol" context="#stay" String=","/>
+        <DetectChar attribute="ExtSymbol" context="#stay" char=","/>
         <DetectChar attribute="ExtSymbol" context="#stay" char="."/>
-        <DetectIdentifier attribute="Identifier"/>
+        <!--<DetectIdentifier attribute="Identifier"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="Identifier" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#stay" name="Composite">
         <DetectSpaces />
-        <DetectIdentifier attribute="ModuleType" context="#pop"/>
+        <!--<DetectIdentifier attribute="ModuleType" context="#pop"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="ModuleType" context="#pop" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#stay" name="Edit">
         <DetectSpaces />
-        <DetectIdentifier attribute="Identifier" context="#pop"/>
+        <!--<DetectIdentifier attribute="Identifier" context="#pop"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="Identifier" context="#pop" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Export">
         <DetectSpaces />
         <keyword attribute="ExtSymbol" context="#stay" String="kwList1" />
         <DetectChar attribute="ExtSymbol" context="#stay" char="."/>
-        <DetectIdentifier attribute="Identifier"/>
+        <!--<DetectIdentifier attribute="Identifier"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="Identifier" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Inherit">
-        <DetectIdentifier attribute="ModuleType" context="#pop"/>
+        <!--<DetectIdentifier attribute="ModuleType" context="#pop"/>-->
+        <Detect2Chars attribute="Symbol" char="#" char1="#"/>
+        <RegExpr attribute="ModuleType" context="#pop" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
 
       <context attribute="Normal Text" lineEndContext="#stay" name="Function Call">
         <DetectSpaces />
         <keyword attribute="Keyword" context="#stay" String="kwListAsign" />
+        <DetectChar attribute="ExtSymbol" context="#stay" char=","/>
         <DetectChar attribute="Function" context="#pop" char=")"/>
         <IncludeRules context="Normal Text" />
       </context>

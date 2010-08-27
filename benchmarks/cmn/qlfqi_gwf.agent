@@ -9,6 +9,7 @@ composite MTDFQIWireFittingGrid
   inherit_prv  MTDWireFittingGrid
 
   include "qlfqi_cmn_wf"
+
   export   behavior.signal_execute_action  as_is
   export   behavior.slot_finish_action  as_is
 

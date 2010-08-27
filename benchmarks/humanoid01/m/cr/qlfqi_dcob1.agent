@@ -6,7 +6,7 @@ include_once "qlfqi_da"
 include_once "dcob"
 
 module MTDFQIDiscAct behavior
-module MDCOB dcob
+module MDCOB1 dcob
 include "cmn_dcob"
 
 /// parameter setting:

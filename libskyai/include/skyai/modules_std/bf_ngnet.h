@@ -83,6 +83,15 @@ public:
 
   virtual ~MBasisFunctionsNGnet() {}
 
+  TConfigurations&       Config()       {return conf_;}
+  const TConfigurations& Config() const {return conf_;}
+
+  TNGnet&       NGnet()       {return ngnet_;}
+  const TNGnet& NGnet() const {return ngnet_;}
+
+  TNGnetConfiguration&       NGnetConfig()       {return ngnetcnf_;}
+  const TNGnetConfiguration& NGnetConfig() const {return ngnetcnf_;}
+
 protected:
 
   TConfigurations      conf_;
@@ -117,9 +126,13 @@ public:
       this value is used in get_eigvmax which is used in calc_distance_to_nearest_bf and calc_ext_distance_to_nearest_bf */
   TReal              StdDeviationInfinityThreshold;
 
+  /*! using maximum norm as distance_to_nearest_bf_ instead of L-2 norm */
+  bool               UsingMaxNorm;
+
   TDCOBNGnetConfigurations(var_space::TVariableMap &mmap)
     :
-      StdDeviationInfinityThreshold    (500.0l)
+      StdDeviationInfinityThreshold    (500.0l),
+      UsingMaxNorm                     (false)
     {
       Register(mmap);
     }
@@ -127,6 +140,7 @@ public:
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( StdDeviationInfinityThreshold       );
+      ADD( UsingMaxNorm                        );
       #undef ADD
     }
 };
