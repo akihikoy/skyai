@@ -101,7 +101,8 @@ struct TEvaluateLiteralConfig
 {
   bool AllowId;
   bool ExitByError;
-  TEvaluateLiteralConfig() : AllowId(false), ExitByError(true) {}
+  bool Recursive;  //!< if true, an identifier is recursively evaluated
+  TEvaluateLiteralConfig() : AllowId(false), ExitByError(true), Recursive(false) {}
 };
 TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error);
 //-------------------------------------------------------------------------------------------

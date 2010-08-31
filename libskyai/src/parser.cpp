@@ -78,7 +78,9 @@ public:
       keywords_.insert("include");
       keywords_.insert("include_once");
       keywords_.insert("module");
+      keywords_.insert("remove");
       keywords_.insert("connect");
+      keywords_.insert("disconnect");
       keywords_.insert("inherit");
       keywords_.insert("inherit_prv");
       keywords_.insert("export");
@@ -103,7 +105,9 @@ public:
   DECL_ACTION(SyntaxError);
   DECL_ACTION(PushKeyword);
   DECL_ACTION(AddModule);
+  DECL_ACTION(RemoveModule);
   DECL_ACTION(Connect);
+  DECL_ACTION(Disconnect);
   DECL_ACTION(AssignAgentConfigS);
   DECL_ACTION(AssignAgentConfigE);
   DECL_ACTION(AssignConfigS);
@@ -249,7 +253,7 @@ public:
       rule_t  statement_composite, statement_edit, statement_def;
       rule_t  statement_std;
       rule_t  statement_include, statement_include_once;
-      rule_t  statement_module, statement_connect;
+      rule_t  statement_module, statement_remove, statement_connect, statement_disconnect;
       rule_t  statement_inherit, statement_inherit_prv;
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
       rule_t  statement_assign_agent_config;
@@ -442,6 +446,21 @@ void XCLASS::AddModule (t_iterator, t_iterator)
 }
 
 TEMPLATE_DEC
+void XCLASS::RemoveModule (t_iterator, t_iterator)
+{
+  std::string identifier(pop_id_x());
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->RemoveSubModule(identifier);
+  }
+  else
+  {
+    equivalent_code_<<"remove "<<identifier<<std::endl;
+  }
+}
+
+TEMPLATE_DEC
 void XCLASS::Connect (t_iterator, t_iterator)
 {
   std::string port2(pop_id_x()), module2(pop_id_x()), port1(pop_id_x()), module1(pop_id_x());
@@ -453,6 +472,21 @@ void XCLASS::Connect (t_iterator, t_iterator)
   else
   {
     equivalent_code_<<"connect "<<module1<<"."<<port1<<","<<module2<<"."<<port2<<std::endl;
+  }
+}
+
+TEMPLATE_DEC
+void XCLASS::Disconnect (t_iterator, t_iterator)
+{
+  std::string port2(pop_id_x()), module2(pop_id_x()), port1(pop_id_x()), module1(pop_id_x());
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    cmodule_stack_.back()->SubDisconnect(module1, port1,  module2, port2);
+  }
+  else
+  {
+    equivalent_code_<<"disconnect "<<module1<<"."<<port1<<","<<module2<<"."<<port2<<std::endl;
   }
 }
 
@@ -838,7 +872,9 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   ALIAS_ACTION(IncludeFile         , f_include_file           );
   ALIAS_ACTION(IncludeFileOnce     , f_include_file_once      );
   ALIAS_ACTION(AddModule           , f_add_module             );
+  ALIAS_ACTION(RemoveModule        , f_remove_module          );
   ALIAS_ACTION(Connect             , f_connect                );
+  ALIAS_ACTION(Disconnect          , f_disconnect             );
   ALIAS_ACTION(AssignAgentConfigS  , f_assign_agent_config_s  );
   ALIAS_ACTION(AssignAgentConfigE  , f_assign_agent_config_e  );
   ALIAS_ACTION(AssignConfigS       , f_assign_config_s        );
@@ -893,7 +929,9 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
       | statement_include [f_include_file]
       | statement_include_once [f_include_file_once]
       | statement_module [f_add_module]
+      | statement_remove [f_remove_module]
       | statement_connect [f_connect]
+      | statement_disconnect [f_disconnect]
       | statement_inherit [f_inherit]
       | statement_inherit_prv [f_inherit_prv]
       | statement_export
@@ -937,8 +975,20 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
         >> (op_comma | +blank_p)
           >> expr_identifier;
 
+  statement_remove
+    = str_p("remove")
+      >> +blank_p >> expr_identifier;
+
   statement_connect
     = str_p("connect") >> +blank_p
+      >> expr_identifier
+        >> op_dot >> expr_identifier >> *blank_eol_p
+          >> op_comma >> *blank_eol_p
+            >> expr_identifier
+            >> op_dot >> expr_identifier ;
+
+  statement_disconnect
+    = str_p("disconnect") >> +blank_p
       >> expr_identifier
         >> op_dot >> expr_identifier >> *blank_eol_p
           >> op_comma >> *blank_eol_p

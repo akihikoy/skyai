@@ -114,10 +114,10 @@ TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_tabl
     if(literal_table && (alt=literal_table->Find(src_id))!=NULL)
     {
       TLiteral res;
-      if(alt->LType==TLiteral::ltIdentifier)
+      if(alt->LType==TLiteral::ltIdentifier && config.Recursive)
       {
         TEvaluateLiteralConfig sub_config(config); sub_config.ExitByError= false;
-        res= EvaluateLiteral(*alt,literal_table,sub_config,error);  // NOTE: comment out this line not to evaluate recursively
+        res= EvaluateLiteral(*alt,literal_table,sub_config,error);
       }
       else
         res= *alt;

@@ -544,6 +544,9 @@ public:
         i.e. the memory is not freed in Clear(), and parameter is not saved (only connection is saved) */
   void AddUnmanagedSubModule (TModuleInterface *p, const std::string &v_instance_name);
 
+  /*! remove a module of the instance name. all connections are disconnected */
+  bool RemoveSubModule (const std::string &v_instance_name);
+
 
   /*! connect the two ports.  the port types are automatically determined */
   bool SubConnect(
@@ -555,13 +558,13 @@ public:
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name);
 
-  /*! \todo implement Disconnect */
-  void SubDisconnect(
+  /*! disconnect the two ports.  the port types are automatically determined */
+  bool SubDisconnect(
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name);
 
-  /*! \todo implement Disconnect */
-  void SubDisconnect(
+  /*! disconnect the two ports. the modules are indicated by names. the port types are automatically determined */
+  bool SubDisconnect(
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name);
 
@@ -834,13 +837,13 @@ public:
     {return modules_.SubConnect(start_module_name, start_port_name, end_module_name, end_port_name);}
 
   /*! disconnect the ports */
-  void Disconnect(
+  bool Disconnect(
       TModuleInterface &start_module, const std::string &start_port_name,
       TModuleInterface &end_module,   const std::string &end_port_name)
     {return modules_.SubDisconnect(start_module, start_port_name, end_module, end_port_name);}
 
   /*! disconnect the ports */
-  void Disconnect(
+  bool Disconnect(
       const std::string &start_module_name, const std::string &start_port_name,
       const std::string &end_module_name,   const std::string &end_port_name)
     {return modules_.SubDisconnect(start_module_name, start_port_name, end_module_name, end_port_name);}

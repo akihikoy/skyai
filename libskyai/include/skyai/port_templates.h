@@ -87,7 +87,7 @@ struct TPortConnector
       Disconnect (&v_port);             // Disconnect v_this_port ---> v_port
       v_port.Disconnect (&v_this_port); // Disconnect v_port ---> v_this_port
 
-      /*DEBUG*/lexit(df);
+      //*DEBUG*/lexit(df);
       return false;
     }
 

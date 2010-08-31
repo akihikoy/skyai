@@ -575,6 +575,45 @@ void TCompositeModule::AddUnmanagedSubModule (TModuleInterface *p, const std::st
 }
 //-------------------------------------------------------------------------------------------
 
+typedef std::list<std::pair<TPortInterface*,TPortInterface*> > TRemoveCList;
+bool add_to_remove_list (TPortInterface *first, TPortInterface *second, TRemoveCList *remove_list)
+{
+  remove_list->push_back(TRemoveCList::value_type(first,second));
+  return true;
+}
+
+/*! remove a module of the instance name. all connections are disconnected */
+bool TCompositeModule::RemoveSubModule (const std::string &v_instance_name)
+{
+  TModuleSet::iterator mod_itr (sub_modules_.find(TModuleCell(v_instance_name)));
+  if (mod_itr==sub_modules_.end())  {LERROR(v_instance_name<<" does not exist"); return false;}
+
+  // remove all connections connected to mod_itr
+  TRemoveCList remove_list;
+  #define ADD_TO_REMOVE_LIST(x_type)  \
+    for (TModuleInterface::TPortSet<T##x_type##PortInterface*>::type::iterator  \
+                port_itr(mod_itr->Ptr->x_type##PortBegin()), port_last(mod_itr->Ptr->x_type##PortEnd()); port_itr!=port_last;  ++port_itr)  \
+      port_itr->second->ForEachConnectedPort (boost::bind(&add_to_remove_list, port_itr->second, _1, &remove_list));
+  ADD_TO_REMOVE_LIST(Out)
+  ADD_TO_REMOVE_LIST(In)
+  ADD_TO_REMOVE_LIST(Signal)
+  ADD_TO_REMOVE_LIST(Slot)
+  #undef ADD_TO_REMOVE_LIST
+  for(TRemoveCList::iterator rm_itr(remove_list.begin()),rm_last(remove_list.end()); rm_itr!=rm_last; ++rm_itr)
+    if (!rm_itr->first->Disconnect(rm_itr->second) || !rm_itr->second->Disconnect(rm_itr->first))
+      {LERROR("fatal!"); lexit(df);}
+
+  // free memory of the module
+  if (mod_itr->Ptr!=NULL && mod_itr->Managed)  {delete mod_itr->Ptr;}
+  const_cast<TModuleCell&>(*mod_itr).Ptr=NULL;
+
+  // erase mod_itr from sub_modules_
+  sub_modules_.erase(mod_itr);
+
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 /*! add edge.  the port types are automatically determined */
 bool TCompositeModule::SubConnect(
     TModuleInterface &start_module, const std::string &start_port_name,
@@ -583,7 +622,7 @@ bool TCompositeModule::SubConnect(
   TPortInterface &start (start_module.Port(start_port_name));
   TPortInterface &end (end_module.Port(end_port_name));
 
-  if(start.Connect(end) && end.Connect(start))
+  if (start.Connect(end) && end.Connect(start))
     return true;
   std::cerr<<"  failed to connect ports:"<<std::endl;
   std::cerr<<"    from port: "<<&start<<", "<<start_module.InstanceName()<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
@@ -604,7 +643,7 @@ bool TCompositeModule::SubConnect(
   TPortInterface &start (itr_start_module->Ptr->Port(start_port_name));
   TPortInterface &end (itr_end_module->Ptr->Port(end_port_name));
 
-  if(start.Connect(end) && end.Connect(start))
+  if (start.Connect(end) && end.Connect(start))
     return true;
   std::cerr<<"  failed to connect ports:"<<std::endl;
   std::cerr<<"    from port: "<<&start<<", "<<start_module_name<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
@@ -613,21 +652,41 @@ bool TCompositeModule::SubConnect(
 }
 //-------------------------------------------------------------------------------------------
 
-//! \todo implement Disconnect
-void TCompositeModule::SubDisconnect(
+/*! disconnect the two ports.  the port types are automatically determined */
+bool TCompositeModule::SubDisconnect(
     TModuleInterface &start_module, const std::string &start_port_name,
     TModuleInterface &end_module,   const std::string &end_port_name)
 {
-  FIXME("TCompositeModule::SubDisconnect is not implemented yet..orz..");
+  TPortInterface &start (start_module.Port(start_port_name));
+  TPortInterface &end (end_module.Port(end_port_name));
+
+  if (start.Disconnect(&end) && end.Disconnect(&start))
+    return true;
+  std::cerr<<"  failed to disconnect ports:"<<std::endl;
+  std::cerr<<"    from port: "<<&start<<", "<<start_module.InstanceName()<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
+  std::cerr<<"    to port:   "<<&end<<", "<<end_module.InstanceName()<<SKYAI_MODULE_PORT_DELIMITER<<end_port_name<<std::endl;
+  return false;
 }
 //-------------------------------------------------------------------------------------------
 
-//! \todo implement Disconnect
-void TCompositeModule::SubDisconnect(
+/*! disconnect the two ports. the modules are indicated by names. the port types are automatically determined */
+bool TCompositeModule::SubDisconnect(
     const std::string &start_module_name, const std::string &start_port_name,
     const std::string &end_module_name,   const std::string &end_port_name)
 {
-  FIXME("TCompositeModule::SubDisconnect is not implemented yet..orz..");
+  TModuleSet::iterator itr_start_module (sub_modules_.find(TModuleCell(start_module_name)));
+  if (itr_start_module==sub_modules_.end())  {LERROR(start_module_name<<" does not exist"); return false;}
+  TModuleSet::iterator itr_end_module (sub_modules_.find(TModuleCell(end_module_name)));
+  if (itr_end_module==sub_modules_.end())  {LERROR(end_module_name<<" does not exist"); return false;}
+  TPortInterface &start (itr_start_module->Ptr->Port(start_port_name));
+  TPortInterface &end (itr_end_module->Ptr->Port(end_port_name));
+
+  if (start.Disconnect(&end) && end.Disconnect(&start))
+    return true;
+  std::cerr<<"  failed to disconnect ports:"<<std::endl;
+  std::cerr<<"    from port: "<<&start<<", "<<start_module_name<<SKYAI_MODULE_PORT_DELIMITER<<start_port_name<<std::endl;
+  std::cerr<<"    to port:   "<<&end<<", "<<end_module_name<<SKYAI_MODULE_PORT_DELIMITER<<end_port_name<<std::endl;
+  return false;
 }
 //-------------------------------------------------------------------------------------------
 

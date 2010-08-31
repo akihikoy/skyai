@@ -65,6 +65,7 @@ export behavior_fqi.config.SqErrGradientNormLimit      as_is
 export avf_wire_fitting.config.ActionDim            as_is
 export avf_wire_fitting.config.ActionMax            as_is
 export avf_wire_fitting.config.ActionMin            as_is
+export avf_wire_fitting.config.ActionNoiseKind      as_is
 export avf_wire_fitting.config.ActionSelection      as_is
 export avf_wire_fitting.config.Eps                  as_is
 export avf_wire_fitting.config.EpsDecreasingFactor  as_is

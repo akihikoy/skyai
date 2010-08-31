@@ -28,6 +28,7 @@ composite MTDFQIWireFittingDCOBActSp
 
   include "qlfqi_cmn_wf"
 
+export   behavior.signal_execute_action  as_is  // for debug
   export   signal_start_of_action.signal_out  as  signal_start_of_action
 
   export   in_distance_to_nearest_bf.in_1  as  in_distance_to_nearest_bf
