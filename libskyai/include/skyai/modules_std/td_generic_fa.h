@@ -112,6 +112,31 @@ public:
 };
 //-------------------------------------------------------------------------------------------
 
+//===========================================================================================
+//!\brief Memory of MTDGenericFuncApprox
+class TMemory
+//===========================================================================================
+{
+public:
+
+  TInt  EpisodeNumber;  //!< episode number
+
+  TMemory (var_space::TVariableMap &mmap)
+    :
+      EpisodeNumber (0)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( EpisodeNumber );
+      #undef ADD
+    }
+
+};
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 /*!\brief template reinforcement learning module using temporal difference methods with a generic function approximator
@@ -135,6 +160,7 @@ public:
   MTDGenericFuncApprox (const std::string &v_instance_name)
     : TParent                       (v_instance_name),
       conf_                         (TParent::param_box_config_map()),
+      mem_                          (TParent::param_box_memory_map()),
       signal_avf_add_to_parameter   (*this),
       // in_avf_parameter_ref          (*this),
       // in_avf_parameter_val          (*this),
@@ -144,6 +170,7 @@ public:
       in_avf_replacing_trace        (*this),
       in_avf_create_parameter       (*this),
       in_avf_zero_parameter         (*this),
+      out_episode_number            (*this),
       out_return_in_episode         (*this),
       out_td_error                  (*this),
       out_current_action_value      (*this)
@@ -159,6 +186,7 @@ public:
       add_in_port (in_avf_create_parameter );
       add_in_port (in_avf_zero_parameter   );
 
+      add_out_port (out_episode_number);
       add_out_port (out_return_in_episode);
       add_out_port (out_td_error);
       add_out_port (out_current_action_value);
@@ -172,6 +200,7 @@ public:
 protected:
 
   TConfigurations<TAction>  conf_;
+  TMemory                   mem_;
 
   // [-- ports for a function approximator
   MAKE_SIGNAL_PORT(signal_avf_add_to_parameter, void (const TParameter &), TThis);
@@ -203,6 +232,7 @@ protected:
   // ports for a function approximator --]
 
 
+  MAKE_OUT_PORT(out_episode_number, const TInt&, (void), (), TThis);
   MAKE_OUT_PORT(out_return_in_episode, const TSingleReward&, (void), (), TThis);
   MAKE_OUT_PORT(out_td_error, const TValue&, (void), (), TThis);
   MAKE_OUT_PORT(out_current_action_value, const TValue&, (void), (), TThis);
@@ -212,6 +242,7 @@ protected:
   override void slot_finish_episode_exec (void);
   override void slot_finish_episode_immediately_exec (void);
   override void slot_finish_action_exec (void);
+  const TInt& out_episode_number_get (void) const {return mem_.EpisodeNumber;}
   const TSingleReward& out_return_in_episode_get (void) const {return return_in_episode_;}
   const TValue& out_td_error_get (void) const {return td_error_;}
   const TValue& out_current_action_value_get (void) const {return current_action_value_;}
@@ -268,7 +299,6 @@ protected:
   TParameterMemory      next_grad;
 
   bool                  is_active_;
-  TInt                  total_episodes_;
   TSingleReward         return_in_episode_;
   TInt                  actions_in_episode_;
   bool                  is_end_of_episode_;

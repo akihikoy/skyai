@@ -28,8 +28,7 @@
 #include <skyai/skyai.h>
 #include <list>
 #include <string>
-#include <fstream>
-#include <lora/string_list_ext.h>
+#include <lora/file.h>
 #include <lora/stl_ext.h>
 #include <lora/variable_space_impl.h>
 //-------------------------------------------------------------------------------------------
@@ -38,19 +37,6 @@ namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 
 
-enum TFileOverwritePolicy
-{
-  fopStop            =0,
-  fopNotOverwrite    ,
-  fopOverwrite       ,
-  fopAsk
-};
-ENUM_STR_MAP_BEGIN(TFileOverwritePolicy)
-  ENUM_STR_MAP_ADD(fopStop             )
-  ENUM_STR_MAP_ADD(fopNotOverwrite     )
-  ENUM_STR_MAP_ADD(fopOverwrite        )
-  ENUM_STR_MAP_ADD(fopAsk              )
-ENUM_STR_MAP_END  (TFileOverwritePolicy)
 SPECIALIZE_TVARIABLE_TO_ENUM(TFileOverwritePolicy)
 
 
@@ -64,13 +50,15 @@ public:
   TString                      Delim;
   TString                      NoDataMark;
   TFileOverwritePolicy         FileOverwritePolicy;
+  TBool                        FileSharable;  //!< if true, FileName can be opened from the other modules
 
   TSimpleDataLoggerConfigurations (var_space::TVariableMap &mmap)
     :
       FileName            (""),
       Delim               ("  "),
       NoDataMark          ("#"),
-      FileOverwritePolicy (fopAsk)
+      FileOverwritePolicy (fopAsk),
+      FileSharable        (true)
     {
       Register(mmap);
     }
@@ -81,6 +69,7 @@ public:
       ADD( Delim                 );
       ADD( NoDataMark            );
       ADD( FileOverwritePolicy   );
+      ADD( FileSharable          );
       #undef ADD
     }
 };
@@ -100,6 +89,7 @@ public:
   MSimpleDataLoggerInterface (const std::string &v_instance_name)
     : TParent             (v_instance_name),
       conf_               (TParent::param_box_config_map()),
+      log_file_           (NULL),
       slot_initialize     (*this),
       slot_newline        (*this),
       slot_log            (*this)
@@ -113,7 +103,7 @@ protected:
 
   TSimpleDataLoggerConfigurations conf_;
 
-  std::ofstream   log_file_;
+  std::ofstream   *log_file_;
 
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
 
@@ -241,12 +231,14 @@ public:
       conf2_              (TParent::param_box_config_map()),
       in_data_int         (*this),
       in_data_real        (*this),
+      in_data_string      (*this),
       in_data_int_vector  (*this),
       in_data_real_vector (*this),
       in_data_composite1  (*this)
     {
       add_in_port (in_data_int);
       add_in_port (in_data_real);
+      add_in_port (in_data_string);
       add_in_port (in_data_int_vector);
       add_in_port (in_data_real_vector);
       add_in_port (in_data_composite1);
@@ -259,6 +251,7 @@ protected:
 
   MAKE_IN_PORT_SPECIFIC(in_data_int, const TInt& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
   MAKE_IN_PORT_SPECIFIC(in_data_real, const TReal& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
+  MAKE_IN_PORT_SPECIFIC(in_data_string, const TString& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
   MAKE_IN_PORT_SPECIFIC(in_data_int_vector, const TIntVector& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
   MAKE_IN_PORT_SPECIFIC(in_data_real_vector, const TRealVector& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
   MAKE_IN_PORT_SPECIFIC(in_data_composite1, const TComposite1& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);

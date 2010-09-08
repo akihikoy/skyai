@@ -33,7 +33,6 @@ connect  behavior.signal_end_of_episode                 , env.slot_finalize_epis
 /// I/O:
 connect  action_discretizer.out_set_size                , behavior.in_action_set_size
 connect  env.out_ngnet                                  , behavior.in_feature
-connect  env.out_episode_number                         , behavior.in_episode_number
 connect  env.out_cont_time                              , behavior.in_cont_time
 
 /// parameter setting:

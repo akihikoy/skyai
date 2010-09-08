@@ -28,6 +28,5 @@ connect  behavior.signal_end_of_episode          , cmn.slot_finalize_episode
 
 /// I/O:
 connect  cmn.out_ngnet                           , behavior.in_feature
-connect  cmn.out_episode_number                  , behavior.in_episode_number
 
 connect  cmn.out_cont_time                       , behavior.in_cont_time

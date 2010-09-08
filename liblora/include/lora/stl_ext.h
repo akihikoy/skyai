@@ -26,6 +26,7 @@
 #ifndef loco_rabbits_stl_ext_h
 #define loco_rabbits_stl_ext_h
 //-------------------------------------------------------------------------------------------
+#include <lora/stl_fwd.h>
 #include <lora/math.h>
 #include <lora/string.h>
 #include <vector>
@@ -33,7 +34,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include <boost/bind.hpp>
+#include <utility>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -123,7 +124,7 @@ template <typename T> inline void SetZero (std::vector<T> &val) {CSetZero(val);}
 template <typename T> inline void SetZero (std::list<T> &val)   {CSetZero(val);}
 //-------------------------------------------------------------------------------------------
 
-/*!\todo FIXME : fixe the issue of breaking strict-aliasing rules:
+/*!\todo FIXME : fix the issue of breaking strict-aliasing rules:
     If t_container is a std::list\<T\> and the result of max_element is dereferenced (by operator*),
     warning:  "cc1plus: warning: dereferencing pointer 'pretmp.xxxx' does break strict-aliasing rules"
     arises.  (Currently, this seems not a big issue)
@@ -248,6 +249,24 @@ inline typename std::vector<T>::const_iterator container_itr_at (const std::vect
 }
 //-------------------------------------------------------------------------------------------
 
+//! function object to compare two std::pair objects by their second values (use this with max_element, etc.)
+template <typename t_key,typename t_value>
+struct TSecondComp
+{
+  bool operator()(const std::pair<t_key,t_value> &lhs, const std::pair<t_key,t_value> &rhs)
+    {return lhs.second < rhs.second;}
+};
+template <typename t_key,typename t_value>
+inline TSecondComp<t_key,t_value> SecondComp(const std::pair<t_key,t_value> &ref)
+{
+  return TSecondComp<t_key,t_value>();
+}
+template <typename t_key,typename t_value>
+inline TSecondComp<t_key,t_value> SecondComp(const MAP_FWD(t_key,t_value) &ref)
+{
+  return TSecondComp<t_key,t_value>();
+}
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------

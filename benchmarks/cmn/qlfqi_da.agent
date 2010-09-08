@@ -17,7 +17,7 @@ composite MTDFQIDiscAct
   export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
   export   avf_linear.in_action_set_size  as_is
   export   rl_in_feature.in_1  as  in_feature
-  export   rl_in_episode_number.in_1  as  in_episode_number
+  export   behavior.out_return_in_episode  as_is
   export   avf_linear.in_action_availability  as  in_action_availability
   export   rl_in_cont_time.in_1  as  in_cont_time
 

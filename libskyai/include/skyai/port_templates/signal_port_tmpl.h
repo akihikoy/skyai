@@ -64,13 +64,14 @@ public:
       return port_connector_.Disconnect (port_ptr);
     }
 
-  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.size();}
+  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.Size();}
 
   /*!\brief for each connected port, apply the function f
       \note if the return of the function f is false, the iteration is finished immidiately,
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(TPortInterface*)> f)
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
@@ -79,44 +80,55 @@ public:
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(const TPortInterface*)> f) const
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
-  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
-  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
+  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.Begin();}
+  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.End();}
   TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
+  void  ConnectedPortLock ()   {port_connector_.ConnectedPorts.Lock();}
+  void  ConnectedPortUnlock ()   {port_connector_.ConnectedPorts.Unlock();}
 
-  t_return ExecFirst (FUNC_OBJ_FUNC_PARAMS) const
+  t_return ExecFirst (FUNC_OBJ_FUNC_PARAMS)
     {
+      TActivate aco(*this);
       return ExecCurrent (ConnectedPortBegin()  FUNC_OBJ_COMMA  FUNC_OBJ_FUNC_ARGS);
     }
 
   t_return ExecCurrent (TConnectedPortIterator current_itr
-                              FUNC_OBJ_COMMA FUNC_OBJ_FUNC_PARAMS) const
+                              FUNC_OBJ_COMMA FUNC_OBJ_FUNC_PARAMS)
     {
-      if (current_itr==ConnectedPortEnd())
+      TActivate aco(*this);
+      if (current_itr==ConnectedPortEnd() || current_itr->Erased())
       {
         LERROR("invalid port iterator");
         lexit(df); return dummy_return<t_return>::value();
       }
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
         {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>> "<<(*current_itr)<<std::endl;}
-      return (*current_itr)->Exec(FUNC_OBJ_FUNC_ARGS);
+      return current_itr->Entity()->Exec(FUNC_OBJ_FUNC_ARGS);
     }
 
   /*!\brief execute all slots connected to this signal-port
       \note NOTE that the return of each slots are ignored */
-  void ExecAll (FUNC_OBJ_FUNC_PARAMS) const
+  void ExecAll (FUNC_OBJ_FUNC_PARAMS)
     {
+      TActivate aco(*this);
       bool is_debug (outer_base_.ModuleMode()==TModuleInterface::mmDebug);
       if (is_debug)
         {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>>"<<std::endl;}
+      ConnectedPortLock();
       for (TConnectedPortIterator itr(ConnectedPortBegin()); itr!=ConnectedPortEnd(); ++itr)
       {
-        if (is_debug)
-          {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>> "<<(*itr)<<std::endl;}
-        (*itr)->Exec(FUNC_OBJ_FUNC_ARGS);
+        if (!itr->Erased())
+        {
+          if (is_debug)
+            {outer_base_.DebugStream()<<"SIGNAL-PORT: "<<this<<" >>>> "<<(*itr)<<std::endl;}
+          itr->Entity()->Exec(FUNC_OBJ_FUNC_ARGS);
+        }
       }
+      ConnectedPortUnlock();
     }
 
 protected:

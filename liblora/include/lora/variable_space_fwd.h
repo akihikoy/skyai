@@ -26,6 +26,7 @@
 #define loco_rabbits_variable_space_fwd_h
 //-------------------------------------------------------------------------------------------
 #include <lora/common.h>
+#include <lora/stl_fwd.h>
 #include <list>
 #include <map>
 //-------------------------------------------------------------------------------------------
@@ -50,8 +51,8 @@ typedef std::string          pt_string    ;
 typedef pt_string            TIdentifier;
 
 class TVariable;
-typedef std::list<TVariable> TVariableList;
-typedef std::map<TIdentifier, TVariable> TVariableMap;
+typedef LIST_FWD(TVariable) TVariableList;
+typedef MAP_FWD(TIdentifier, TVariable) TVariableMap;
 class TForwardIterator;
 class TConstForwardIterator;
 

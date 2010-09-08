@@ -152,6 +152,31 @@ public:
 };
 //-------------------------------------------------------------------------------------------
 
+//===========================================================================================
+//!\brief Memory of MFittedQIterationSL
+class TMemory
+//===========================================================================================
+{
+public:
+
+  TInt  EpisodeNumber;  //!< episode number
+
+  TMemory (var_space::TVariableMap &mmap)
+    :
+      EpisodeNumber (0)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( EpisodeNumber );
+      #undef ADD
+    }
+
+};
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 /*!\brief template reinforcement learning module using fitted Q iteration with a gradient descent method for the least square error
@@ -176,6 +201,7 @@ public:
   MFittedQIterationSL (const std::string &v_instance_name)
     : TParent                       (v_instance_name),
       conf_                         (TParent::param_box_config_map()),
+      mem_                          (TParent::param_box_memory_map()),
       in_state                      (*this),
       slot_puppet_action            (*this),
       signal_avf_add_to_parameter   (*this),
@@ -187,6 +213,7 @@ public:
       // in_avf_replacing_trace        (*this),
       in_avf_create_parameter       (*this),
       in_avf_zero_parameter         (*this),
+      out_episode_number            (*this),
       out_return_in_episode         (*this),
       out_td_error                  (*this),
       out_current_action_value      (*this),
@@ -205,6 +232,7 @@ public:
       add_in_port (in_avf_create_parameter );
       add_in_port (in_avf_zero_parameter   );
 
+      add_out_port (out_episode_number);
       add_out_port (out_return_in_episode);
       add_out_port (out_td_error);
       add_out_port (out_current_action_value);
@@ -216,6 +244,7 @@ public:
 protected:
 
   TConfigurations  conf_;
+  TMemory          mem_;
 
   //!\brief state input (must be the same as one which linked to the action value function module)
   MAKE_IN_PORT(in_state, const TState& (void), TThis);
@@ -252,6 +281,7 @@ protected:
   MAKE_IN_PORT(in_avf_zero_parameter, void (TParameter &outerparam), TThis);
   // ports for a function approximator --]
 
+  MAKE_OUT_PORT(out_episode_number, const TInt&, (void), (), TThis);
   MAKE_OUT_PORT(out_return_in_episode, const TSingleReward&, (void), (), TThis);
   MAKE_OUT_PORT(out_td_error, const TValue&, (void), (), TThis);
   MAKE_OUT_PORT(out_current_action_value, const TValue&, (void), (), TThis);
@@ -262,6 +292,7 @@ protected:
   override void slot_finish_episode_immediately_exec (void);
   override void slot_finish_action_exec (void);
   void slot_puppet_action_exec (const TAction &a)  {puppet_action_= a; is_puppet_= true;}
+  const TInt& out_episode_number_get (void) const {return mem_.EpisodeNumber;}
   const TSingleReward& out_return_in_episode_get (void) const {return reward_statistics_in_episode_.Total;}  // return_in_episode_
   const TValue& out_td_error_get (void) const {return td_error_;}
   const TValue& out_current_action_value_get (void) const {return current_action_value_;}
@@ -322,7 +353,6 @@ protected:
   typename TFQIData<TState,TAction>::T::TList  current_sample_;
 
   bool                  is_active_;
-  TInt                  total_episodes_;
   // TSingleReward         return_in_episode_;
   TFQIRewardStatistics  reward_statistics_in_episode_;
   TReal                 max_reward_deviation_;

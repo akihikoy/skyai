@@ -46,7 +46,7 @@ namespace fitted_qi_ls_detail
 TEMPLATE_DEC
 override void XMODULE::slot_initialize_exec (void)
 {
-  total_episodes_= 0;
+  // mem_.EpisodeNumber= 0;
   // return_in_episode_= 0.0l;
   reward_statistics_in_episode_.Clear();
   max_reward_deviation_= 0.0;
@@ -119,7 +119,7 @@ override void XMODULE::slot_finish_action_exec (void)
 
     if (is_end_of_episode_)
     {
-      ++total_episodes_;
+      ++mem_.EpisodeNumber;
       is_active_= false;
       signal_end_of_episode.ExecAll();
     }
@@ -134,7 +134,7 @@ override void XMODULE::slot_finish_action_exec (void)
 TEMPLATE_DEC inline TReal XMODULE::get_alpha (void) const
 {
   TReal alpha (0.0l);
-  alpha= conf_.Alpha * exp (-conf_.AlphaDecreasingFactor * static_cast<TReal>(total_episodes_));
+  alpha= conf_.Alpha * exp (-conf_.AlphaDecreasingFactor * static_cast<TReal>(mem_.EpisodeNumber));
   return ApplyRange(alpha,conf_.AlphaMin,conf_.Alpha);
 }
 //-------------------------------------------------------------------------------------------
@@ -203,7 +203,7 @@ TEMPLATE_DEC
     {
       manipulate_samples();
 
-      if ((total_episodes_+1)%conf_.FQICycle==0)
+      if ((mem_.EpisodeNumber+1)%conf_.FQICycle==0)
       {
         // apply fitted Q-iteration with fqi_data_ ...
         for (int NQI(0); NQI<conf_.MaxNumberOfQIteration; ++NQI)

@@ -110,7 +110,7 @@ override void XMODULE::slot_finish_action_exec (void)
 
       if (is_end_of_episode_)
       {
-        ++total_episodes_;
+        ++mem_.EpisodeNumber;
         is_active_= false;
         signal_end_of_episode.ExecAll();
       }

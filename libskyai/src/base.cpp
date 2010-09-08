@@ -79,6 +79,12 @@ bool TModuleInterface::DecomposePortUniqueCode(const std::string &unique_code, s
 }
 //-------------------------------------------------------------------------------------------
 
+/*virtual*/TModuleInterface::~TModuleInterface(void)
+{
+  LASSERT(!HasActivePorts());
+}
+//-------------------------------------------------------------------------------------------
+
 #define X_SEARCH_PORT(x_type,x_set_name)                                  \
   TPortSet<x_type*>::type::const_iterator item= x_set_name.find(v_name);  \
   if(item!=x_set_name.end())  return  (item->second);                     \
@@ -262,6 +268,21 @@ bool TModuleInterface::SearchPortByPtr (TPortInterface *port_ptr, TPortInfo &inf
   info.Ptr  = const_cast<TPortInterface*>(i.Ptr);
   info.OuterModule = const_cast<TModuleInterface*>(i.OuterModule);
   return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//!\brief return true if this module has some active ports
+bool TModuleInterface::HasActivePorts() const
+{
+#define X_SCAN_PORT(x_type,x_port)  \
+  for (TPortSet<T##x_type##PortInterface*>::type::const_iterator itr(x_port.begin()),last(x_port.end()); itr!=last; ++itr)  \
+    if (itr->second->IsActive())  return true;
+  X_SCAN_PORT(Out    , out_ports_   );
+  X_SCAN_PORT(In     , in_ports_    );
+  X_SCAN_PORT(Signal , signal_ports_);
+  X_SCAN_PORT(Slot   , slot_ports_  );
+#undef X_SCAN_PORT
+  return false;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -581,12 +602,20 @@ bool add_to_remove_list (TPortInterface *first, TPortInterface *second, TRemoveC
   remove_list->push_back(TRemoveCList::value_type(first,second));
   return true;
 }
+//-------------------------------------------------------------------------------------------
 
-/*! remove a module of the instance name. all connections are disconnected */
-bool TCompositeModule::RemoveSubModule (const std::string &v_instance_name)
+/*! remove the module specified by mod_itr. all connections are disconnected */
+bool TCompositeModule::RemoveSubModule (TModuleSet::iterator mod_itr)
 {
-  TModuleSet::iterator mod_itr (sub_modules_.find(TModuleCell(v_instance_name)));
-  if (mod_itr==sub_modules_.end())  {LERROR(v_instance_name<<" does not exist"); return false;}
+  LASSERT(mod_itr!=sub_modules_.end());
+
+  // NOTE: if the module has some active ports, the module is not removed, but is set the zombie flag
+  if (mod_itr->Ptr->HasActivePorts())
+  {
+    LERROR("failed to remove: "<<mod_itr->Name<<" has some active ports");
+    mod_itr->Ptr->SetZombie(true);
+    return false;
+  }
 
   // remove all connections connected to mod_itr
   TRemoveCList remove_list;
@@ -611,6 +640,29 @@ bool TCompositeModule::RemoveSubModule (const std::string &v_instance_name)
   sub_modules_.erase(mod_itr);
 
   return true;
+}
+//-------------------------------------------------------------------------------------------
+
+/*! remove a module of the instance name. all connections are disconnected */
+bool TCompositeModule::RemoveSubModule (const std::string &v_instance_name)
+{
+  TModuleSet::iterator mod_itr (sub_modules_.find(TModuleCell(v_instance_name)));
+  if (mod_itr==sub_modules_.end())  {LERROR(v_instance_name<<" does not exist"); return false;}
+
+  return RemoveSubModule(mod_itr);
+}
+//-------------------------------------------------------------------------------------------
+
+/*! remove all zombies */
+bool TCompositeModule::ClearZombies ()
+{
+  bool removed_all(true);
+  std::list<TModuleSet::iterator>  remove_list;
+  for (TModuleSet::iterator itr(sub_modules_.begin()),last(sub_modules_.end()); itr!=last; ++itr)
+    if (itr->Ptr->IsZombie())  remove_list.push_back(itr);
+  for (std::list<TModuleSet::iterator>::iterator itr(remove_list.begin()),last(remove_list.end()); itr!=last; ++itr)
+    if (!RemoveSubModule(*itr))  removed_all= false;
+  return removed_all;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1117,6 +1169,9 @@ const TFunctionManager::TFunctionInfo* TFunctionManager::Function(const std::str
   return &(itr->second);
 }
 //-------------------------------------------------------------------------------------------
+
+// NOTE: the following member function is defined in parser.cpp
+// bool TFunctionManager::WriteToStream (std::ostream &os, const std::string &indent) const;
 
 
 //===========================================================================================

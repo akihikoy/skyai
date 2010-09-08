@@ -28,6 +28,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser_impl.h>
 #include <lora/stl_ext.h>
+#include <lora/file.h>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -1339,6 +1340,20 @@ bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::stri
 }
 //-------------------------------------------------------------------------------------------
 
+//! Write all function definitions to a stream
+bool TFunctionManager::WriteToStream (std::ostream &os, const std::string &indent) const
+{
+  for (std::map<std::string, TFunctionInfo>::const_iterator itr(functions_.begin()),last(functions_.end()); itr!=last; ++itr)
+  {
+    os<<indent<<"def  "<<itr->first<<"("<<ContainerToStr(itr->second.ParamList.begin(),itr->second.ParamList.end(),", ")<<")"<<endl;
+    os<<indent<<"{"<<endl;
+    os<<TIndentString(itr->second.Script, indent+"  ");
+    os<<indent<<"}"<<endl;
+  }
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 //===========================================================================================
 /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
 bool TAgent::SaveToFile (const std::string &filename) const
@@ -1363,23 +1378,12 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
     cerr<<" does not exist."<<endl;
     return false;
   }
-  if (exists(file_path))
-  {
-    cerr<<file_path.file_string()<<" already exists. Will you overwrite?"<<endl;
-    cerr<<"  answer Yes    : overwrite"<<endl;
-    cerr<<"  answer No     : not overwrite (continue)"<<endl;
-    cerr<<"  answer Cancel : stop running"<<endl;
-    switch(AskYesNoCancel())
-    {
-      case ryncYes    :  break;
-      case ryncNo     :  return false;
-      case ryncCancel :  lexit(qfail); break;
-      default : lexit(abort);
-    }
-  }
+  if (!CanOpenFile(file_path.file_string(),fopAsk))  return false;
 
   ofstream  ofs (file_path.file_string().c_str());
   agent.CompositeModuleGenerator().WriteToStream(ofs);
+  ofs<<endl;
+  agent.FunctionManager().WriteToStream(ofs);
   ofs<<endl;
   return  agent.Modules().WriteToStream(ofs);
 }

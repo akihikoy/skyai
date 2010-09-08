@@ -33,7 +33,6 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/octave_fwd.h>
 #include <cmath>
-#include <vector>
 #include <lora/math.h>
 #include <lora/rand.h>
 #include <cstring> // for memcpy

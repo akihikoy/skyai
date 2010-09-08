@@ -11,7 +11,7 @@ export   rwd_accumulator.slot_add  as  slot_add_to_reward
 export   behavior.slot_finish_episode  as_is
 export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
 export   rl_in_feature.in_1  as  in_feature
-export   rl_in_episode_number.in_1  as  in_episode_number
+export   behavior.out_return_in_episode  as_is
 export   rl_in_cont_time.in_1  as  in_cont_time
 
 module  MFittedQIterationSL_TContinuousState_TContinuousAction  behavior_fqi

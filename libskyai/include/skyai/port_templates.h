@@ -50,20 +50,116 @@ namespace skyai_detail
 {
 //-------------------------------------------------------------------------------------------
 
+/*!\brief list that has a robust iterator for erasing and pushing elements;
+          defined for TConnectedPortSet, whose elements may be erased during scanning its elements
+    \note push-backed elements cannot be accessed unless execute Unlock */
+template<typename T>
+class TErasableList
+{
+public:
+  class TElem
+    {
+    public:
+      TElem(const T &x) : entity_(x), erased_(false) {}
+      bool operator==(const TElem &rhs)
+        {
+          if(erased_||rhs.erased_)  return false;
+          return entity_==rhs.entity_;
+        }
+      bool operator==(const T &rhs)
+        {
+          if(erased_)  return false;
+          return entity_==rhs;
+        }
+      operator       T&()       {LASSERT(!erased_); return entity_;}
+      operator const T&() const {LASSERT(!erased_); return entity_;}
+            T& Entity()       {LASSERT(!erased_); return entity_;}
+      const T& Entity() const {LASSERT(!erased_); return entity_;}
+      bool Erased() const {return erased_;}
+    private:
+      T entity_;
+      bool erased_;
+    friend class TErasableList<T>;
+    };
+  typedef typename std::list<TElem>::iterator        iterator;
+  typedef typename std::list<TElem>::const_iterator  const_iterator;
+
+  TErasableList(void) : locked_(false), erased_size_(0) {}
+
+  void PushBack(const T &x)
+    {
+      if(locked_ && locked_end_==entity_.end())
+      {
+        LASSERT(locked_c_end_==entity_.end());
+        entity_.push_back(TElem(x));
+        locked_end_=entity_.end();
+        --locked_end_;
+        locked_c_end_=entity_.end();
+        --locked_c_end_;
+      }
+      else
+        entity_.push_back(TElem(x));
+    }
+
+  iterator        Begin()  {return entity_.begin();}
+  const_iterator  Begin() const {return entity_.begin();}
+  iterator        End()  {return locked_ ? locked_end_ : entity_.end();}
+  const_iterator  End() const {return locked_ ? locked_c_end_ : entity_.end();}
+
+  iterator Erase(iterator i)
+    {
+      if(locked_)  {i->erased_=true; ++erased_size_; ++i; return i;}
+      else         {return entity_.erase(i);}
+    }
+  void Lock()
+    {
+      locked_=true;
+      locked_end_=entity_.end();
+      locked_c_end_=entity_.end();
+    }
+  void Unlock()
+    {
+      cleanup();
+      locked_=false;
+    }
+  iterator Find(const T &x) {return std::find(Begin(),End(),x);}
+  size_t Size() const {return entity_.size()-erased_size_;}
+
+private:
+  std::list<TElem>  entity_;
+  bool locked_;
+  int  erased_size_;
+  iterator        locked_end_;
+  const_iterator  locked_c_end_;
+
+  void cleanup()
+    {
+      iterator itr(Begin());
+      while(itr!=End())
+      {
+        if(itr->erased_)  {itr=entity_.erase(itr); --erased_size_;}
+        else  ++itr;
+      }
+      LASSERT1op1(erased_size_,==,0);
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+/*!\brief defined for the dynamic_caster argument of Connect function */
 static TPortInterface* through (TPortInterface &v_port, const TPortInterface &)
 {
   return &v_port;
 }
 //-------------------------------------------------------------------------------------------
 
-/*! Management class of port connections
+/*!\brief Management class of port connections
     \note If a port using this class is out-port or slot-port, let t_connectable_port==TPortInterface.
         Because, their role is just providing Get, Exec to in-port, out-port, respectively.
         That is, they do not call the functions. */
 template <typename t_connectable_port>
 struct TPortConnector
 {
-  typedef std::list<t_connectable_port*>  TConnectedPortSet;
+  typedef TErasableList<t_connectable_port*>  TConnectedPortSet;
   TConnectedPortSet  ConnectedPorts;
 
   /*!\brief Connect v_port to v_this_port (return true if successful) */
@@ -71,11 +167,11 @@ struct TPortConnector
                 const TPortInterface &v_this_port,
                 t_connectable_port* (*dynamic_caster)(TPortInterface&, const TPortInterface &))
     {
-      if (static_cast<int>(ConnectedPorts.size()) < v_this_port.MaxConnectionSize())
+      if (static_cast<int>(ConnectedPorts.Size()) < v_this_port.MaxConnectionSize())
       {
         if (t_connectable_port *p= dynamic_caster (v_port, v_this_port))
         {
-          ConnectedPorts.push_back (p);
+          ConnectedPorts.PushBack (p);
           return true;
         }
       }
@@ -95,9 +191,9 @@ struct TPortConnector
   bool Disconnect (const TPortInterface *port_ptr)
     {
       bool res(false);
-      for (typename TConnectedPortSet::iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); /*do nothing*/)
-        if (*itr==port_ptr)  {itr= ConnectedPorts.erase(itr); res=true;}
-        else                 {++itr;}
+      for (typename TConnectedPortSet::iterator itr(ConnectedPorts.Begin()); itr!=ConnectedPorts.End(); /*do nothing*/)
+        if (!itr->Erased() && *itr==port_ptr)  {itr= ConnectedPorts.Erase(itr); res=true;}
+        else                                   {++itr;}
       return res;
     }
 
@@ -106,8 +202,8 @@ struct TPortConnector
             else the iteration is continued.  */
   void ForEachConnectedPort (boost::function<bool(TPortInterface*)> f)
     {
-      for (typename TConnectedPortSet::iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
-        if (!f(*itr))  break;
+      for (typename TConnectedPortSet::iterator itr(ConnectedPorts.Begin()); itr!=ConnectedPorts.End(); ++itr)
+        {if (!itr->Erased())  {if (!f(*itr))  break;}}
     }
 
   /*!\brief for each connected port, apply the function f
@@ -115,16 +211,16 @@ struct TPortConnector
             else the iteration is continued.  */
   void ForEachConnectedPort (boost::function<bool(const TPortInterface*)> f) const
     {
-      for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
-        if (!f(*itr))  break;
+      for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.Begin()); itr!=ConnectedPorts.End(); ++itr)
+        {if (!itr->Erased())  {if (!f(*itr))  break;}}
     }
 
   /*!\brief find a connected port by a pointer */
   typename TConnectedPortSet::const_iterator FindByPtr (const TPortInterface *ptr) const
     {
-      for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.begin()); itr!=ConnectedPorts.end(); ++itr)
-        if (*itr==ptr)  return itr;
-      return ConnectedPorts.end();
+      for (typename TConnectedPortSet::const_iterator itr(ConnectedPorts.Begin()); itr!=ConnectedPorts.End(); ++itr)
+        if (!itr->Erased() && *itr==ptr)  return itr;
+      return ConnectedPorts.End();
     }
 };
 //-------------------------------------------------------------------------------------------

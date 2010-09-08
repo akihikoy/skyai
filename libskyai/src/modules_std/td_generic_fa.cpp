@@ -52,7 +52,7 @@ using namespace std;
 TEMPLATE_DEC
 override void XMODULE::slot_initialize_exec (void)
 {
-  total_episodes_= 0;
+  // mem_.EpisodeNumber= 0;
   return_in_episode_= 0.0l;
   is_end_of_episode_= false;
   is_active_= false;
@@ -121,7 +121,7 @@ override void XMODULE::slot_finish_action_exec (void)
 
     if (is_end_of_episode_)
     {
-      ++total_episodes_;
+      ++mem_.EpisodeNumber;
       is_active_= false;
       signal_end_of_episode.ExecAll();
     }
@@ -136,7 +136,7 @@ override void XMODULE::slot_finish_action_exec (void)
 TEMPLATE_DEC inline TReal XMODULE::get_alpha (void) const
 {
   TReal alpha (0.0l);
-  alpha= conf_.Alpha * exp (-conf_.AlphaDecreasingFactor * static_cast<TReal>(total_episodes_));
+  alpha= conf_.Alpha * exp (-conf_.AlphaDecreasingFactor * static_cast<TReal>(mem_.EpisodeNumber));
   return ApplyRange(alpha,conf_.AlphaMin,conf_.Alpha);
 }
 //-------------------------------------------------------------------------------------------

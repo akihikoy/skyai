@@ -64,13 +64,14 @@ public:
       return port_connector_.Disconnect (port_ptr);
     }
 
-  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.size();}
+  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.Size();}
 
   /*!\brief for each connected port, apply the function f
       \note if the return of the function f is false, the iteration is finished immidiately,
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(TPortInterface*)> f)
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
@@ -79,15 +80,19 @@ public:
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(const TPortInterface*)> f) const
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
-  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
-  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
+  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.Begin();}
+  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.End();}
   TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
+  void  ConnectedPortLock ()   {port_connector_.ConnectedPorts.Lock();}
+  void  ConnectedPortUnlock ()   {port_connector_.ConnectedPorts.Unlock();}
 
   t_return GetFirst (FUNC_OBJ_FUNC_PARAMS) const
     {
+      TActivate aco(*this);
       return GetCurrent (ConnectedPortBegin()  FUNC_OBJ_COMMA  FUNC_OBJ_FUNC_ARGS);
     }
 
@@ -95,14 +100,15 @@ public:
   t_return GetCurrent (TConnectedPortIterator current_itr
                             FUNC_OBJ_COMMA FUNC_OBJ_FUNC_PARAMS) const
     {
-      if (current_itr==ConnectedPortEnd())
+      TActivate aco(*this);
+      if (current_itr==ConnectedPortEnd() || current_itr->Erased())
       {
         LERROR("invalid port iterator");
         lexit(df); return dummy_return<t_return>::value();
       }
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
         {outer_base_.DebugStream()<<"IN-PORT: "<<this<<" (((( "<<(*current_itr)<<std::endl;}
-      return (*current_itr)->Get(FUNC_OBJ_FUNC_ARGS);
+      return current_itr->Entity()->Get(FUNC_OBJ_FUNC_ARGS);
     }
 
 protected:

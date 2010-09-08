@@ -26,6 +26,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/file.h>
 #include <octave/EIG.h>
+#include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -139,9 +140,9 @@ void MBasisFunctionsDCOBNGnet::calc_ext_distance_to_nearest_bf (TRealVector &nei
     /*dbg*/LASSERT1op1(ext_diff.length(),==,ext_sigma.rows());
     EIG  eig(ext_sigma);
     TReal eigvmax = get_eigvmax(eig.eigenvalues());
-LDBGVAR(eigvmax);
+// LDBGVAR(eigvmax);
     *ditr=std::max(dmin, eigvmax);
-LDBGVAR(*ditr);
+// LDBGVAR(*ditr);
   }
   LDEBUG("calc_ext_distance_to_nearest_bf ... done");
 }

@@ -110,6 +110,7 @@ protected:
     }
 
   using TParent::conf_;
+  using TParent::mem_;
 
   using TParent::signal_end_of_episode   ;
   using TParent::signal_execute_action   ;
@@ -125,7 +126,6 @@ protected:
   using TParent::nextV;
 
   using TParent::is_active_;
-  using TParent::total_episodes_;
   using TParent::return_in_episode_;
   using TParent::actions_in_episode_;
   using TParent::is_end_of_episode_;

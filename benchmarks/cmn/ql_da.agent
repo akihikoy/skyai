@@ -16,7 +16,6 @@ composite MTDDiscAct
   module  MForwarder0                                rl_slot_initialize
   module  MForwarder0                                rl_slot_start_episode
   module  MMediator0_TRealVector                     rl_in_feature
-  module  MMediator0_TInt                            rl_in_episode_number
   module  MMediator0_TReal                           rl_in_cont_time
 
   /// initialization process:
@@ -60,19 +59,20 @@ composite MTDDiscAct
 
   export   rl_in_feature.in_1  as  in_feature
   connect  rl_in_feature.out_1                        , avf_linear.in_feature
-  export   rl_in_episode_number.in_1  as  in_episode_number
-  connect  rl_in_episode_number.out_1                 , avf_linear.in_episode_number
+  connect  behavior.out_episode_number                , avf_linear.in_episode_number
   connect  avf_linear.out_select_action               , behavior.in_avf_select_action
   connect  avf_linear.out_replacing_trace             , behavior.in_avf_replacing_trace
   connect  avf_linear.out_create_parameter            , behavior.in_avf_create_parameter
   connect  avf_linear.out_zero_parameter              , behavior.in_avf_zero_parameter
   export   avf_linear.in_action_availability  as  in_action_availability
 
-  connect  rl_in_episode_number.out_1                 , logger_eps_return.in_data1
+  export   behavior.out_return_in_episode  as_is
+
+  connect  behavior.out_episode_number                , logger_eps_return.in_data1
   connect  behavior.out_return_in_episode             , logger_eps_return.in_data2
 
   export   rl_in_cont_time.in_1  as  in_cont_time
-  connect  rl_in_episode_number.out_1                 , logger_action_result.in_data_int
+  connect  behavior.out_episode_number                , logger_action_result.in_data_int
   connect  rl_in_cont_time.out_1                      , logger_action_result.in_data_real
   connect  rwd_accumulator.out_last_accessed          , logger_action_result.in_data_real
   connect  behavior.out_td_error                      , logger_action_result.in_data_real
@@ -89,7 +89,7 @@ composite MTDDiscAct
   logger_action_result.config ={
       FileName = "log-action-res.dat"
       OrderOfColumns ={
-          ["rl_in_episode_number.out_1"]= 1
+          ["behavior.out_episode_number"]= 1
           ["rl_in_cont_time.out_1"]= 2
           ["rwd_accumulator.out_last_accessed"]= 4
           ["behavior.out_td_error"]= 5

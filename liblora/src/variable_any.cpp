@@ -25,6 +25,7 @@
 #include <lora/variable_any.h>
 #include <lora/variable_space_impl.h>
 #include <lora/string_impl.h>  // NumericalContainerToString
+#include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

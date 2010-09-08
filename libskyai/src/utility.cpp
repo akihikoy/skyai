@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/utility.h>
-#include <skyai/skyai.h>
+#include <skyai/base.h>
 #include <lora/string.h>
 #include <lora/small_classes.h>
 #include <boost/filesystem/path.hpp>
@@ -52,6 +52,10 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
       tokenizer.ReadSeparators();
       agent.AddPath(tokenizer.ReadNonSeparators());
     }
+  }
+  if (ConvertFromStr<bool>(option("odp","false")) && option("outdir")!="")  // add [o]ut[d]ir to [p]ath-list
+  {
+    agent.AddPath(option("outdir"));
   }
   if (option("agent")=="")
     {LERROR("fatal! -agent option is needed."); lexit(df);}

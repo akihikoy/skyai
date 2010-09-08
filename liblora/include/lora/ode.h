@@ -33,7 +33,7 @@
 #include <lora/variable_space_fwd.h>
 #include <string>
 #include <ode/ode.h>
-#include <map>
+#include <lora/stl_fwd.h>
 //-------------------------------------------------------------------------------------------
 #ifdef PACKAGE_BUGREPORT
   #undef PACKAGE_BUGREPORT

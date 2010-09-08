@@ -103,7 +103,8 @@ public:
   TPortInterface (const TModuleInterface &v_outer_base, const std::string v_name, int v_max_connection_size)
     : outer_base_              (v_outer_base),
       name_                    (v_name),
-      max_connection_size_     (v_max_connection_size)
+      max_connection_size_     (v_max_connection_size),
+      active_counter_          (0)
     {}
 
   virtual ~TPortInterface() {}
@@ -131,7 +132,9 @@ public:
             in this case, the name of the exported port is arbitrary, i.e. not equal to the OriginalName().  */
   const std::string& OriginalName() const {return name_;}
 
-  const int&         MaxConnectionSize() const {return max_connection_size_;}
+  const int& MaxConnectionSize() const {return max_connection_size_;}
+
+  bool IsActive() const {LASSERT1op1(active_counter_,>=,0); return active_counter_>0;}
 
 protected:
 
@@ -139,6 +142,15 @@ protected:
 
   const std::string  name_;
   int max_connection_size_;
+
+  mutable int active_counter_;  //!< if positive, the outer module should not be removed
+
+  struct TActivate
+    {
+      const TPortInterface &Outer;
+      TActivate(const TPortInterface &o) : Outer(o) {++Outer.active_counter_;}
+      ~TActivate()  {--Outer.active_counter_;}
+    };
 
 };
 //-------------------------------------------------------------------------------------------
@@ -308,10 +320,11 @@ public:
         param_box_config_      (var_space::VariableSpace()),
         param_box_memory_      (var_space::VariableSpace()),
         module_mode_           (mmNormal),
-        debug_stream_          (NULL)
+        debug_stream_          (NULL),
+        is_zombie_             (false)
     {}
 
-  virtual ~TModuleInterface(void) {}
+  virtual ~TModuleInterface(void);
 
   const TModuleMode&  ModuleMode () const {return module_mode_;}
   virtual void  SetModuleMode (const TModuleMode &mm)  {module_mode_= mm;}
@@ -368,6 +381,16 @@ public:
   TPortSet<TSlotPortInterface*>::type::iterator       SlotPortEnd()   {return slot_ports_.end();}
   TPortSet<TSlotPortInterface*>::type::const_iterator SlotPortBegin() const {return slot_ports_.begin();}
   TPortSet<TSlotPortInterface*>::type::const_iterator SlotPortEnd()   const {return slot_ports_.end();}
+
+
+  //!\brief return true if this module has some active ports
+  bool HasActivePorts() const;
+
+  //!\brief set true: the module should be removed, but impossible because some ports are active
+  void SetZombie(bool z)  {is_zombie_=z;}
+
+  //!\brief true: the module should be removed, but impossible because some ports are active
+  bool IsZombie()  {return is_zombie_;}
 
 
   //!\brief return the reference to the host agent
@@ -450,6 +473,8 @@ private:
 
   TModuleMode   module_mode_;
   std::ostream  *debug_stream_;
+
+  bool  is_zombie_;  //!< true: the module should be removed, but impossible because some ports are active
 
   /*! the set of out-ports. */
   TPortSet<TOutPortInterface*>::type out_ports_;
@@ -544,9 +569,14 @@ public:
         i.e. the memory is not freed in Clear(), and parameter is not saved (only connection is saved) */
   void AddUnmanagedSubModule (TModuleInterface *p, const std::string &v_instance_name);
 
+  /*! remove the module specified by mod_itr. all connections are disconnected */
+  bool RemoveSubModule (TModuleSet::iterator mod_itr);
+
   /*! remove a module of the instance name. all connections are disconnected */
   bool RemoveSubModule (const std::string &v_instance_name);
 
+  /*! remove all zombies */
+  bool ClearZombies ();
 
   /*! connect the two ports.  the port types are automatically determined */
   bool SubConnect(
@@ -749,6 +779,9 @@ public:
           const boost::filesystem::path &current_dir,
           std::list<boost::filesystem::path> *path_list, std::list<std::string> *included_list,
           TCompositeModuleGenerator *cmp_module_generator,  bool no_export=false) const;
+
+  //! Write all function definitions to a stream
+  bool WriteToStream (std::ostream &os, const std::string &indent="") const;
 
 private:
 

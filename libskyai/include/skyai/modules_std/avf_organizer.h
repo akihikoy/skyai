@@ -338,7 +338,7 @@ protected:
   override void out_zero_parameter_get (TParameter &outerparam) const;
 
   virtual const TCompositeState& out_composite_state_get (void) const;
-  virtual void slot_execute_composite_action_exec (const TCompositeAction &a) const;
+  virtual void slot_execute_composite_action_exec (const TCompositeAction &a);
 
 
   #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \

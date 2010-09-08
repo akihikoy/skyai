@@ -6,9 +6,6 @@
 
 all     : lora skyai bmks tls
 
-debug	: TARGET_FLAG =debug
-debug	: all
-
 clean	: TARGET_FLAG =clean
 clean	: all
 

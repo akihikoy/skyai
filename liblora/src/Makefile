@@ -20,9 +20,6 @@ TARGET_FLAG :=
 
 all     : std oct ode
 
-debug	: TARGET_FLAG =debug
-debug	: all
-
 clean	: TARGET_FLAG =clean
 clean	: all
 

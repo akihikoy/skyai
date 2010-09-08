@@ -67,13 +67,14 @@ public:
       return port_connector_.Disconnect (port_ptr);
     }
 
-  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.size();}
+  override int ConnectionSize() const  {return port_connector_.ConnectedPorts.Size();}
 
   /*!\brief for each connected port, apply the function f
       \note if the return of the function f is false, the iteration is finished immidiately,
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(TPortInterface*)> f)
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
@@ -82,15 +83,19 @@ public:
             else the iteration is continued.  */
   override void ForEachConnectedPort (boost::function<bool(const TPortInterface*)> f) const
     {
+      TActivate aco(*this);
       port_connector_.ForEachConnectedPort (f);
     }
 
-  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.begin();}
-  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.end();}
+  TConnectedPortIterator  ConnectedPortBegin () const  {return port_connector_.ConnectedPorts.Begin();}
+  TConnectedPortIterator  ConnectedPortEnd () const  {return port_connector_.ConnectedPorts.End();}
   TConnectedPortIterator  ConnectedPortFind (const TPortInterface *ptr) const  {return port_connector_.FindByPtr(ptr);}
+  void  ConnectedPortLock ()   {port_connector_.ConnectedPorts.Lock();}
+  void  ConnectedPortUnlock ()   {port_connector_.ConnectedPorts.Unlock();}
 
   t_return Exec (FUNC_OBJ_FUNC_PARAMS)
     {
+      TActivate aco(*this);
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
         {outer_base_.DebugStream()<<"SLOT-PORT: "<<this<<" <<<<"<<std::endl;}
       return exec_switcher<t_return>(*this) (FUNC_OBJ_FUNC_ARGS);
@@ -147,7 +152,7 @@ protected:
       typedef FUNC_OBJ_N_CLASS_NAME < t_return  FUNC_OBJ_COMMA  FUNC_OBJ_TEMPLATE_ARGS >
           TOuter;
       TOuter &outer;
-      exec_switcher(TOuter &v_outer) : outer(v_outer) {};
+      exec_switcher(TOuter &v_outer) : outer(v_outer) {}
       t_return2 operator() (FUNC_OBJ_FUNC_PARAMS)
         {
           t_return2 tmp (outer.exec_(FUNC_OBJ_FUNC_ARGS));
@@ -162,7 +167,7 @@ protected:
       typedef FUNC_OBJ_N_CLASS_NAME < t_return  FUNC_OBJ_COMMA  FUNC_OBJ_TEMPLATE_ARGS >
           TOuter;
       TOuter &outer;
-      exec_switcher(TOuter &v_outer) : outer(v_outer) {};
+      exec_switcher(TOuter &v_outer) : outer(v_outer) {}
       void operator() (FUNC_OBJ_FUNC_PARAMS)
         {
           outer.exec_(FUNC_OBJ_FUNC_ARGS);

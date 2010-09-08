@@ -26,7 +26,6 @@
 #ifndef loco_rabbits_setting_file_h
 #define loco_rabbits_setting_file_h
 //-------------------------------------------------------------------------------------------
-#include <map>
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <lora/string.h>

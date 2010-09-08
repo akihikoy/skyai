@@ -54,6 +54,101 @@ void FileTouch (const std::string &filename)
 }
 //-------------------------------------------------------------------------------------------
 
+/*! \brief under the polity, check if it is allowable to open the file */
+bool CanOpenFile (const std::string &filename, TFileOverwritePolicy polity)
+{
+  if (FileExists(filename))
+  {
+    if      (polity==fopStop)       lexit(qfail);
+    else if (polity==fopOverwrite)  return true;
+    else if (polity==fopAsk)
+    {
+      std::cerr<<filename<<" already exists. Will you overwrite?"<<std::endl;
+      std::cerr<<"  answer Yes    : overwrite"<<std::endl;
+      std::cerr<<"  answer No     : not overwrite (continue)"<<std::endl;
+      std::cerr<<"  answer Cancel : stop running"<<std::endl;
+      switch(AskYesNoCancel())
+      {
+        case ryncYes    :  return true;
+        case ryncNo     :  return false;
+        case ryncCancel :  lexit(qfail); break;
+        default : lexit(abort);
+      }
+    }
+  }
+  else  {return true;}
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// class TSharedFileStream
+//===========================================================================================
+
+/*static*/std::ofstream* TSharedFileStream::Open(const std::string &filename, TFileOverwritePolicy polity, bool *already_opened)
+{
+  if (already_opened)  *already_opened=false;
+  if (filename=="")  return NULL;
+
+  TFileMap::iterator itr1(instance().files_.find(filename));
+  if(itr1!=instance().files_.end())
+  {
+    if(itr1->second->is_open())
+    {
+      if (already_opened)  *already_opened=true;
+      return itr1->second;
+    }
+    else
+    {
+      bool can_open(CanOpenFile(filename,polity));
+      std::ofstream *ofs(itr1->second);
+      if(can_open)  ofs->open(filename.c_str());
+      if(ofs->is_open())  return ofs;
+      else  return NULL;
+    }
+  }
+
+  bool can_open(CanOpenFile(filename,polity));
+
+  std::ofstream *ofs= new std::ofstream();
+  std::pair<TFileMap::iterator,bool> itr2
+      = instance().files_.insert(TFileMap::value_type(filename,ofs));
+  LASSERT(itr2.second);
+  if(can_open)  ofs->open(filename.c_str());
+  if(ofs->is_open())  return ofs;
+  else  return NULL;
+}
+//-------------------------------------------------------------------------------------------
+
+/*static*/void TSharedFileStream::Close(const std::string &filename)
+{
+  TFileMap::iterator itr(instance().files_.find(filename));
+  if(itr!=instance().files_.end())
+    close_file(itr);
+}
+//-------------------------------------------------------------------------------------------
+
+/*static*/void TSharedFileStream::close_file(TFileMap::iterator itr)
+{
+  if(itr->second)
+  {
+    itr->second->close();
+    delete itr->second;
+  }
+  itr->second=NULL;
+  instance().files_.erase(itr);
+}
+//-------------------------------------------------------------------------------------------
+
+/*static*/void TSharedFileStream::close_all()
+{
+  for(TFileMap::iterator itr(instance().files_.begin()),last(instance().files_.end()); itr!=last; ++itr)
+    close_file(itr);
+}
+//-------------------------------------------------------------------------------------------
+
+
 
 //-------------------------------------------------------------------------------------------
 }

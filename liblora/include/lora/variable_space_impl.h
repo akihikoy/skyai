@@ -30,6 +30,7 @@
 #include <lora/cast.h>
 #include <lora/string.h>
 #include <lora/stl_ext.h>  // for list_itr_at
+#include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

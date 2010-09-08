@@ -421,7 +421,6 @@ inline TReal MAVFLinearDiscAction::get_eps () const
     case piConst         :
           return conf_.Eps;
     case piExpReduction  :
-          //return conf_.Eps * real_exp (-conf_.EpsDecreasingFactor * static_cast<TReal>(agent_result.total_goals()));
           return conf_.Eps * real_exp (-conf_.EpsDecreasingFactor * static_cast<TReal>(get_episode_number()));
     default  :  LERROR("invalid PolicyImprovement "<<static_cast<int>(conf_.PolicyImprovement)); lexit(df);
   }
@@ -437,7 +436,6 @@ inline TReal MAVFLinearDiscAction::get_tau () const
           tau= conf_.Tau;
           break;
     case piExpReduction       :
-          //return conf_.Tau * real_exp (-conf_.TauDecreasingFactor * static_cast<TReal>(agent_result.total_goals()));
           tau= conf_.Tau * real_exp (-conf_.TauDecreasingFactor * static_cast<TReal>(get_episode_number()));
           break;
     default  :  LERROR("invalid PolicyImprovement "<<static_cast<int>(conf_.PolicyImprovement)); lexit(df);

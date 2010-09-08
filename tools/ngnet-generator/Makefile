@@ -21,7 +21,11 @@
 LIBOBJS =
 CXX = g++
 AR = ar
-CXXFLAGS := -g -Wall -rdynamic -O2 -march=i686
+ifeq ($(DEBUG),true)
+  CXXFLAGS := -g -Wall -rdynamic
+else
+  CXXFLAGS := -g -Wall -rdynamic -O2 -march=i686
+endif
 LDFLAGS  := $(CXXFLAGS)
 RMFLAGS  :=  -vf
 ##-------------------------------------------------------------------------------------------

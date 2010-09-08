@@ -359,6 +359,7 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TBool)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TString)
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------

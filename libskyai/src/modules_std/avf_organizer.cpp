@@ -558,7 +558,7 @@ override void MAVFOrganizer::out_zero_parameter_get (TParameter &outerparam) con
       {a.DiscSet[0]:lower-module-index,
         a.DiscSet[1]:discrete-action (if the lower module is discrete action type),
         a.ContSet[0]:continuous-action (if the lower module is continuous action type)} */
-void MAVFOrganizer::slot_execute_composite_action_exec (const TCompositeAction &a) const
+void MAVFOrganizer::slot_execute_composite_action_exec (const TCompositeAction &a)
 {
   LASSERT1op1(a.DiscSet.size(),>=,1);
   TInt   lower_idx (a.DiscSet[0]);

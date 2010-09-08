@@ -14,7 +14,6 @@ composite MLSPIDiscAct
 
   // interface modules:
   module  MForwarder0                                rl_slot_initialize
-  module  MMediator0_TInt                            rl_in_episode_number
   module  MMediator0_TReal                           rl_in_cont_time
 
   /// initialization process:
@@ -53,12 +52,13 @@ composite MLSPIDiscAct
   export   behavior.in_feature  as_is
   connect  rwd_accumulator.out_sum                    , behavior.in_reward
 
-  export   rl_in_episode_number.in_1  as  in_episode_number
-  connect  rl_in_episode_number.out_1                 , logger_eps_return.in_data1
+  export   behavior.out_return_in_episode  as_is
+
+  connect  behavior.out_episode_number                , logger_eps_return.in_data1
   connect  behavior.out_return_in_episode             , logger_eps_return.in_data2
 
   export   rl_in_cont_time.in_1  as  in_cont_time
-  connect  rl_in_episode_number.out_1                 , logger_action_result.in_data_int
+  connect  behavior.out_episode_number                , logger_action_result.in_data_int
   connect  rl_in_cont_time.out_1                      , logger_action_result.in_data_real
   connect  rwd_accumulator.out_last_accessed          , logger_action_result.in_data_real
   connect  behavior.out_td_error                      , logger_action_result.in_data_real
@@ -75,7 +75,7 @@ composite MLSPIDiscAct
   logger_action_result.config ={
       FileName = "log-action-res.dat"
       OrderOfColumns ={
-          ["rl_in_episode_number.out_1"]= 1
+          ["behavior.out_episode_number"]= 1
           ["rl_in_cont_time.out_1"]= 2
           ["rwd_accumulator.out_last_accessed"]= 4
           ["behavior.out_td_error"]= 5

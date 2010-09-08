@@ -193,8 +193,11 @@ public:
       NA: number of the actions, NK: number of the basis functions  */
   TRealVector       W;
 
+  TInt  EpisodeNumber;  //!< episode number
+
   TMemories (var_space::TVariableMap &mmap)
-    // :
+    :
+      EpisodeNumber(0)
     {
       Register(mmap);
     }
@@ -202,6 +205,7 @@ public:
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( W  );
+      ADD( EpisodeNumber );
       #undef ADD
     }
 
@@ -232,6 +236,7 @@ public:
       TParent                       (v_instance_name),
       conf_                         (TParent::param_box_config_map()),
       mem_                          (TParent::param_box_memory_map()),
+      out_episode_number            (*this),
       out_return_in_episode         (*this),
       out_td_error                  (*this),
       out_current_action_value      (*this),
@@ -241,11 +246,11 @@ public:
       old_action        (-1),
       next_action       (-1),
       is_active_        (false),
-      total_episodes_   (0),
       return_in_episode_ (0.0l),
       actions_in_episode_(0),
       is_end_of_episode_(false)
     {
+      add_out_port (out_episode_number);
       add_out_port (out_return_in_episode);
       add_out_port (out_td_error);
       add_out_port (out_current_action_value);
@@ -260,6 +265,7 @@ protected:
   TConfigurations   conf_;
   TMemories         mem_;
 
+  MAKE_OUT_PORT(out_episode_number, const TInt&, (void), (), TThis);
   MAKE_OUT_PORT(out_return_in_episode, const TSingleReward&, (void), (), TThis);
   MAKE_OUT_PORT(out_td_error, const TValue&, (void), (), TThis);
   MAKE_OUT_PORT(out_current_action_value, const TValue&, (void), (), TThis);
@@ -272,6 +278,7 @@ protected:
   override void slot_finish_episode_exec (void);
   override void slot_finish_episode_immediately_exec (void);
   override void slot_finish_action_exec (void);
+  virtual const TInt& out_episode_number_get (void) const {return mem_.EpisodeNumber;}
   virtual const TSingleReward& out_return_in_episode_get (void) const {return return_in_episode_;}
   virtual const TValue& out_td_error_get (void) const {return td_error_;}
   virtual const TValue& out_current_action_value_get (void) const {return current_action_value_;}
@@ -327,7 +334,6 @@ protected:
   TLSPIData  lspi_data_;
 
   TBool                   is_active_;
-  TInt                    total_episodes_;
   TSingleReward           return_in_episode_;
   TInt                    actions_in_episode_;
   TBool                   is_end_of_episode_;

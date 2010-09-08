@@ -42,7 +42,6 @@ connect  cmn.out_situation                             , situation_to_actionset.
 connect  situation_to_actionset.out_1                  , behavior.in_action_availability
 
 connect  cmn.out_ngnet                                 , behavior.in_feature
-connect  cmn.out_episode_number                        , behavior.in_episode_number
 
 connect  cmn.out_cont_time                             , behavior.in_cont_time
 

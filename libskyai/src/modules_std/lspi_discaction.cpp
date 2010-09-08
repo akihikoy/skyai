@@ -263,7 +263,7 @@ void apply_LSTDQ_opt (const TLSPIData &data, TRealVector &W, const TReal &Gamma,
 
 override void MLSPI_TDiscreteAction::slot_initialize_exec (void)
 {
-  total_episodes_= 0;
+  // mem_.EpisodeNumber= 0;
   return_in_episode_= 0.0l;
   is_end_of_episode_= false;
   is_active_= false;
@@ -327,7 +327,7 @@ override void MLSPI_TDiscreteAction::slot_finish_action_exec (void)
 
     if (is_end_of_episode_)
     {
-      ++total_episodes_;
+      ++mem_.EpisodeNumber;
       is_active_= false;
       signal_end_of_episode.ExecAll();
     }
@@ -368,8 +368,7 @@ inline TReal MLSPI_TDiscreteAction::get_tau (void) const
           tau= conf_.Tau;
           break;
     case piExpReduction       :
-          //return conf_.Tau * real_exp (-conf_.TauDecreasingFactor * static_cast<TReal>(total_episodes_));
-          tau= conf_.Tau * real_exp (-conf_.TauDecreasingFactor * static_cast<TReal>(total_episodes_));
+          tau= conf_.Tau * real_exp (-conf_.TauDecreasingFactor * static_cast<TReal>(mem_.EpisodeNumber));
           break;
     default  :  LERROR("invalid PolicyImprovement "<<static_cast<int>(conf_.PolicyImprovement)); lexit(df);
   }
@@ -383,8 +382,7 @@ inline TReal MLSPI_TDiscreteAction::get_eps (void) const
     case piConst              :
           return conf_.Eps;
     case piExpReduction       :
-          //return conf_.Eps * real_exp (-conf_.EpsDecreasingFactor * static_cast<TReal>(total_episodes_));
-          return conf_.Eps * real_exp (-conf_.EpsDecreasingFactor * static_cast<TReal>(total_episodes_));
+          return conf_.Eps * real_exp (-conf_.EpsDecreasingFactor * static_cast<TReal>(mem_.EpisodeNumber));
     default  :  LERROR("invalid PolicyImprovement "<<static_cast<int>(conf_.PolicyImprovement)); lexit(df);
   }
   return -1.0l;
@@ -488,7 +486,7 @@ bool MLSPI_TDiscreteAction::update (const TSingleReward &reward)
   {
     if (is_updatable())
     {
-      if ((total_episodes_+1)%conf_.LSPICycle==0)
+      if ((mem_.EpisodeNumber+1)%conf_.LSPICycle==0)
       {
         // LSTD-Q
         for (int i(0); i<conf_.LSTDQIterations; ++i)

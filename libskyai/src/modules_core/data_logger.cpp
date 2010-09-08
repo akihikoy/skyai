@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/modules_core/data_logger.h>
-#include <lora/file.h>
+#include <fstream>
 #include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -35,26 +35,7 @@ static bool open_log_file (ofstream &log_file, const string &filename, TFileOver
 {
   if (filename!="")
   {
-    if (FileExists(filename))
-    {
-      if      (file_overwrite_policy==fopStop)       lexit(qfail);
-      else if (file_overwrite_policy==fopOverwrite)  log_file.open(filename.c_str());
-      else if (file_overwrite_policy==fopAsk)
-      {
-        cerr<<filename<<" already exists. Will you overwrite?"<<endl;
-        cerr<<"  answer Yes    : overwrite"<<endl;
-        cerr<<"  answer No     : not overwrite (continue)"<<endl;
-        cerr<<"  answer Cancel : stop running"<<endl;
-        switch(AskYesNoCancel())
-        {
-          case ryncYes    :  log_file.open(filename.c_str()); break;
-          case ryncNo     :  break;
-          case ryncCancel :  lexit(qfail); break;
-          default : lexit(abort);
-        }
-      }
-    }
-    else
+    if (CanOpenFile(filename,file_overwrite_policy))
       {log_file.open(filename.c_str());}
   }
   if (log_file.is_open())  return true;
@@ -68,21 +49,27 @@ static bool open_log_file (ofstream &log_file, const string &filename, TFileOver
 
 /*virtual*/void MSimpleDataLoggerInterface::slot_initialize_exec (void)
 {
-  open_log_file (log_file_, Agent().GetDataFileName(conf_.FileName), conf_.FileOverwritePolicy);
+  bool already_opened;
+  log_file_= TSharedFileStream::Open(Agent().GetDataFileName(conf_.FileName), conf_.FileOverwritePolicy, &already_opened);
+  if (!conf_.FileSharable && already_opened)
+  {
+    LWARNING(conf_.FileName<<" is already opened by another module");
+    log_file_= NULL;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
 /*virtual*/void MSimpleDataLoggerInterface::slot_newline_exec (void)
 {
-  if (!log_file_.is_open())  return;
-  log_file_<<std::endl;
+  if (log_file_==NULL || !log_file_->is_open())  return;
+  *log_file_<<std::endl;
 }
 //-------------------------------------------------------------------------------------------
 
 #define LOG(x_idx)                                        \
   if (in_data##x_idx.ConnectionSize()>0)                  \
-    log_file_<<ConvertToStr(in_data##x_idx.GetFirst());   \
-  else log_file_<<conf_.NoDataMark;
+    *log_file_<<ConvertToStr(in_data##x_idx.GetFirst());  \
+  else *log_file_<<conf_.NoDataMark;
 
 //===========================================================================================
 // class MSimpleDataLogger1
@@ -91,9 +78,9 @@ static bool open_log_file (ofstream &log_file, const string &filename, TFileOver
 template <typename t_data1>
 override void MSimpleDataLogger1<t_data1>::slot_log_exec (void)
 {
-  if (!log_file_.is_open())  return;
+  if (log_file_==NULL || !log_file_->is_open())  return;
   LOG(1);
-  log_file_<<std::endl;
+  *log_file_<<std::endl;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -104,11 +91,11 @@ override void MSimpleDataLogger1<t_data1>::slot_log_exec (void)
 template <typename t_data1, typename t_data2>
 override void MSimpleDataLogger2<t_data1,t_data2>::slot_log_exec (void)
 {
-  if (!log_file_.is_open())  return;
+  if (log_file_==NULL || !log_file_->is_open())  return;
   LOG(1);
-  log_file_<<conf_.Delim;
+  *log_file_<<conf_.Delim;
   LOG(2);
-  log_file_<<std::endl;
+  *log_file_<<std::endl;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -157,7 +144,7 @@ override void MUniversalDataLogger::slot_initialize_exec (void)
 
 override void MUniversalDataLogger::slot_log_exec (void)
 {
-  if (!log_file_.is_open())  return;
+  if (log_file_==NULL || !log_file_->is_open())  return;
 
   std::string  delim ("");
   int i(1);
@@ -165,14 +152,14 @@ override void MUniversalDataLogger::slot_log_exec (void)
   {
     while (i<itr->first)
     {
-      log_file_<<delim<<conf_.NoDataMark;
+      *log_file_<<delim<<conf_.NoDataMark;
       delim= conf_.Delim;
       ++i;
     }
-    log_file_<<delim<<itr->second.Observe();
+    *log_file_<<delim<<itr->second.Observe();
     delim= conf_.Delim;
   }
-  log_file_<<endl;
+  *log_file_<<endl;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -218,25 +205,27 @@ void MUniversalDataLogger::make_data_list (void)
     }
   CONSTRUCT_DATA_MAP(in_data_int)
   CONSTRUCT_DATA_MAP(in_data_real)
+  CONSTRUCT_DATA_MAP(in_data_string)
   CONSTRUCT_DATA_MAP(in_data_int_vector)
   CONSTRUCT_DATA_MAP(in_data_real_vector)
   CONSTRUCT_DATA_MAP(in_data_composite1)
   #undef CONSTRUCT_DATA_MAP
 
-  if (!log_file_.is_open() || conf2_.CommentOutMark=="")  return;
+  if (log_file_==NULL || !log_file_->is_open())  return;
+  if (conf2_.CommentOutMark=="")  return;
   // write header
-  log_file_<<conf2_.CommentOutMark;
+  *log_file_<<conf2_.CommentOutMark;
   int i(1);
   for (TObserverMap::const_iterator itr(data_map_.begin()); itr!=data_map_.end(); ++itr, ++i)
   {
     while (i<itr->first)
     {
-      log_file_<<conf_.Delim<<conf_.NoDataMark;
+      *log_file_<<conf_.Delim<<conf_.NoDataMark;
       ++i;
     }
-    log_file_<<conf_.Delim<<itr->second.PortName/*<<"("<<i<<")"*/;
+    *log_file_<<conf_.Delim<<itr->second.PortName/*<<"("<<i<<")"*/;
   }
-  log_file_<<endl;
+  *log_file_<<endl;
 }
 //-------------------------------------------------------------------------------------------
 

@@ -86,6 +86,7 @@ SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TIntVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TRealVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TBool)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MReplaceSignalArguments,TVoid,TString)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TInt_TInt)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TInt_TReal)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TInt_TIntVector)
@@ -106,6 +107,7 @@ SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TReal)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TIntVector)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TRealVector)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TBool)
+SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TString)
 //-------------------------------------------------------------------------------------------
 
 
