@@ -509,9 +509,6 @@ public:
       TModuleCell(const std::string &id, TModuleInterface *m, bool mngd) : Name(id), Ptr(m), Managed(mngd) {}
     };
 
-  /*! Type of module set (map) whose key is module.InstanceName() */
-  typedef std::set<TModuleCell>  TModuleSet;
-
   typedef boost::function<bool(const TPortInfo *from_port, const TPortInfo *to_port)> TConnectionManipulator;
   typedef boost::function<bool(const TConstPortInfo *from_port, const TConstPortInfo *to_port)> TConstConnectionManipulator;
 
@@ -568,9 +565,6 @@ public:
   /*! add p into the sub-module set.  this pointer is not managed by this class,
         i.e. the memory is not freed in Clear(), and parameter is not saved (only connection is saved) */
   void AddUnmanagedSubModule (TModuleInterface *p, const std::string &v_instance_name);
-
-  /*! remove the module specified by mod_itr. all connections are disconnected */
-  bool RemoveSubModule (TModuleSet::iterator mod_itr);
 
   /*! remove a module of the instance name. all connections are disconnected */
   bool RemoveSubModule (const std::string &v_instance_name);
@@ -644,13 +638,20 @@ public:
 
 protected:
 
+  /*! Type of module set (map) whose key is module.InstanceName() */
+  typedef std::set<TModuleCell>  TModuleSet;
+
   std::string cmodule_name_;
 
   TModuleSet  sub_modules_;
 
   std::list<std::pair<std::string,std::string> >  export_list_;  //!< stored in Export{Port,Memory,Config} to be used in WriteToStream
 
+
   inline TModuleInterface* find_sub_module (const std::string &module_name, bool error=false) const;
+
+  /*! remove the module specified by mod_itr. all connections are disconnected */
+  bool remove_sub_module (TModuleSet::iterator mod_itr);
 
   bool apply_f_if_to_port_exists (const TPortInfo *from_port, TPortInterface *to_port_ptr, TConnectionManipulator f);
   bool apply_f_if_to_port_exists_c (const TConstPortInfo *from_port, const TPortInterface *to_port_ptr, TConstConnectionManipulator f) const;
@@ -705,7 +706,7 @@ t_module&  TCompositeModule::AddSubModule (const std::string &v_instance_name)
 inline TModuleInterface* TCompositeModule::find_sub_module (const std::string &module_name, bool error) const
 {
   TModuleSet::const_iterator itr= sub_modules_.find(module_name);
-  if(itr==sub_modules_.end())
+  if(itr==sub_modules_.end() || itr->Ptr->IsZombie())
   {
     if(error)  LERROR("module "<<module_name<<" is not found.");
     return NULL;

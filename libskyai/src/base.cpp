@@ -457,6 +457,7 @@ TModuleInterface* TCompositeModule::SearchSubModule (const std::string &module_n
     {
       for(TModuleSet::iterator mod_itr((*depth_itr)->sub_modules_.begin()), mod_last((*depth_itr)->sub_modules_.end()); mod_itr!=mod_last; ++mod_itr)
       {
+        if(mod_itr->Ptr->IsZombie())  continue;
         if(mod_itr->Name==module_name)  return mod_itr->Ptr;
         tmp= dynamic_cast<TCompositeModule*>(mod_itr->Ptr);
         if(tmp)  next_depth->push_back(tmp);
@@ -483,6 +484,7 @@ const TModuleInterface* TCompositeModule::SearchSubModule (const std::string &mo
     {
       for(TModuleSet::const_iterator mod_itr((*depth_itr)->sub_modules_.begin()), mod_last((*depth_itr)->sub_modules_.end()); mod_itr!=mod_last; ++mod_itr)
       {
+        if(mod_itr->Ptr->IsZombie())  continue;
         if(mod_itr->Name==module_name)  return mod_itr->Ptr;
         tmp= dynamic_cast<const TCompositeModule*>(mod_itr->Ptr);
         if(tmp)  next_depth->push_back(tmp);
@@ -498,7 +500,10 @@ const TModuleInterface* TCompositeModule::SearchSubModule (const std::string &mo
 bool TCompositeModule::SearchSubPort (TPortInterface *port_ptr, TPortInfo &info)
 {
   for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if(mod_itr->Ptr->IsZombie())  continue;
     if(mod_itr->Ptr->SearchPortByPtr(port_ptr,info))  return true;
+  }
   info= TPortInfo();
   return false;
 }
@@ -507,7 +512,10 @@ bool TCompositeModule::SearchSubPort (const TPortInterface *port_ptr, TConstPort
 {
   // copy SearchSubPort; replace iterator by const_iterator
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if(mod_itr->Ptr->IsZombie())  continue;
     if(mod_itr->Ptr->SearchPortByPtr(port_ptr,info))  return true;
+  }
   info= TConstPortInfo();
   return false;
 }
@@ -605,7 +613,7 @@ bool add_to_remove_list (TPortInterface *first, TPortInterface *second, TRemoveC
 //-------------------------------------------------------------------------------------------
 
 /*! remove the module specified by mod_itr. all connections are disconnected */
-bool TCompositeModule::RemoveSubModule (TModuleSet::iterator mod_itr)
+/*protected*/bool TCompositeModule::remove_sub_module (TModuleSet::iterator mod_itr)
 {
   LASSERT(mod_itr!=sub_modules_.end());
 
@@ -649,7 +657,7 @@ bool TCompositeModule::RemoveSubModule (const std::string &v_instance_name)
   TModuleSet::iterator mod_itr (sub_modules_.find(TModuleCell(v_instance_name)));
   if (mod_itr==sub_modules_.end())  {LERROR(v_instance_name<<" does not exist"); return false;}
 
-  return RemoveSubModule(mod_itr);
+  return remove_sub_module(mod_itr);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -661,7 +669,7 @@ bool TCompositeModule::ClearZombies ()
   for (TModuleSet::iterator itr(sub_modules_.begin()),last(sub_modules_.end()); itr!=last; ++itr)
     if (itr->Ptr->IsZombie())  remove_list.push_back(itr);
   for (std::list<TModuleSet::iterator>::iterator itr(remove_list.begin()),last(remove_list.end()); itr!=last; ++itr)
-    if (!RemoveSubModule(*itr))  removed_all= false;
+    if (!remove_sub_module(*itr))  removed_all= false;
   return removed_all;
 }
 //-------------------------------------------------------------------------------------------
@@ -689,9 +697,9 @@ bool TCompositeModule::SubConnect(
     const std::string &end_module_name,   const std::string &end_port_name)
 {
   TModuleSet::iterator itr_start_module (sub_modules_.find(TModuleCell(start_module_name)));
-  if (itr_start_module==sub_modules_.end())  {LERROR(start_module_name<<" does not exist"); return false;}
+  if (itr_start_module==sub_modules_.end() || itr_start_module->Ptr->IsZombie())  {LERROR(start_module_name<<" does not exist"); return false;}
   TModuleSet::iterator itr_end_module (sub_modules_.find(TModuleCell(end_module_name)));
-  if (itr_end_module==sub_modules_.end())  {LERROR(end_module_name<<" does not exist"); return false;}
+  if (itr_end_module==sub_modules_.end() || itr_end_module->Ptr->IsZombie())  {LERROR(end_module_name<<" does not exist"); return false;}
   TPortInterface &start (itr_start_module->Ptr->Port(start_port_name));
   TPortInterface &end (itr_end_module->Ptr->Port(end_port_name));
 
@@ -727,9 +735,9 @@ bool TCompositeModule::SubDisconnect(
     const std::string &end_module_name,   const std::string &end_port_name)
 {
   TModuleSet::iterator itr_start_module (sub_modules_.find(TModuleCell(start_module_name)));
-  if (itr_start_module==sub_modules_.end())  {LERROR(start_module_name<<" does not exist"); return false;}
+  if (itr_start_module==sub_modules_.end() || itr_start_module->Ptr->IsZombie())  {LERROR(start_module_name<<" does not exist"); return false;}
   TModuleSet::iterator itr_end_module (sub_modules_.find(TModuleCell(end_module_name)));
-  if (itr_end_module==sub_modules_.end())  {LERROR(end_module_name<<" does not exist"); return false;}
+  if (itr_end_module==sub_modules_.end() || itr_end_module->Ptr->IsZombie())  {LERROR(end_module_name<<" does not exist"); return false;}
   TPortInterface &start (itr_start_module->Ptr->Port(start_port_name));
   TPortInterface &end (itr_end_module->Ptr->Port(end_port_name));
 
@@ -748,7 +756,10 @@ void TCompositeModule::ForEachSubModule (boost::function<bool(TModuleInterface* 
 {
   // for each module in sub_modules_ :
   for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if (mod_itr->Ptr->IsZombie())  continue;
     if (!f(mod_itr->Ptr))  break;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -757,7 +768,10 @@ void TCompositeModule::ForEachSubModule (boost::function<bool(const TModuleInter
 {
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if (mod_itr->Ptr->IsZombie())  continue;
     if (!f(mod_itr->Ptr))  break;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -766,7 +780,10 @@ void TCompositeModule::ForEachSubModuleCell (boost::function<bool(const TModuleC
 {
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if (mod_itr->Ptr->IsZombie())  continue;
     if (!f(*mod_itr))  break;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -799,6 +816,8 @@ void TCompositeModule::ForEachSubConnection (TConnectionManipulator f)
   // for each module in sub_modules_ :
   for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
+    if (mod_itr->Ptr->IsZombie())  continue;
+
     // for each out-port :
     for (TModuleInterface::TPortSet<TOutPortInterface*>::type::iterator
                 op_itr(mod_itr->Ptr->OutPortBegin()), opiend(mod_itr->Ptr->OutPortEnd());
@@ -838,6 +857,8 @@ void TCompositeModule::ForEachSubConnection (TConstConnectionManipulator f) cons
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
+    if (mod_itr->Ptr->IsZombie())  continue;
+
     // for each out-port :
     for (TModuleInterface::TPortSet<TOutPortInterface*>::type::const_iterator
                 op_itr(mod_itr->Ptr->OutPortBegin()), opiend(mod_itr->Ptr->OutPortEnd());
@@ -940,7 +961,10 @@ void TCompositeModule::ShowAllSubModules (const std::string &option, std::ostrea
   TModuleInterface::TShowConf  show_conf;
   TModuleInterface::ParseShowConfOption (option, show_conf);
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+  {
+    if (mod_itr->Ptr->IsZombie())  continue;
     mod_itr->Ptr->ShowModule (show_conf, os);
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1019,6 +1043,8 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
+    if (mod_itr->Ptr->IsZombie())  continue;
+
     cluster_name= "cluster_"+mod_itr->Ptr->InstanceName();
     os<<indent<<"subgraph "<<cluster_name<<std::endl;
     os<<indent<<"{"<<std::endl;
@@ -1073,6 +1099,8 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
+    if (mod_itr->Ptr->IsZombie())  continue;
+
     // for each slot-port :
     for (TModuleInterface::TPortSet<TSlotPortInterface*>::type::const_iterator
                 sp_itr(mod_itr->Ptr->SlotPortBegin()), spiend(mod_itr->Ptr->SlotPortEnd());

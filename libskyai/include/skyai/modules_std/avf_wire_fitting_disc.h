@@ -110,6 +110,9 @@ public:
     {
     }
 
+  TAVFWireFittingGridBaseConfigurations& ConfigGrid()  {return conf_grid_;}
+  const TAVFWireFittingGridBaseConfigurations& ConfigGrid() const {return conf_grid_;}
+
 protected:
 
   TAVFWireFittingGridBaseConfigurations conf_grid_;
@@ -209,6 +212,9 @@ public:
       add_in_port ( in_distance_to_nearest_bf  );
       add_in_port ( in_center_state_set        );
     }
+
+  TAVFWireFittingDCOBConfigurations& ConfigWFDCOB()  {return conf_wfdcob_;}
+  const TAVFWireFittingDCOBConfigurations& ConfigWFDCOB() const {return conf_wfdcob_;}
 
 protected:
 

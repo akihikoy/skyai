@@ -109,6 +109,8 @@ SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TRealVector)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TBool)
 SKYAI_ADD_MODULE(MReplaceSignalArguments_TVoid_TString)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MSignalCounter)
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------

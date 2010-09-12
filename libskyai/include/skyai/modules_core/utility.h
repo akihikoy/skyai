@@ -128,6 +128,102 @@ template <> inline void ApplyConstraintMin (TRealVector &value, const TRealVecto
 
 
 //===========================================================================================
+/*!\brief print to stdout (for debug) */
+class MPrinter
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface   TParent;
+  typedef MPrinter           TThis;
+  SKYAI_MODULE_NAMES(MPrinter)
+
+  MPrinter (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      in_int            (*this),
+      in_real           (*this),
+      in_int_vector     (*this),
+      in_real_vector    (*this),
+      in_bool           (*this),
+      in_string         (*this),
+
+      slot_void         (*this),
+      slot_int          (*this),
+      slot_real         (*this),
+      slot_int_vector   (*this),
+      slot_real_vector  (*this),
+      slot_bool         (*this),
+      slot_string       (*this),
+
+      slot_print_in     (*this)
+    {
+      add_in_port   (in_int            );
+      add_in_port   (in_real           );
+      add_in_port   (in_int_vector     );
+      add_in_port   (in_real_vector    );
+      add_in_port   (in_bool           );
+      add_in_port   (in_string         );
+
+      add_slot_port (slot_void         );
+      add_slot_port (slot_int          );
+      add_slot_port (slot_real         );
+      add_slot_port (slot_int_vector   );
+      add_slot_port (slot_real_vector  );
+      add_slot_port (slot_bool         );
+      add_slot_port (slot_string       );
+
+      add_slot_port (slot_print_in     );
+    }
+
+protected:
+
+  MAKE_IN_PORT(in_int         , const TInt        & (void), TThis);
+  MAKE_IN_PORT(in_real        , const TReal       & (void), TThis);
+  MAKE_IN_PORT(in_int_vector  , const TIntVector  & (void), TThis);
+  MAKE_IN_PORT(in_real_vector , const TRealVector & (void), TThis);
+  MAKE_IN_PORT(in_bool        , const TBool       & (void), TThis);
+  MAKE_IN_PORT(in_string      , const TString     & (void), TThis);
+
+  MAKE_SLOT_PORT(slot_void, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_int         , void, (const TInt        &in), (in), TThis);
+  MAKE_SLOT_PORT(slot_real        , void, (const TReal       &in), (in), TThis);
+  MAKE_SLOT_PORT(slot_int_vector  , void, (const TIntVector  &in), (in), TThis);
+  MAKE_SLOT_PORT(slot_real_vector , void, (const TRealVector &in), (in), TThis);
+  MAKE_SLOT_PORT(slot_bool        , void, (const TBool       &in), (in), TThis);
+  MAKE_SLOT_PORT(slot_string      , void, (const TString     &in), (in), TThis);
+
+  MAKE_SLOT_PORT(slot_print_in, void, (void), (), TThis);
+
+  void slot_void_exec (void)  {std::cout<<InstanceName()<<":"<<std::endl;}
+  #define DEF_SLOT(x_port,x_type) \
+    void slot_##x_port##_exec (const x_type &in)  {std::cout<<InstanceName()<<": "<<ConvertToStr(in)<<std::endl;}
+  DEF_SLOT(int         , TInt        )
+  DEF_SLOT(real        , TReal       )
+  DEF_SLOT(int_vector  , TIntVector  )
+  DEF_SLOT(real_vector , TRealVector )
+  DEF_SLOT(bool        , TBool       )
+  DEF_SLOT(string      , TString     )
+  #undef DEF_SLOT
+
+  void slot_print_in_exec (void)
+    {
+      #define PRINT_IN(x_port)  \
+        if (in_##x_port.ConnectionSize()!=0)  \
+          {std::cout<<InstanceName()<<":"#x_port" "<<ConvertToStr(in_##x_port.GetFirst())<<std::endl;}
+      PRINT_IN(int         )
+      PRINT_IN(real        )
+      PRINT_IN(int_vector  )
+      PRINT_IN(real_vector )
+      PRINT_IN(bool        )
+      PRINT_IN(string      )
+      #undef PRINT_IN
+    }
+
+};  // end of MPrinter
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 /*!\brief just output the input (num of args is 0) */
 template <typename t_ret>
 class MMediator0

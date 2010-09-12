@@ -31,6 +31,8 @@ using namespace std;
 
 
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MPrinter)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMediator0,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMediator0,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMediator0,TIntVector)

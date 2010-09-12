@@ -320,6 +320,71 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
+//===========================================================================================
+struct TSignalCounterMemory
+{
+  TInt         Count;
+
+  TSignalCounterMemory(var_space::TVariableMap &mmap)
+    :
+      Count(0)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( Count   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief count a signal */
+class MSignalCounter
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface   TParent;
+  typedef MSignalCounter     TThis;
+  SKYAI_MODULE_NAMES(MSignalCounter)
+
+  MSignalCounter (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      mem_           (TParent::param_box_memory_map()),
+      slot_reset     (*this),
+      slot_in        (*this),
+      out_count      (*this)
+    {
+      add_slot_port (slot_reset );
+      add_slot_port (slot_in    );
+      add_out_port  (out_count  );
+    }
+
+protected:
+
+  TSignalCounterMemory  mem_;
+
+  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
+
+  MAKE_SLOT_PORT(slot_in, void, (void), (), TThis);
+
+  MAKE_OUT_PORT(out_count, const TInt&, (void), (), TThis);
+
+  void slot_reset_exec (void)
+    {
+      mem_.Count= 0;
+    }
+  void slot_in_exec (void)
+    {
+      ++mem_.Count;
+    }
+  const TInt& out_count_get (void) const
+    {
+      return mem_.Count;
+    }
+
+};  // end of MSignalCounter
+//-------------------------------------------------------------------------------------------
+
+
 
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MForwarder1,TInt)

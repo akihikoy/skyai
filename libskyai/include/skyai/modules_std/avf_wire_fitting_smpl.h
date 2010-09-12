@@ -304,6 +304,9 @@ public:
       add_in_port (in_episode_number);
     }
 
+  TAVFWireFittingSimpleConfigurations& Config()  {return conf_;}
+  const TAVFWireFittingSimpleConfigurations& Config() const {return conf_;}
+
   TAVFWireFittingSimpleParameter& Param()  {return param_;}
   const TAVFWireFittingSimpleParameter& Param() const {return param_;}
 
