@@ -1096,6 +1096,7 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
   os<<std::endl;
 
   // for edge between a slot port and its forwarding sinal port
+#if 0
   // for each module in sub_modules_ :
   for(TModuleSet::const_iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
   {
@@ -1115,6 +1116,7 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
     }
   }
   os<<std::endl;
+#endif
 
   // for each edge:
   ForEachSubConnection (boost::bind(&export_connection_to_dot,&os,indent,_1,_2));
