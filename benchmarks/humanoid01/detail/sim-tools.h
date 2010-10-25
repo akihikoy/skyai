@@ -56,9 +56,9 @@ struct TContactInfo
 static std::vector<TContactInfo> contact_points;
 static bool use_contact_points(false);
 static std::vector<float> _bodies_contact_with_ground(BODY_NUM,0.0f); // contact with ground
-static std::vector<float> _bodies_contact_wot_ground(BODY_NUM,0.0f);   // contact with objects other than the ground
+static std::vector<float> _bodies_contact_with_object(BODY_NUM,0.0f);   // contact with objects other than the ground
 static TLHBPFilters<std::vector<float> >  _bodies_contact_with_ground_LPF;
-static TLHBPFilters<std::vector<float> >  _bodies_contact_wot_ground_LPF;
+static TLHBPFilters<std::vector<float> >  _bodies_contact_with_object_LPF;
 static bool use_contact_LPF(true);
 //-------------------------------------------------------------------------------------------
 
@@ -126,11 +126,21 @@ void getCOM (dVector3 com)
 }
 //-------------------------------------------------------------------------------------------
 
-inline void bodies_contact_with_ground (std::vector<bool> &result, const float &sensitivity=0.1f)
+void bodies_contact_with_ground (std::vector<bool> &result, const float &sensitivity=0.1f)
 {
   LASSERT(use_contact_LPF);
   LASSERT(_bodies_contact_with_ground_LPF.isInitialized());
   const std::vector<float>  &lpf (_bodies_contact_with_ground_LPF());
+  result.resize(lpf.size());
+  std::vector<float>::const_iterator lpf_itr(lpf.begin());
+  for (std::vector<bool>::iterator res_itr(result.begin()),res_last(result.end()); res_itr!=res_last; ++res_itr,++lpf_itr)
+    (*res_itr)= (*lpf_itr > sensitivity);
+}
+void bodies_contact_with_object (std::vector<bool> &result, const float &sensitivity=0.1f)
+{
+  LASSERT(use_contact_LPF);
+  LASSERT(_bodies_contact_with_object_LPF.isInitialized());
+  const std::vector<float>  &lpf (_bodies_contact_with_object_LPF());
   result.resize(lpf.size());
   std::vector<float>::const_iterator lpf_itr(lpf.begin());
   for (std::vector<bool>::iterator res_itr(result.begin()),res_last(result.end()); res_itr!=res_last; ++res_itr,++lpf_itr)
@@ -213,12 +223,28 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
       if (use_contact_points)
         contact_points.push_back(TContactInfo(contact[i].geom.pos, b1, b2));
     }
-    for(int j(0); j<BODY_NUM; ++j)
+    for (int j(0); j<BODY_NUM; ++j)
     {
       if( (o1==plane.id() && b2==body[j].id())
         ||(o2==plane.id() && b1==body[j].id()) )  {_bodies_contact_with_ground[j]=1.0f;}
-      if( (o1!=plane.id() && b2==body[j].id())
-        ||(o2!=plane.id() && b1==body[j].id()) )  {_bodies_contact_wot_ground[j]=1.0f;}
+      // if( (o1!=plane.id() && b2==body[j].id())
+        // ||(o2!=plane.id() && b1==body[j].id()) )  {_bodies_contact_with_object[j]=1.0f;}
+    }
+    if (o1!=plane.id() && o2!=plane.id())
+    {
+      for (int j(0); j<BODY_NUM; ++j)
+      {
+        if (b1==body[j].id() || b2==body[j].id())
+        {
+          dBodyID bx= ((b1==body[j].id()) ? b2 : b1);
+          bool bx_is_body(false);
+          for (int jj(0); jj<BODY_NUM; ++jj)
+            if (bx==body[jj].id())  {bx_is_body=true; break;}
+          if (!bx_is_body)
+            {_bodies_contact_with_object[j]=1.0f;}
+          break;
+        }
+      }
     }
   }
 }
@@ -237,7 +263,7 @@ inline void stepSimulation (const dReal &time_step)
 {
   contact_points.clear();
   std::fill (_bodies_contact_with_ground.begin(), _bodies_contact_with_ground.end(), 0.0f);
-  std::fill (_bodies_contact_wot_ground.begin(), _bodies_contact_wot_ground.end(), 0.0f);
+  std::fill (_bodies_contact_with_object.begin(), _bodies_contact_with_object.end(), 0.0f);
   space.collide (0,&nearCallback);
   if (!simulationcnd.UsingQuickStep)
     world.step (time_step);
@@ -262,12 +288,12 @@ inline void stepSimulation (const dReal &time_step)
       _bodies_contact_with_ground_LPF.Initialize (TLHBPFilters<std::vector<float> >::LPF2,
         time_step, simulationcnd.BodyContactLPFParamF/*f*/, simulationcnd.BodyContactLPFParamQ/*q*/,
         std::vector<float>(BODY_NUM,0.0f), _bodies_contact_with_ground);
-      _bodies_contact_wot_ground_LPF.Initialize (TLHBPFilters<std::vector<float> >::LPF2,
+      _bodies_contact_with_object_LPF.Initialize (TLHBPFilters<std::vector<float> >::LPF2,
         time_step, simulationcnd.BodyContactLPFParamF/*f*/, simulationcnd.BodyContactLPFParamQ/*q*/,
-        std::vector<float>(BODY_NUM,0.0f), _bodies_contact_wot_ground);
+        std::vector<float>(BODY_NUM,0.0f), _bodies_contact_with_object);
     }
     _bodies_contact_with_ground_LPF (_bodies_contact_with_ground);
-    _bodies_contact_wot_ground_LPF (_bodies_contact_wot_ground);
+    _bodies_contact_with_object_LPF (_bodies_contact_with_object);
   }
 }
 //-------------------------------------------------------------------------------------------

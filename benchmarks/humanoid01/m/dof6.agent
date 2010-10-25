@@ -1,4 +1,4 @@
-// constraint def for 7-DoF (using DCOB)
+// constraint def for 6-DoF (using DCOB)
 
 task.config ={
     SidewardPenaltyGain = 0.0

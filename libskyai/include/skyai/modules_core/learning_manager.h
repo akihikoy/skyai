@@ -28,6 +28,7 @@
 #include <skyai/skyai.h>
 #include <lora/rand.h>
 #include <lora/variable_space_impl.h>
+#include <lora/variable_parser.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -39,8 +40,8 @@ class TBasicLearningManagerConfigurations
 {
 public:
 
-  TInt                      MaxEpisodeNumber;
-  std::string               RandomSeed;  //!< random seed (integer).  if "t" or "time", time() is used
+  TInt         MaxEpisodeNumber;
+  TString      RandomSeed;  //!< random seed (integer).  if "t" or "time", time() is used
 
   TBasicLearningManagerConfigurations (var_space::TVariableMap &mmap)
     :
@@ -282,6 +283,105 @@ protected:
   virtual const TInt& out_episode_number_get (void) const
     {
       return episode_number_;
+    }
+
+};
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+class TFunctionSchedulerConfigurations
+//===========================================================================================
+{
+public:
+
+  std::map<TInt,TString>    Schedule;  //!< map [counter]="function-id"
+
+  TFunctionSchedulerConfigurations (var_space::TVariableMap &mmap)
+    // :
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( Schedule      );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+class TFunctionSchedulerMemories
+//===========================================================================================
+{
+public:
+
+  TInt          Counter;
+
+  TFunctionSchedulerMemories (var_space::TVariableMap &mmap)
+    :
+      Counter  (0)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( Counter   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+/*!\brief function scheduler that executes functions according to conf_.Schedule ([counter]="function-id") */
+class MFunctionScheduler : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface    TParent;
+  typedef MFunctionScheduler  TThis;
+  SKYAI_MODULE_NAMES(MFunctionScheduler)
+
+  MFunctionScheduler(const std::string &v_instance_name)
+    : TParent      (v_instance_name),
+      conf_        (TParent::param_box_config_map()),
+      mem_         (TParent::param_box_memory_map()),
+      slot_step    (*this),
+      out_counter  (*this)
+    {
+      add_slot_port   (slot_step      );
+      add_out_port    (out_counter    );
+    }
+  virtual ~MFunctionScheduler() {}
+
+
+protected:
+
+  TFunctionSchedulerConfigurations conf_;
+  TFunctionSchedulerMemories       mem_;
+
+  MAKE_SLOT_PORT(slot_step, void, (void), (), TThis);
+
+  MAKE_OUT_PORT(out_counter, const TInt&, (void), (), TThis);
+
+
+  virtual void slot_step_exec (void)
+    {
+      std::map<TInt,TString>::const_iterator
+          sch_itr= conf_.Schedule.find(mem_.Counter);
+      if (sch_itr!=conf_.Schedule.end())
+      {
+        if (!ExecuteFunction(sch_itr->second, std::list<var_space::TLiteral>()))
+          {LERROR("failed to execute function(counter="<<sch_itr->first<<"): "<<sch_itr->second); lexit(df);}
+      }
+      ++mem_.Counter;
+    }
+
+  virtual const TInt& out_counter_get (void) const
+    {
+      return mem_.Counter;
     }
 
 };

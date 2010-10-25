@@ -5,6 +5,7 @@ include "task_crawling"
 include_once "qlfqi_da"
 include_once "dcob"
 
+make_task_crawling(task,env)
 module MTDFQIDiscAct behavior
 module MDCOB1 dcob
 include "cmn_dcob"

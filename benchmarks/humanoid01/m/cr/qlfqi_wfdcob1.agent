@@ -4,6 +4,7 @@ include "env"
 include "task_crawling"
 include_once "qlfqi_wfdcob"
 
+make_task_crawling(task,env)
 module MTDFQIWireFittingDCOBActSp behavior
 include "cmn_wfdcob"
 

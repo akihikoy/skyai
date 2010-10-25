@@ -4,6 +4,7 @@ include "env"
 include "task_crawling"
 include_once "ql_da"
 
+make_task_crawling(task,env)
 module MTDDiscAct behavior
 include "cmn_grid1"
 

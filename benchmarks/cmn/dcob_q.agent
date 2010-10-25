@@ -1,0 +1,24 @@
+// Discrete action set DCOB (using BFTrans whose input is drawn from Q-space (e.g.joint angle))
+// NOTE:  out_extract_proportional should be connected to MBasisFunctionsDCOBNGnet-ngnet.in_extract_proportional
+
+include_once "dcob"
+
+// Discrete action set DCOB (Cp and Cd are defined as MVectorShuffler_TRealVector)
+composite MDCOB1Q
+{
+  inherit MDCOB1
+  export  bftrans.out_extract_proportional  as_is
+  bftrans.config ={
+      SetTargetByState = false
+    }
+}
+
+// - Cp and Cd are defined as MConstMultiplier_TRealMatrix_TRealVector
+composite MDCOB2Q
+{
+  inherit MDCOB2
+  export  bftrans.out_extract_proportional  as_is
+  bftrans.config ={
+      SetTargetByState = false
+    }
+}

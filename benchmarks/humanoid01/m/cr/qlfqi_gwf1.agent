@@ -4,6 +4,7 @@ include "env"
 include "task_crawling"
 include_once "qlfqi_gwf"
 
+make_task_crawling(task,env)
 module MTDFQIWireFittingGrid behavior
 include "cmn_gwf1"
 

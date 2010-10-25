@@ -39,6 +39,7 @@ composite MTDDiscAct
   connect  behavior.signal_execute_action             , exec_action.slot_in
   connect  behavior.signal_execute_action             , holder_action.slot_1
   connect  exec_action.signal_out                     , rwd_accumulator.slot_reset
+  export   exec_action.signal_out  as  signal_start_of_action
 
   export   rwd_accumulator.slot_add  as  slot_add_to_reward
 
@@ -54,6 +55,8 @@ composite MTDDiscAct
   export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
 
   /// I/O:
+  export   behavior.in_updatable  as_is
+
   export   avf_linear.in_action_set_size  as_is
   connect  rwd_accumulator.out_sum                    , behavior.in_reward
 
@@ -78,7 +81,6 @@ composite MTDDiscAct
   connect  behavior.out_td_error                      , logger_action_result.in_data_real
   connect  behavior.out_current_action_value          , logger_action_result.in_data_real
   connect  holder_action.out_1                        , logger_action_result.in_data_int
-
 
   /// parameter setting:
 

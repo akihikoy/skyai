@@ -59,6 +59,10 @@ public:
 
   bool                       AbbreviateTrajectory;  //!< abbreviating trajectory (set false for OldDCOB)
 
+  /*! scale factor that scales the abbreviation;
+      1: abbreviated trajectory is about a distance to the nearest BF. */
+  TReal                      AbbreviatingScale;
+
   TTrajectoryGeneratorType   TrajectoryGeneratorType;
 
   // parameters for TTrjGeneratorCondition
@@ -76,6 +80,7 @@ public:
       ProportionalDim          (-1),
       SetTargetByState         (true),
       AbbreviateTrajectory     (true),
+      AbbreviatingScale        (1.0l),
       TrajectoryGeneratorType  (tgtAccMin2),
       ZeroUnspecifiedState     (true),
       UsingMaxNorm             (false)
@@ -88,6 +93,7 @@ public:
       ADD( ProportionalDim           );
       ADD( SetTargetByState          );
       ADD( AbbreviateTrajectory      );
+      ADD( AbbreviatingScale         );
       ADD( TrajectoryGeneratorType   );
       ADD( ZeroUnspecifiedState      );
       ADD( UsingMaxNorm              );

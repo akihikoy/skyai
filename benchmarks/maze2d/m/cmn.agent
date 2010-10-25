@@ -1,62 +1,40 @@
 // common agent file for maze2d task
 
+include "task_block"
+
 // This module completely defines a navigation task in a 2 dimensional maze
 composite M2DNavigationTask
 {
   // interface modules:
+  module  MForwarder0  slot_start_episode
+  export  slot_start_episode.slot_in  as  slot_start_episode
   module  MForwarder0  signal_end_of_episode
   export  signal_end_of_episode.signal_out  as  signal_end_of_episode
   module  MForwarder1_TReal  slot_finish_time_step
   export  slot_finish_time_step.slot_in  as  slot_finish_time_step
 
-  // goal detection and signal-end-of-episode:
-  module  MSubtract_TRealVector  goal_diff
-  module  MConstant_TRealVector  goal_pos
-  goal_pos.config={Constant=(0.75, 0.00);}
-  export  goal_pos.config.Constant  as  GoalPos
-  export  goal_diff.in_x1  as  in_position
-  connect goal_pos.out_const ,   goal_diff.in_x2
-  module  MNorm_TRealVector  goal_diff_norm
-  connect goal_diff.out_y ,   goal_diff_norm.in_x
-  module  MLessThan_TReal  is_goaled
-  module  MConstant_TReal  goal_radius
-  goal_radius.config={Constant=0.15;}
-  export  goal_radius.config.Constant  as  GoalRadius
-  connect goal_diff_norm.out_y ,   is_goaled.in_x1
-  connect goal_radius.out_const ,   is_goaled.in_x2
-  module  MReplaceSignalArguments_TReal_TBool  is_goaled_sig
-  connect slot_finish_time_step.signal_out ,   is_goaled_sig.slot_in
-  export  is_goaled_sig.slot_in_finished  as  slot_finish_time_step_finished
-  connect is_goaled.out_y ,   is_goaled_sig.in_replace
-  module  MEmitIf  is_goaled_sig_t
-  connect is_goaled_sig.signal_out ,   is_goaled_sig_t.slot_in
-  connect is_goaled_sig_t.signal_out ,   signal_end_of_episode.slot_in
+  module MOeTsRewardForDistanceIsLessThan  goal_rwd_eoesig
+  goal_rwd_eoesig.config={Indexes=(0,1);}
+  goal_rwd_eoesig.config={FixedPos=(0.75, 0.00);}
+  goal_rwd_eoesig.config={Threshold=0.15;}
+  goal_rwd_eoesig.config={Reward=1.0;}
+  export  goal_rwd_eoesig.config.FixedPos   as  GoalPos
+  export  goal_rwd_eoesig.config.Threshold  as  GoalRadius
+  export  goal_rwd_eoesig.config.Reward     as  GoalReward
+  export  goal_rwd_eoesig.in_position  as_is
+  export  goal_rwd_eoesig.slot_finish_time_step_finished  as_is
+  export  goal_rwd_eoesig.signal_reward  as_is
+  connect slot_start_episode.signal_out ,   goal_rwd_eoesig.slot_start_episode
+  connect slot_finish_time_step.signal_out ,   goal_rwd_eoesig.slot_finish_time_step
+  connect goal_rwd_eoesig.signal_end_of_episode ,   signal_end_of_episode.slot_in
 
-  // goal reward
-  module  MReplaceSignalArguments_TVoid_TReal  goal_rwd_sig
-  module  MConstant_TReal  goal_reward
-  goal_reward.config={Constant=1.0;}
-  export  goal_reward.config.Constant  as  GoalReward
-  connect is_goaled_sig_t.signal_out ,   goal_rwd_sig.slot_in
-  connect goal_reward.out_const ,   goal_rwd_sig.in_replace
-  module  MEmitOnce_TReal  goal_rwd_sig_1
-  connect goal_rwd_sig.signal_out ,   goal_rwd_sig_1.slot_in
-  export  goal_rwd_sig_1.slot_reset  as  slot_start_episode
-  export  goal_rwd_sig_1.signal_out  as  signal_reward
-
-  // timeup (signal-end-of-episode):
-  module  MGreaterThan_TReal  end_of_eps
-  module  MConstant_TReal  max_time
-  max_time.config={Constant=100;}
-  export  max_time.config.Constant  as  MaxTime
-  export  end_of_eps.in_x1  as  in_cont_time
-  connect max_time.out_const ,   end_of_eps.in_x2
-  module  MReplaceSignalArguments_TReal_TBool  end_of_eps_sig
-  connect slot_finish_time_step.signal_out ,   end_of_eps_sig.slot_in
-  connect end_of_eps.out_y ,   end_of_eps_sig.in_replace
-  module  MEmitIf  end_of_eps_sig_t
-  connect end_of_eps_sig.signal_out ,   end_of_eps_sig_t.slot_in
-  connect end_of_eps_sig_t.signal_out ,   signal_end_of_episode.slot_in
+  module MTsEndOfEpsIfSumValueIsGreaterThan  eoe_timeup
+  eoe_timeup.config={Threshold=100;}
+  export  eoe_timeup.config.Threshold  as  MaxTime
+  connect slot_start_episode.signal_out ,  eoe_timeup.slot_reset
+  connect slot_finish_time_step.signal_out ,  eoe_timeup.slot_add
+  connect eoe_timeup.slot_add_finished ,  eoe_timeup.slot_finish_time_step
+  connect eoe_timeup.signal_end_of_episode ,   signal_end_of_episode.slot_in
 }
 
 composite MMaze2DCommon
@@ -120,7 +98,6 @@ composite MMaze2DCommon
   connect  tr_state.out_x                                , task.in_position
   connect  timer.out_disc_time                           , tr_ngnet.in_disc_time
   connect  timer.out_disc_time                           , tr_state.in_disc_time
-  connect  timer.out_cont_time                           , task.in_cont_time
   connect  tr_state.out_x                                , tr_ngnet.in_x
 
 

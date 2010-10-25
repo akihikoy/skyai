@@ -1,0 +1,148 @@
+// common task blocks
+
+include "task_block"
+
+def taskb_make_interface()
+{
+  // interface modules:
+  module  MMediator0_TRealVector  in_base_pose
+  export  in_base_pose.in_1  as  in_base_pose
+  module  MMediator0_TRealVector  in_base_vel
+  export  in_base_vel.in_1  as  in_base_vel
+  module  MMediator0_TBoolVector  in_contact_with_ground
+  export  in_contact_with_ground.in_1  as  in_contact_with_ground
+  module  MMediator0_TBoolVector  in_contact_with_object
+  export  in_contact_with_object.in_1  as  in_contact_with_object
+
+  module  MForwarder1_TReal  signal_reward
+  export  signal_reward.signal_out  as  signal_reward
+  module  MForwarder0  signal_end_of_episode
+  export  signal_end_of_episode.signal_out  as  signal_end_of_episode
+
+  // step cost (will be emitted from environment)
+  module  MForwarder1_TReal  slot_step_cost
+  export  slot_step_cost.slot_in  as  slot_step_cost
+
+  module  MForwarder1_TReal  slot_finish_time_step
+  export  slot_finish_time_step.slot_in  as  slot_finish_time_step
+
+  module  MForwarder0  slot_start_of_action
+  export  slot_start_of_action.slot_in  as  slot_start_of_action
+
+  module  MForwarder0  slot_start_episode
+  export  slot_start_episode.slot_in  as  slot_start_episode
+}
+
+def taskb_add_step_cost()
+{
+  // step cost (emitted from environment)
+  connect slot_step_cost.signal_out ,   signal_reward.slot_in
+}
+
+// reward for base velocity (vel_index: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wz,wy,wz))
+def taskb_add_base_vel_reward(block_id,vel_index,param_gain_export,param_gain_init)
+{
+  module MTsRewardForVectorElem  block_id
+  block_id.config={Index=vel_index;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_vel.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,  block_id.slot_finish_time_step
+  connect block_id.signal_reward ,  signal_reward.slot_in
+}
+
+// reward for base velocity norm (vel_indexes: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wz,wy,wz))
+def taskb_add_base_vel_norm_reward(block_id,vel_indexes,param_gain_export,param_gain_init)
+{
+  module MTsRewardForVectorNorm  block_id
+  block_id.config={Indexes=vel_indexes;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_vel.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// reward for sum of square of base velocity (vel_indexes: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wz,wy,wz))
+def taskb_add_base_vel_sqsum_reward(block_id,vel_indexes,param_gain_export,param_gain_init)
+{
+  module MTsRewardForVectorNormSq  block_id
+  block_id.config={Indexes=vel_indexes;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_vel.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// penalty for falling down
+def taskb_add_falling_down_penalty(block_id,body_indexes,param_gain_export,param_gain_init)
+{
+  module MOaTsRewardForBoolVectorOr  block_id
+  block_id.config={Indexes=body_indexes;}
+  block_id.config={Reward=param_gain_init;}
+  export  block_id.config.Reward  as  param_gain_export
+  connect in_contact_with_ground.out_1 ,  block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect slot_start_of_action.signal_out ,  block_id.slot_start_of_action
+  connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// penalty for wall collision
+def taskb_add_wall_collision_penalty(block_id,body_indexes,param_gain_export,param_gain_init)
+{
+  module MOaTsRewardForBoolVectorOr  block_id
+  block_id.config={Indexes=body_indexes;}
+  block_id.config={Reward=param_gain_init;}
+  export  block_id.config.Reward  as  param_gain_export
+  connect in_contact_with_object.out_1 ,  block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect slot_start_of_action.signal_out ,  block_id.slot_start_of_action
+  connect block_id.signal_reward ,   signal_reward.slot_in
+
+// for debug:
+// module   MPrinter dbg_printer
+// connect  block_id.signal_reward ,  dbg_printer.slot_real
+}
+
+// end of episode: sum of reward is less than a const value
+def taskb_endofeps_sum_reward_min(block_id,param_sumr_export,param_sumr_init)
+{
+  module MTsEndOfEpsIfSumValueIsLessThan  block_id
+  block_id.config={Threshold=param_sumr_init;}
+  export  block_id.config.Threshold  as  param_sumr_export
+  connect slot_start_episode.signal_out ,  block_id.slot_reset
+  connect signal_reward.slot_in_finished ,  block_id.slot_add
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_end_of_episode ,   signal_end_of_episode.slot_in
+}
+
+// end of episode: time is greater than a const value
+def taskb_endofeps_time_max(block_id,param_maxtime_export,param_maxtime_init)
+{
+  module MTsEndOfEpsIfSumValueIsGreaterThan  block_id
+  block_id.config={Threshold=param_maxtime_init;}
+  export  block_id.config.Threshold  as  param_maxtime_export
+  connect slot_start_episode.signal_out ,  block_id.slot_reset
+  connect slot_finish_time_step.signal_out ,  block_id.slot_add
+  connect block_id.slot_add_finished ,  block_id.slot_finish_time_step
+  connect block_id.signal_end_of_episode ,   signal_end_of_episode.slot_in
+}
+
+// reward and end of episode for goal (in maze)
+def taskb_add_goal_reard_and_endofeps(block_id,param_goalpos_init,param_goalrad_init,param_goalrwd_init)
+{
+  module MOeTsRewardForDistanceIsLessThan  block_id
+  block_id.config={Indexes=(0,1);}
+  block_id.config={FixedPos=param_goalpos_init;}
+  block_id.config={Threshold=param_goalrad_init;}
+  block_id.config={Reward=param_goalrwd_init;}
+  export  block_id.config.FixedPos   as  GoalPos
+  export  block_id.config.Threshold  as  GoalRadius
+  export  block_id.config.Reward     as  GoalReward
+  connect in_base_pose.out_1 ,  block_id.in_position
+  connect slot_start_episode.signal_out ,  block_id.slot_start_episode
+  connect block_id.signal_reward ,   signal_reward.slot_in
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_end_of_episode ,   signal_end_of_episode.slot_in
+}

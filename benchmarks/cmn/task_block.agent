@@ -1,0 +1,187 @@
+// task blocks that are modules to define reward and end-of-episode
+
+// emit  f * v[i]  in each time step where f: real value, v: real vector, i: index
+composite MTsRewardForVectorElem
+{
+  module  MVectorToScalar_TRealVector  in
+  export  in.config.Index  as_is
+  export  in.in_x  as  in_vec
+  module  MMultiply_TReal_TReal  elem_w
+  module  MConstant_TReal  elem_w_factor
+  export  elem_w_factor.config.Constant  as  Factor
+  connect elem_w_factor.out_const ,   elem_w.in_x1
+  connect in.out_y ,   elem_w.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  elem_w_signal
+  export  elem_w_signal.slot_in  as  slot_finish_time_step
+  connect elem_w.out_y ,   elem_w_signal.in_replace
+  export  elem_w_signal.signal_out  as  signal_reward
+}
+
+// emit  f * |(v[i1],v[i2],..)|  in each time step where f: real value, v: real vector, i1,12,..: indexes
+composite MTsRewardForVectorNorm
+{
+  module  MVectorShuffler_TRealVector  in
+  export  in.in_x  as  in_vec
+  export  in.config.Order  as  Indexes
+  module  MNorm_TRealVector  norm
+  connect in.out_y ,   norm.in_x
+  module  MMultiply_TReal_TReal  normw
+  module  MConstant_TReal  normw_factor
+  export  normw_factor.config.Constant  as  Factor
+  connect normw_factor.out_const ,   normw.in_x1
+  connect norm.out_y ,   normw.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  normw_signal
+  export  normw_signal.slot_in  as  slot_finish_time_step
+  connect normw.out_y ,   normw_signal.in_replace
+  export  normw_signal.signal_out  as  signal_reward
+}
+
+// emit  f * |(v[i1],v[i2],..)|^2  in each time step where f: real value, v: real vector, i1,12,..: indexes
+composite MTsRewardForVectorNormSq
+{
+  module  MVectorShuffler_TRealVector  in
+  export  in.in_x  as  in_vec
+  export  in.config.Order  as  Indexes
+  module  MNorm_TRealVector  norm
+  connect in.out_y ,   norm.in_x
+  module  MSquare_TReal  normsq
+  connect norm.out_y ,   normsq.in_x
+  module  MMultiply_TReal_TReal  normsqw
+  module  MConstant_TReal  normsqw_factor
+  export  normsqw_factor.config.Constant  as  Factor
+  connect normsqw_factor.out_const ,   normsqw.in_x1
+  connect normsq.out_y ,   normsqw.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  normsqw_signal
+  export  normsqw_signal.slot_in  as  slot_finish_time_step
+  connect normsqw.out_y ,   normsqw_signal.in_replace
+  export  normsqw_signal.signal_out  as  signal_reward
+}
+
+// at each time step, compute  (v[i1] or v[i2] or ..)  and emit  r  once in an action if it's true
+// where r: reward, v: bool vector, i1,12,..: indexes
+composite MOaTsRewardForBoolVectorOr
+{
+  module  MVectorShuffler_TBoolVector  in
+  export  in.in_x  as  in_vec
+  export  in.config.Order  as  Indexes
+  module  MBoolVectorOr  in0
+  connect in.out_y ,  in0.in_x
+  module  MReplaceSignalArguments_TReal_TBool  in0_signal
+  export  in0_signal.slot_in  as  slot_finish_time_step
+  connect in0.out_y ,   in0_signal.in_replace
+  module  MEmitIf  in0_signal_t
+  connect in0_signal.signal_out ,   in0_signal_t.slot_in
+  module  MConstant_TReal  penalty_const
+  export  penalty_const.config.Constant  as  Reward
+  module  MReplaceSignalArguments_TVoid_TReal  in0_signal_r
+  connect in0_signal_t.signal_out ,   in0_signal_r.slot_in
+  connect penalty_const.out_const ,  in0_signal_r.in_replace
+  module  MEmitOnce_TReal  in0_signal_r_once
+  export  in0_signal_r_once.slot_reset  as  slot_start_of_action
+  connect in0_signal_r.signal_out ,   in0_signal_r_once.slot_in
+  export  in0_signal_r_once.signal_out  as  signal_reward
+}
+
+// end of episode: if sum of value emitted by a signal port is less than threshold
+composite  MTsEndOfEpsIfSumValueIsLessThan
+{
+  module  MSimpleAccumulator_TReal  sum
+  export  sum.slot_reset  as  slot_reset
+  export  sum.slot_add  as  slot_add
+  export  sum.slot_add_finished  as  slot_add_finished
+  module  MLessThan_TReal  lt
+  module  MConstant_TReal  threshold
+  export  threshold.config.Constant  as  Threshold
+  connect sum.out_sum ,  lt.in_x1
+  connect threshold.out_const ,   lt.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  time_step
+  export  time_step.slot_in  as  slot_finish_time_step
+  connect lt.out_y ,   time_step.in_replace
+  module  MEmitIf  signal_t
+  connect time_step.signal_out ,   signal_t.slot_in
+  export  signal_t.signal_out  as  signal_end_of_episode
+}
+
+// end of episode: if sum of value emitted by a signal port is greater than threshold
+composite  MTsEndOfEpsIfSumValueIsGreaterThan
+{
+  module  MSimpleAccumulator_TReal  sum
+  export  sum.slot_reset  as  slot_reset
+  export  sum.slot_add  as  slot_add
+  export  sum.slot_add_finished  as  slot_add_finished
+  module  MGreaterThan_TReal  gt
+  module  MConstant_TReal  threshold
+  export  threshold.config.Constant  as  Threshold
+  connect sum.out_sum ,  gt.in_x1
+  connect threshold.out_const ,   gt.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  time_step
+  export  time_step.slot_in  as  slot_finish_time_step
+  connect gt.out_y ,   time_step.in_replace
+  module  MEmitIf  signal_t
+  connect time_step.signal_out ,   signal_t.slot_in
+  export  signal_t.signal_out  as  signal_end_of_episode
+
+// for debug:
+// module   MPrinter sum_printer
+// module   MRemoveSignalArguments_TReal  signal_ts
+// connect  time_step.slot_in_finished ,  signal_ts.slot_in
+// connect  signal_ts.signal_out ,  sum_printer.slot_print_in
+// connect  sum.out_sum ,  sum_printer.in_real
+}
+
+// end of episode: if input value is greater than threshold
+composite  MTsEndOfEpsIfValueIsGreaterThan
+{
+  module  MGreaterThan_TReal  gt
+  module  MConstant_TReal  threshold
+  export  threshold.config.Constant  as  Threshold
+  export  gt.in_x1  as  in_val
+  connect threshold.out_const ,   gt.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  time_step
+  export  time_step.slot_in  as  slot_finish_time_step
+  connect gt.out_y ,   time_step.in_replace
+  module  MEmitIf  signal_t
+  connect time_step.signal_out ,   signal_t.slot_in
+  export  signal_t.signal_out  as  signal_end_of_episode
+}
+
+// at each time step, compute a distance between an input vector and a const vector
+// and emit  r  once in an episode if it is less than threshold
+composite MOeTsRewardForDistanceIsLessThan
+{
+  module  MVectorShuffler_TRealVector  in
+  export  in.in_x  as  in_position
+  export  in.config.Order  as  Indexes
+
+  // emit end of episode
+  module  MSubtract_TRealVector  diff
+  module  MConstant_TRealVector  fixed_pos
+  export  fixed_pos.config.Constant  as  FixedPos
+  connect in.out_y ,  diff.in_x1
+  connect fixed_pos.out_const ,   diff.in_x2
+  module  MNorm_TRealVector  diff_norm
+  connect diff.out_y ,   diff_norm.in_x
+  module  MLessThan_TReal  is_goaled
+  module  MConstant_TReal  threshold
+  export  threshold.config.Constant  as  Threshold
+  connect diff_norm.out_y ,   is_goaled.in_x1
+  connect threshold.out_const ,   is_goaled.in_x2
+  module  MReplaceSignalArguments_TReal_TBool  is_goaled_sig
+  export  is_goaled_sig.slot_in  as  slot_finish_time_step
+  export  is_goaled_sig.slot_in_finished  as  slot_finish_time_step_finished
+  connect is_goaled.out_y ,   is_goaled_sig.in_replace
+  module  MEmitIf  is_goaled_sig_t
+  connect is_goaled_sig.signal_out ,   is_goaled_sig_t.slot_in
+  export  is_goaled_sig_t.signal_out  as  signal_end_of_episode
+
+  // emit reward
+  module  MReplaceSignalArguments_TVoid_TReal  rwd_sig
+  module  MConstant_TReal  reward
+  export  reward.config.Constant  as  Reward
+  connect is_goaled_sig_t.signal_out ,   rwd_sig.slot_in
+  connect reward.out_const ,   rwd_sig.in_replace
+  module  MEmitOnce_TReal  rwd_sig_1
+  connect rwd_sig.signal_out ,   rwd_sig_1.slot_in
+  export  rwd_sig_1.slot_reset  as  slot_start_episode
+  export  rwd_sig_1.signal_out  as  signal_reward
+}

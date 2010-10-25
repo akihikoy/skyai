@@ -90,11 +90,65 @@ inline void GetBaseVel (ColumnVector &state1)
   state1(1) = body[0].getLinearVel()[1];  // vy
   state1(2) = body[0].getLinearVel()[2];  // vz
   state1(3) = body[0].getAngularVel()[0] ; // wx
-  state1(4) = body[0].getAngularVel()[1] ; // wx
-  state1(5) = body[0].getAngularVel()[2] ; // wx
+  state1(4) = body[0].getAngularVel()[1] ; // wy
+  state1(5) = body[0].getAngularVel()[2] ; // wz
 }
 //-------------------------------------------------------------------------------------------
 
+//===========================================================================================
+// additional state
+//===========================================================================================
+
+//! from ode/src/rotation.cpp l.34
+#define _R(R,i,j) ((R)[(i)*4+(j)])
+
+/*!\brief return roll in radian
+    \todo TODO need to consider the singular postures */
+inline TReal GetRoll (int index)
+{
+  // return real_fabs(real_atan2(_R(body[index].getRotation(),2,1), _R(body[index].getRotation(),2,2)));
+  TReal sign22 = Sign(_R(body[index].getRotation(),2,2));
+  TReal roll = real_atan2(sign22*_R(body[index].getRotation(),2,1), sign22*_R(body[index].getRotation(),2,2));
+  // roll = real_fabs(roll);
+  return roll;
+}
+
+/*!\brief return pitch in radian
+    \todo TODO need to consider the singular postures
+    \todo FIXME incorrect calculation  */
+inline TReal GetPitch (int index)
+{
+  return real_atan2(_R(body[index].getRotation(),0,2), _R(body[index].getRotation(),2,2));
+}
+
+/*!\brief return yaw in radian
+    \todo TODO need to consider the singular postures  */
+inline TReal GetYaw (int index)
+{
+  return real_atan2(_R(body[index].getRotation(),1,0), _R(body[index].getRotation(),0,0));
+}
+
+/*!\brief return [-1,1] indicating how the body is near to the face-up posture.
+    the return is the inner product of ex and (0,0,1). larger is nearer */
+inline TReal GetFaceupRatio (void)
+{
+  return _R(body[0].getRotation(),2,0);
+}
+/*!\brief return [-1,1] indicating how the body is near to the face-down posture.
+    the return is the inner product of ex and (0,0,-1). larger is nearer */
+inline TReal GetFacedownRatio (void)
+{
+  return -1.0*_R(body[0].getRotation(),2,0);
+}
+
+//-------------------------------------------------------------------------------------------
+#undef _R
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// execution routine
+//===========================================================================================
 
 void initSimulation2 (bool using_cart=false)
 {

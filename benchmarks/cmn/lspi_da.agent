@@ -48,6 +48,7 @@ composite MLSPIDiscAct
   export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
 
   /// I/O:
+  export   behavior.in_updatable  as_is
   export   behavior.in_action_set_size  as_is
   export   behavior.in_feature  as_is
   connect  rwd_accumulator.out_sum                    , behavior.in_reward

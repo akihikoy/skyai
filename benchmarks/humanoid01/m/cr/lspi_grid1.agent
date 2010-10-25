@@ -4,6 +4,7 @@ include "env"
 include "task_crawling"
 include "lspi_da"
 
+make_task_crawling(task,env)
 module MLSPIDiscAct behavior
 include "cmn_grid1"
 

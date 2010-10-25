@@ -89,22 +89,6 @@ TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, con
 }
 //-------------------------------------------------------------------------------------------
 
-TLiteralTable::TAddResult TLiteralTable::AddIdentifier(const TIdentifier &id, const TIdentifier &value)
-{
-  TLiteral l;
-  l.LType= TLiteral::ltIdentifier;
-  l.LPrimitive= TAnyPrimitive(pt_string(value));
-  return add_to_table(id,l);
-}
-TLiteralTable::TAddResult TLiteralTable::AddLiteral(const TIdentifier &id, const std::list<TAnyPrimitive>  &value)
-{
-  TLiteral l;
-  l.LType= TLiteral::ltList;
-  l.LList= value;
-  return add_to_table(id,l);
-}
-//-------------------------------------------------------------------------------------------
-
 TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error)
 {
   if (src.LType==TLiteral::ltIdentifier)

@@ -4,6 +4,7 @@
 connect  env.signal_initialization                       , behavior.slot_initialize
 
 /// start of episode process:
+connect  env.signal_start_of_episode                     , task.slot_start_episode
 connect  env.signal_start_of_episode                     , behavior.slot_start_episode
 
 /// start of time step process:
@@ -16,8 +17,8 @@ connect  env.signal_end_of_ctrl_timestep                 , behavior.slot_finish_
 connect  behavior.signal_start_of_action                 , task.slot_start_of_action
 connect  behavior.signal_execute_command                 , env.slot_execute_command_des_cq
 
-connect  cmn_signal_reward.signal_out                    , behavior.slot_add_to_reward
-connect  cmn_signal_end_of_episode.signal_out            , behavior.slot_finish_episode
+connect  task.signal_reward                              , behavior.slot_add_to_reward
+connect  task.signal_end_of_episode                      , behavior.slot_finish_episode
 
 connect  behavior.signal_end_of_episode                  , env.slot_finalize_episode
 

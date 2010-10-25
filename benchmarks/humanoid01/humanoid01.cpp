@@ -59,6 +59,10 @@ public:
   bool                       UsingQuickStep;  //!< use quickStep to step the world. this mode is fast, but sometimes lose the accuracy
   int                        QuickStepIterationNum;  //!< number of iteration used in quickStep
 
+  TReal                      MazeScale  ;
+  TInt                       MazeMapKind;
+
+
   THumanoidEnvironmentConfigurations (var_space::TVariableMap &mmap) :
       TimeStep            (0.0002l),
       FPS                 (50.0l),
@@ -73,7 +77,9 @@ public:
       BodyContactLPFParamQ      (0.8),
       ForceInitFeetContactWithGround (false),
       UsingQuickStep                 (false),
-      QuickStepIterationNum          (20)
+      QuickStepIterationNum          (20),
+      MazeScale                 (5.0),
+      MazeMapKind               (-1)
     {
       ViewPoint= OctGen1<ColumnVector>(6, 0.35,0.30,0.30, -135.0000,-20.0000,0.0000);
 
@@ -113,6 +119,9 @@ public:
       ADD( ForceInitFeetContactWithGround             );
       ADD( UsingQuickStep                             );
       ADD( QuickStepIterationNum                      );
+
+      ADD( MazeScale                                  );
+      ADD( MazeMapKind                                );
       #undef ADD
     }
 };
@@ -150,12 +159,13 @@ public:
       signal_start_of_timestep    (*this),
       signal_end_of_timestep      (*this),
       signal_system_reward        (*this),
-      signal_end_of_episode       (*this),
       out_base_pose               (*this),
       out_base_vel                (*this),
+      out_base_euler              (*this),
       out_joint_angle             (*this),
       out_joint_vel               (*this),
-      out_contact_with_ground     (*this)
+      out_contact_with_ground     (*this),
+      out_contact_with_object     (*this)
     {
       add_slot_port   (slot_initialize            );
       add_slot_port   (slot_start_episode         );
@@ -166,12 +176,13 @@ public:
       add_signal_port (signal_start_of_timestep   );
       add_signal_port (signal_end_of_timestep     );
       add_signal_port (signal_system_reward       );
-      add_signal_port (signal_end_of_episode      );
       add_out_port    (out_base_pose              );
       add_out_port    (out_base_vel               );
+      add_out_port    (out_base_euler             );
       add_out_port    (out_joint_angle            );
       add_out_port    (out_joint_vel              );
       add_out_port    (out_contact_with_ground    );
+      add_out_port    (out_contact_with_object    );
     }
 
   void StepLoop (int ds_pause=0)
@@ -273,8 +284,8 @@ protected:
   TRealVector         tq_input_;
 //   mutable TContinuousState  tmp_state_;
   mutable TContinuousState  tmp_joint_state_;
-  mutable TContinuousState  tmp_base_pose_, tmp_base_vel_, tmp_joint_angle_, tmp_joint_vel_;
-  mutable TBoolVector       tmp_contact_with_ground_;
+  mutable TContinuousState  tmp_base_pose_, tmp_base_vel_, tmp_base_euler_, tmp_joint_angle_, tmp_joint_vel_;
+  mutable TBoolVector       tmp_contact_with_ground_, tmp_contact_with_object_;
 
   bool   executing_;
   bool   console_mode_;
@@ -301,12 +312,13 @@ protected:
 
   MAKE_SIGNAL_PORT(signal_system_reward, void (const TSingleReward&), TThis);
 
-  MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
-
   //!\brief output base link pose (position and rotation) according to the controller's constraint mode
   MAKE_OUT_PORT(out_base_pose, const TContinuousState&, (void), (), TThis);
   //!\brief output base link velocities (of position and rotation) according to the controller's constraint mode
   MAKE_OUT_PORT(out_base_vel, const TContinuousState&, (void), (), TThis);
+
+  //!\brief output base Euler angle \warning maybe GetPitch is incorrect
+  MAKE_OUT_PORT(out_base_euler, const TContinuousState&, (void), (), TThis);
 
   //!\brief output joint angles according to the controller's constraint mode
   MAKE_OUT_PORT(out_joint_angle, const TContinuousState&, (void), (), TThis);
@@ -314,6 +326,7 @@ protected:
   MAKE_OUT_PORT(out_joint_vel, const TContinuousState&, (void), (), TThis);
 
   MAKE_OUT_PORT(out_contact_with_ground, const TBoolVector&, (void), (), TThis);
+  MAKE_OUT_PORT(out_contact_with_object, const TBoolVector&, (void), (), TThis);
 
   virtual void slot_initialize_exec (void)
     {
@@ -325,6 +338,9 @@ protected:
       simulationcnd.ForceInitFeetContactWithGround  = conf_.ForceInitFeetContactWithGround  ;
       simulationcnd.UsingQuickStep                  = conf_.UsingQuickStep                  ;
       simulationcnd.QuickStepIterationNum           = conf_.QuickStepIterationNum           ;
+
+      MAZESCALE = conf_.MazeScale;
+      MAP_KIND  = conf_.MazeMapKind;
 
       InitializeODE();
       initSimulation2();
@@ -405,6 +421,14 @@ protected:
       GetBaseVel(tmp_base_vel_);
       return tmp_base_vel_;
     }
+  virtual const TContinuousState& out_base_euler_get() const
+    {
+      GenResize(tmp_base_euler_, 3);
+      tmp_base_euler_(0)= GetRoll(0);
+      tmp_base_euler_(1)= GetPitch(0);
+      tmp_base_euler_(2)= GetYaw(0);
+      return tmp_base_euler_;
+    }
 
   virtual const TContinuousState& out_joint_angle_get() const
     {
@@ -424,6 +448,12 @@ protected:
       GenResize(tmp_contact_with_ground_,BODY_NUM);
       bodies_contact_with_ground (tmp_contact_with_ground_);
       return tmp_contact_with_ground_;
+    }
+  virtual const TBoolVector& out_contact_with_object_get() const
+    {
+      GenResize(tmp_contact_with_object_,BODY_NUM);
+      bodies_contact_with_object (tmp_contact_with_object_);
+      return tmp_contact_with_object_;
     }
 
 };  // end of MHumanoidEnvironment

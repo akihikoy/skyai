@@ -106,8 +106,9 @@ override void MBFTrans::slot_execute_action_exec (const TAction &a)
       else                         d= GetMaxNorm(target_ - state_proportional_);
     }
 
-    if(d_n<d)  interval_neighbor_= d_n/d * trj_interval;
+    if(d_n<d)  interval_neighbor_= (conf_.AbbreviatingScale*d_n)/d * trj_interval;
     else       interval_neighbor_= trj_interval;
+//*dbg*/std::cout<<trj_interval<<"  "<<interval_neighbor_<<"  "<<d_n<<"  "<<d<<std::endl;
   }
 
   in_control_= true;

@@ -1,127 +1,46 @@
 // Crawling task's agent file
-
-include_once "env"
+include_once "cmn_task"
 
 composite MMoveForwardTask
 {
-  module  MEmitOnce_TReal  damage_reward
-  module  MSimpleAccumulator_TReal  sum_reward
+  taskb_make_interface()
 
-  // interface modules:
-  module  MForwarder1_TReal  signal_reward
-  export  signal_reward.signal_out  as  signal_reward
-  module  MForwarder0  signal_end_of_episode
-  export  signal_end_of_episode.signal_out  as  signal_end_of_episode
-
-  module  MForwarder1_TReal  slot_finish_time_step
-  export  slot_finish_time_step.slot_in  as  slot_finish_time_step
-  module  MMediator0_TRealVector  in_base_vel
-  export  in_base_vel.in_1  as  in_base_vel
+  taskb_add_step_cost()
 
   // reward from forward (x-axis) movement
-  module  MVectorShuffler_TRealVector  reward_vx
-  connect in_base_vel.out_1 ,   reward_vx.in_x
-  reward_vx.config={Order={[]=0;};}
-  module  MVectorToScalar_TRealVector  reward_vx0
-  connect reward_vx.out_y ,   reward_vx0.in_x
-  module  MMultiply_TReal_TReal  reward_vx0w
-  module  MConstant_TReal  reward_vx0w_factor
-  reward_vx0w_factor.config={Constant=0.01;}
-  export  reward_vx0w_factor.config.Constant  as  ForwardRewardGain
-  connect reward_vx0w_factor.out_const ,   reward_vx0w.in_x1
-  connect reward_vx0.out_y ,   reward_vx0w.in_x2
-  module  MReplaceSignalArguments_TReal_TReal  reward_vx0w_signal
-  connect slot_finish_time_step.signal_out ,   reward_vx0w_signal.slot_in
-  connect reward_vx0w.out_y ,   reward_vx0w_signal.in_replace
-  connect reward_vx0w_signal.signal_out ,   signal_reward.slot_in
+  taskb_add_base_vel_reward(reward_vx,0,ForwardRewardGain,0.01)
 
   // penalty for y-movement
-  module  MVectorShuffler_TRealVector  penalty_vy
-  connect in_base_vel.out_1 ,   penalty_vy.in_x
-  penalty_vy.config={Order={[]=1;};}
-  module  MVectorToScalar_TRealVector  penalty_vy0
-  connect penalty_vy.out_y ,   penalty_vy0.in_x
-  module  MSquare_TReal  penalty_vy0sq
-  connect penalty_vy0.out_y ,   penalty_vy0sq.in_x
-  module  MMultiply_TReal_TReal  penalty_vy0sqw
-  module  MConstant_TReal  penalty_vy0sqw_factor
-  penalty_vy0sqw_factor.config={Constant=-0.1;}
-  export  penalty_vy0sqw_factor.config.Constant  as  SidewardPenaltyGain
-  connect penalty_vy0sqw_factor.out_const ,   penalty_vy0sqw.in_x1
-  connect penalty_vy0sq.out_y ,   penalty_vy0sqw.in_x2
-  module  MReplaceSignalArguments_TReal_TReal  penalty_vy0sqw_signal
-  connect slot_finish_time_step.signal_out ,   penalty_vy0sqw_signal.slot_in
-  connect penalty_vy0sqw.out_y ,   penalty_vy0sqw_signal.in_replace
-  connect penalty_vy0sqw_signal.signal_out ,   signal_reward.slot_in
+  taskb_add_base_vel_sqsum_reward(penalty_vy,(1),SidewardPenaltyGain,-0.1)
 
-  // penalty for falling down
-  module  MVectorShuffler_TBoolVector  penalty_fall
-  export  penalty_fall.in_x  as  in_contact_with_ground
-  penalty_fall.config={Order={[]=0; []=1;};}  // base link and head link
-  module  MBoolVectorOr  penalty_fall0
-  connect penalty_fall.out_y ,   penalty_fall0.in_x
-  module  MReplaceSignalArguments_TReal_TBool  penalty_fall0_signal
-  connect slot_finish_time_step.signal_out ,   penalty_fall0_signal.slot_in
-  connect penalty_fall0.out_y ,   penalty_fall0_signal.in_replace
-  module  MEmitIf  penalty_fall0_signal_t
-  connect penalty_fall0_signal.signal_out ,   penalty_fall0_signal_t.slot_in
-  module  MConstant_TReal  penalty_const
-  penalty_const.config={Constant=-4.0;}
-  export  penalty_const.config.Constant  as  FallingDownPenalty
-  module  MReplaceSignalArguments_TVoid_TReal  penalty_fall0_signal_r
-  connect penalty_fall0_signal_t.signal_out ,   penalty_fall0_signal_r.slot_in
-  connect penalty_const.out_const ,  penalty_fall0_signal_r.in_replace
-  export  damage_reward.slot_reset  as  slot_start_of_action
-  connect penalty_fall0_signal_r.signal_out ,   damage_reward.slot_in
-  connect damage_reward.signal_out ,   signal_reward.slot_in
+  // penalty for falling down (base link and head link)
+  taskb_add_falling_down_penalty(penalty_fall,(0,1),FallingDownPenalty,-4.0)
 
   // end of episode: sum of reward is less than a const value
-  export  sum_reward.slot_reset  as  slot_start_episode
-  connect signal_reward.slot_in_finished ,  sum_reward.slot_add
-  module  MLessThan_TReal  end_of_eps1
-  module  MConstant_TReal  end_of_eps1_minreward
-  end_of_eps1_minreward.config={Constant=-40.0;}
-  export  end_of_eps1_minreward.config.Constant  as  SumOfRmin
-  connect sum_reward.out_sum ,  end_of_eps1.in_x1
-  connect end_of_eps1_minreward.out_const ,   end_of_eps1.in_x2
-  module  MReplaceSignalArguments_TReal_TBool  end_of_eps1_signal
-  connect slot_finish_time_step.signal_out ,   end_of_eps1_signal.slot_in
-  connect end_of_eps1.out_y ,   end_of_eps1_signal.in_replace
-  module  MEmitIf  end_of_eps1_signal_t
-  connect end_of_eps1_signal.signal_out ,   end_of_eps1_signal_t.slot_in
-  connect end_of_eps1_signal_t.signal_out ,   signal_end_of_episode.slot_in
+  taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
 
   // end of episode: time is greater than a const value
-  module  MGreaterThan_TReal  end_of_eps2
-  module  MConstant_TReal  end_of_eps2_maxtime
-  end_of_eps2_maxtime.config={Constant=20.0;}
-  export  end_of_eps2_maxtime.config.Constant  as  MaxTime
-  export  end_of_eps2.in_x1  as  in_cont_time
-  connect end_of_eps2_maxtime.out_const ,   end_of_eps2.in_x2
-  module  MReplaceSignalArguments_TReal_TBool  end_of_eps2_signal
-  connect slot_finish_time_step.signal_out ,   end_of_eps2_signal.slot_in
-  connect end_of_eps2.out_y ,   end_of_eps2_signal.in_replace
-  connect end_of_eps2_signal.signal_out ,   end_of_eps1_signal_t.slot_in
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,20.0)
 }
 
-module MMoveForwardTask task
+def make_task_crawling(task_id,env_id)
+{
+  module MMoveForwardTask task_id
 
-/// initialization process:
+  /// initialization process:
 
-/// start of episode process:
-connect  env.signal_start_of_episode                    , task.slot_start_episode
+  /// start of episode process:
 
-/// start of time step process:
+  /// start of time step process:
 
-/// end of time step process:
-connect  env.signal_end_of_system_timestep              , task.slot_finish_time_step
+  /// end of time step process:
+  connect  env_id.signal_end_of_system_timestep  , task_id.slot_finish_time_step
 
-/// learning signals:
-connect  task.signal_reward                             , cmn_signal_reward.slot_in
-connect  task.signal_end_of_episode                     , cmn_signal_end_of_episode.slot_in
+  /// learning signals:
+  connect  env_id.signal_reward                  , task_id.slot_step_cost
 
-/// I/O:
-connect env.out_base_vel                                , task.in_base_vel
-connect env.out_contact_with_ground                     , task.in_contact_with_ground
-connect env.out_cont_time                               , task.in_cont_time
+  /// I/O:
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
+}
 

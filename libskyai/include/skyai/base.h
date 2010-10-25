@@ -699,6 +699,7 @@ t_module&  TCompositeModule::AddSubModule (const std::string &v_instance_name)
   t_module *p= new t_module (v_instance_name);
   sub_modules_.insert(TModuleCell(v_instance_name,p,true));
   p->SetAgent(Agent());
+  p->SetParentCModule(this);
   return *p;
 }
 //-------------------------------------------------------------------------------------------

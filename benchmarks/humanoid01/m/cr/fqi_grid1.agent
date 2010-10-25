@@ -4,6 +4,7 @@ include "env"
 include "task_crawling"
 include "fqi_da"
 
+make_task_crawling(task,env)
 module MFQIDiscAct behavior
 include "cmn_grid1"
 

@@ -53,6 +53,31 @@ struct TLiteral
 };
 //-------------------------------------------------------------------------------------------
 
+inline TLiteral LiteralId(const TIdentifier &value)
+{
+  TLiteral l;
+  l.LType= TLiteral::ltIdentifier;
+  l.LPrimitive= TAnyPrimitive(pt_string(value));
+  return l;
+}
+
+template <typename t_primitive>
+inline TLiteral Literal(const t_primitive &value)
+{
+  TLiteral l;
+  l.LType= TLiteral::ltPrimitive;
+  l.LPrimitive= TAnyPrimitive(value);
+  return l;
+}
+inline TLiteral Literal(const std::list<TAnyPrimitive>  &value)
+{
+  TLiteral l;
+  l.LType= TLiteral::ltList;
+  l.LList= value;
+  return l;
+}
+//-------------------------------------------------------------------------------------------
+
 std::ostream& operator<<(std::ostream &lhs, const TLiteral &rhs);
 //-------------------------------------------------------------------------------------------
 
@@ -70,22 +95,16 @@ public:
 
   const TLiteral* Find(const TIdentifier &id) const;
 
-  TAddResult AddIdentifier(const TIdentifier &id, const TIdentifier &value);
+  TAddResult AddIdentifier(const TIdentifier &id, const TIdentifier &value)
+    {return add_to_table(id,LiteralId(value));}
 
   template <typename t_primitive>
   TAddResult AddLiteral(const TIdentifier &id, const t_primitive &value)
-    {
-      TLiteral l;
-      l.LType= TLiteral::ltPrimitive;
-      l.LPrimitive= TAnyPrimitive(value);
-      return add_to_table(id,l);
-    }
-  TAddResult AddLiteral(const TIdentifier &id, const std::list<TAnyPrimitive>  &value);
-
+    {return add_to_table(id,Literal<t_primitive>(value));}
+  TAddResult AddLiteral(const TIdentifier &id, const std::list<TAnyPrimitive>  &value)
+    {return add_to_table(id,Literal(value));}
   TAddResult AddLiteral(const TIdentifier &id, const TLiteral &l)
-    {
-      return add_to_table(id,l);
-    }
+    {return add_to_table(id,l);}
 
 private:
 

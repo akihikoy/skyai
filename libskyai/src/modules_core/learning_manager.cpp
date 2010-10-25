@@ -35,6 +35,8 @@ using namespace std;
 SKYAI_ADD_MODULE(MBasicLearningManager)
 SKYAI_ADD_MODULE(MManualLearningManager)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MFunctionScheduler)
+//-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits
