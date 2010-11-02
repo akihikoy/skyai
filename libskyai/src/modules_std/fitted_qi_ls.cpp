@@ -48,7 +48,7 @@ override void XMODULE::slot_initialize_exec (void)
 {
   // mem_.EpisodeNumber= 0;
   // return_in_episode_= 0.0l;
-  reward_statistics_in_episode_.Clear();
+  reward_statistics_in_episode_.Reset();
   max_reward_deviation_= 0.0;
   is_end_of_episode_= false;
   is_active_= false;
@@ -61,7 +61,7 @@ TEMPLATE_DEC
 override void XMODULE::slot_start_episode_exec (void)
 {
   // return_in_episode_= 0.0l;
-  reward_statistics_in_episode_.Clear();
+  reward_statistics_in_episode_.Reset();
   actions_in_episode_= 0;
   current_action_value_= 0.0l;
   reset_episode();
@@ -100,7 +100,7 @@ override void XMODULE::slot_finish_action_exec (void)
   {
     /*! reward */
     TSingleReward reward (0.0l);
-    if (is_updatable())  reward= get_reward();
+    reward= get_reward();
 
     /*! select next action; since it is used in Sarsa */
     prepare_next_action ();
@@ -187,7 +187,7 @@ TEMPLATE_DEC
 /*virtual*/ void XMODULE::update (const TSingleReward &reward)
 {
   // return_in_episode_+= reward;
-  reward_statistics_in_episode_.Add(reward);
+  reward_statistics_in_episode_.Step(reward);
 
   if (is_updatable())
   {
@@ -231,15 +231,15 @@ LDBGVAR(max_reward_deviation_);
   {
     current_sample_.back().IsTerminal= true;
     if (reward_statistics_in_episode_.StdDeviation()>conf_.MinRewardDeviationRate*max_reward_deviation_
-          || reward_statistics_in_episode_.NumberOfSamples==1)
+          || reward_statistics_in_episode_.NumSamples()==1)
     {
       typename TFQIData<TState,TAction>::T::TData::iterator
             new_itr= fqi_data_.Push(reward_statistics_in_episode_, current_sample_);  // add episode into the sample set
       if (new_itr!=fqi_data_.Data().begin())
       {
-        TReal diff_mean (new_itr->Key.Mean);
+        TReal diff_mean (new_itr->Key.Mean());
         --new_itr; // results older episode
-        diff_mean= real_fabs(diff_mean-new_itr->Key.Mean);
+        diff_mean= real_fabs(diff_mean-new_itr->Key.Mean());
         if (diff_mean < conf_.SameSampleThreshold*max_reward_deviation_)
           fqi_data_.Data().erase(new_itr);
         // if diff_mean is small, older episode is removed from the sample set.

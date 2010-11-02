@@ -5,6 +5,7 @@
     \date   2008
     \date   2009
     \date   2010
+    \date   Oct. 28, 2010  :  Updated TStatisticsFilter
 
     Copyright (C) 2008, 2009, 2010  Akihiko Yamaguchi
 
@@ -40,11 +41,12 @@ namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 
 
+#if 0
 //===========================================================================================
-/*! \brief TStatisticsFilter calculates total, mean, variance, std-deviation,
+/* \brief TStatisticsFilter calculates total, mean, variance, std-deviation,
             max, min, etc. for a sequential data */
 template <typename t_real>
-struct TStatisticsFilter
+struct TStatisticsFilter2
 //===========================================================================================
 {
   t_real  Total;
@@ -57,7 +59,7 @@ struct TStatisticsFilter
   t_real  Variance() const {t_real v(SqMean - Mean*Mean); return (v>=0.0l)?v:0.0l;}
   t_real  StdDeviation() const {return std::sqrt(Variance());}
 
-  TStatisticsFilter (void)
+  TStatisticsFilter2 (void)
     {
       Clear();
     }
@@ -76,25 +78,109 @@ struct TStatisticsFilter
       Total+= x;
       ++NumberOfSamples;
       t_real N(static_cast<t_real>(NumberOfSamples));
-      Mean= x/N + Mean*(N-1.0l)/N;
-      SqMean= x*x/N + SqMean*(N-1.0l)/N;
+      // Mean= x/N + Mean*(N-1.0l)/N;
+      // SqMean= x*x/N + SqMean*(N-1.0l)/N;
+      /*dbg*/t_real alpha=1.0l/N;
+      /*dbg*/Mean= alpha*x + Mean*(1.0l-alpha);
+      /*dbg*/SqMean= alpha*x*x + SqMean*(1.0l-alpha);
       Maximum= std::max(Maximum,x);
       Minimum= std::min(Minimum,x);
     }
 };
+#endif
 //-------------------------------------------------------------------------------------------
 
-template <typename t_real>
-std::ostream& operator<< (std::ostream &os, const TStatisticsFilter<t_real> &rhs)
+//===========================================================================================
+/*! \brief TStatisticsFilter that calculates sum, mean, variance, std-deviation,
+            max, min, etc. for a sequential data */
+template<class t_value>
+class TStatisticsFilter
+//===========================================================================================
 {
-#define TSTATISTICSFILTER_PRINT(elem)  os<<"  "#elem"  :  "<<rhs.elem<<std::endl;
-  TSTATISTICSFILTER_PRINT(Total           )
-  TSTATISTICSFILTER_PRINT(NumberOfSamples )
-  TSTATISTICSFILTER_PRINT(Mean            )
-  TSTATISTICSFILTER_PRINT(StdDeviation()  )
-  TSTATISTICSFILTER_PRINT(Variance()      )
-  TSTATISTICSFILTER_PRINT(Maximum         )
-  TSTATISTICSFILTER_PRINT(Minimum         )
+public:
+
+  enum TFilterKind
+    {
+      fkNormal=0,  /*!< compute mean and std-dev in a normal manner */
+      fkDynamic    /*!< compute mean and std-dev with forgetting the old data */
+    };
+
+  TStatisticsFilter() : filter_kind_(fkNormal), learning_rate_(0.01l) {Reset();}
+
+  TStatisticsFilter(const TFilterKind &fk, const TReal &alpha=0.01l)
+    : filter_kind_(fk), learning_rate_(alpha) {Reset();}
+
+  void Reset(const t_value &mean=0.0l, const t_value &sqmean=0.0l)
+    {
+      SetZero(sum_);
+      max_ = -RealMax<t_value>();
+      min_ =  RealMax<t_value>();
+      curr_mean_   = mean;
+      curr_sqmean_ = sqmean;
+      num_samples_ = 0;
+    }
+
+  void Step(const t_value &value)
+    {
+      ++num_samples_;
+      TReal  alpha(0.0l);
+      switch(filter_kind_)
+      {
+      case fkNormal  : alpha= 1.0l/static_cast<TReal>(num_samples_); break;
+      case fkDynamic : alpha= learning_rate_; break;
+      default : LERROR("invalid FilterKind: "<<static_cast<int>(filter_kind_));
+      }
+      sum_+= value;
+      max_= std::max(max_,value);
+      min_= std::min(min_,value);
+      curr_mean_  = alpha * value + (1.0l-alpha) * curr_mean_;
+      curr_sqmean_= alpha * Square(value)+ (1.0l-alpha) * curr_sqmean_;
+    }
+
+  const t_value& Sum() const {return sum_;}
+  const t_value& Max() const {return max_;}
+  const t_value& Min() const {return min_;}
+  const t_value& Mean() const {return curr_mean_;}
+  t_value Variance() const {t_value v(curr_sqmean_ - Square(curr_mean_)); return (v>=0.0l)?v:0.0l;}
+  t_value StdDeviation() const {return real_sqrt(Variance());}
+
+  const int& NumSamples() const {return num_samples_;}
+
+  //! return Upper Confidencial Boundary (mean + n_sd * 1-sd)
+  t_value UCB(const t_value &n_sd) const {return curr_mean_ + n_sd * StdDeviation();}
+
+
+  const TFilterKind& FilterKind() const {return filter_kind_;}
+  const TReal& LearningRate() const {return learning_rate_;}
+
+  void SetFilterKind(const TFilterKind &fk)  {filter_kind_= fk;}
+  void LearningRate(const TReal &alpha) const {learning_rate_= alpha;}
+
+private:
+
+  TFilterKind filter_kind_;
+  TReal learning_rate_;  //!< used with filter_kind_==fkDynamic
+
+  t_value  sum_, max_, min_;
+  t_value  curr_mean_;
+  t_value  curr_sqmean_;
+
+  int num_samples_;
+
+};  // end of TStatisticsFilter
+//-------------------------------------------------------------------------------------------
+
+template <typename t_value>
+std::ostream& operator<< (std::ostream &os, const TStatisticsFilter<t_value> &rhs)
+{
+#define TSTATISTICSFILTER_PRINT(elem)  os<<"  "#elem"  :  "<<rhs.elem()<<std::endl;
+  TSTATISTICSFILTER_PRINT(Sum           )
+  TSTATISTICSFILTER_PRINT(NumSamples    )
+  TSTATISTICSFILTER_PRINT(Mean          )
+  TSTATISTICSFILTER_PRINT(StdDeviation  )
+  TSTATISTICSFILTER_PRINT(Variance      )
+  TSTATISTICSFILTER_PRINT(Max           )
+  TSTATISTICSFILTER_PRINT(Min           )
 #undef TSTATISTICSFILTER_PRINT
   return os;
 }
@@ -164,6 +250,7 @@ public:
       { while (index-1+n < 0) n+=buffer.size(); return buffer[index-1+n]; }
 };
 //-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 /*! \brief low, high, and band path filters

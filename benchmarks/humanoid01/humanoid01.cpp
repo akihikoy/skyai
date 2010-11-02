@@ -50,6 +50,8 @@ public:
   TRealVector                PDGainKp, PDGainKd;  //!< gain parameters for lowlevel PD-controller
   TRealVector                TorqueMax;
 
+  TRealVector                CommandMax, CommandMin;  //!< upper and lower bounds for command
+
   // parameters for TSimulationCondition simulationcnd
   int                        MaxContactNum;  //!< maximum number of contact points per body
   dSurfaceParameters         Surface;       //!< parameters of contact face
@@ -68,9 +70,11 @@ public:
       FPS                 (50.0l),
       ViewPoint           (6,0.0),
       UseInitPose         (false),
-      PDGainKp                 (JOINT_NUM,2.5l),
-      PDGainKd                 (JOINT_NUM,0.08l),
-      TorqueMax                (JOINT_NUM, loco_rabbits::TorqueMax),
+      PDGainKp                  (JOINT_NUM,2.5l),
+      PDGainKd                  (JOINT_NUM,0.08l),
+      TorqueMax                 (JOINT_NUM, loco_rabbits::TorqueMax),
+      CommandMax                (0),
+      CommandMin                (0),
       // parameters for simulationcnd:
       MaxContactNum             (10),
       BodyContactLPFParamF      (10.0),
@@ -110,6 +114,9 @@ public:
       ADD( PDGainKp                       );
       ADD( PDGainKd                       );
       ADD( TorqueMax                      );
+
+      ADD( CommandMax                     );
+      ADD( CommandMin                     );
 
       // parameters for TSimulationCondition simulationcnd
       ADD( MaxContactNum                              );
@@ -162,6 +169,7 @@ public:
       out_base_pose               (*this),
       out_base_vel                (*this),
       out_base_euler              (*this),
+      out_base_atan1202           (*this),
       out_joint_angle             (*this),
       out_joint_vel               (*this),
       out_contact_with_ground     (*this),
@@ -179,6 +187,7 @@ public:
       add_out_port    (out_base_pose              );
       add_out_port    (out_base_vel               );
       add_out_port    (out_base_euler             );
+      add_out_port    (out_base_atan1202          );
       add_out_port    (out_joint_angle            );
       add_out_port    (out_joint_vel              );
       add_out_port    (out_contact_with_ground    );
@@ -285,6 +294,7 @@ protected:
 //   mutable TContinuousState  tmp_state_;
   mutable TContinuousState  tmp_joint_state_;
   mutable TContinuousState  tmp_base_pose_, tmp_base_vel_, tmp_base_euler_, tmp_joint_angle_, tmp_joint_vel_;
+  mutable TContinuousState  tmp_base_atan1202_;
   mutable TBoolVector       tmp_contact_with_ground_, tmp_contact_with_object_;
 
   bool   executing_;
@@ -319,6 +329,8 @@ protected:
 
   //!\brief output base Euler angle \warning maybe GetPitch is incorrect
   MAKE_OUT_PORT(out_base_euler, const TContinuousState&, (void), (), TThis);
+  //!\brief output base atan(R12,R02)
+  MAKE_OUT_PORT(out_base_atan1202, const TContinuousState&, (void), (), TThis);
 
   //!\brief output joint angles according to the controller's constraint mode
   MAKE_OUT_PORT(out_joint_angle, const TContinuousState&, (void), (), TThis);
@@ -328,7 +340,7 @@ protected:
   MAKE_OUT_PORT(out_contact_with_ground, const TBoolVector&, (void), (), TThis);
   MAKE_OUT_PORT(out_contact_with_object, const TBoolVector&, (void), (), TThis);
 
-  virtual void slot_initialize_exec (void)
+  void set_global_config (void)
     {
       // copy parameters to simulationcnd
       simulationcnd.MaxContactNum                   = conf_.MaxContactNum                   ;
@@ -341,6 +353,11 @@ protected:
 
       MAZESCALE = conf_.MazeScale;
       MAP_KIND  = conf_.MazeMapKind;
+    }
+
+  virtual void slot_initialize_exec (void)
+    {
+      set_global_config();
 
       InitializeODE();
       initSimulation2();
@@ -352,6 +369,8 @@ protected:
 
   virtual void slot_start_episode_exec (void)
     {
+      set_global_config();
+
       initSimulation2(/*using_cart=*/false);
       // setting initial pose...
       if (conf_.UseInitPose)
@@ -368,6 +387,8 @@ protected:
       PDC_.Kp   = conf_.PDGainKp;
       PDC_.Kd   = conf_.PDGainKd;
       PDC_.UMax = conf_.TorqueMax;
+/*TEST*/current_command_.resize(JOINT_NUM);
+/*TEST*/std::fill(GenBegin(current_command_),GenEnd(current_command_),0.0);
     }
 
   virtual void slot_execute_command_des_q_exec (const TRealVector &u)
@@ -377,15 +398,18 @@ protected:
   virtual void slot_execute_command_des_qd_exec (const TRealVector &u)
     {
       //!\todo FIXME: make efficient computation!
-      GetJointAngle(tmp_joint_angle_);
-      current_command_= tmp_joint_angle_ + u;
+     GetJointAngle(tmp_joint_angle_);
+     current_command_= tmp_joint_angle_ + u;
+//*TEST*/current_command_+= 0.1*u;
     }
 
   virtual void slot_step_loop_exec (void)
     {
       signal_start_of_timestep.ExecAll(conf_.TimeStep);
 
-      /*dbg*/if (current_command_.length()==0)  {LERROR("slot_execute_command_des_qd is not called!!!");}
+      /*dbg*/if (current_command_.length()==0)  {LERROR("slot_execute_command_des_q is not called!!!");}
+
+      ConstrainVector(current_command_, conf_.CommandMin, conf_.CommandMax);
 
       ////////////////////////
       GetJointState(tmp_joint_state_);
@@ -428,6 +452,12 @@ protected:
       tmp_base_euler_(1)= GetPitch(0);
       tmp_base_euler_(2)= GetYaw(0);
       return tmp_base_euler_;
+    }
+  virtual const TContinuousState& out_base_atan1202_get() const
+    {
+      GenResize(tmp_base_atan1202_, 1);
+      tmp_base_atan1202_(0)= GetAtan1202(0);
+      return tmp_base_atan1202_;
     }
 
   virtual const TContinuousState& out_joint_angle_get() const

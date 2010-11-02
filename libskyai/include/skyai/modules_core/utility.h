@@ -27,7 +27,7 @@
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
 #include <lora/stl_math.h>   // for operator+ for TIntVector
-#include <lora/small_classes.h>   // for TGridGenerator
+#include <lora/small_classes.h>   // for TGridGenerator, TStatisticsFilter
 #include <lora/variable_space_impl.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -1177,6 +1177,130 @@ protected:
     }
 
 };  // end of MSimpleAccumulator
+//-------------------------------------------------------------------------------------------
+
+
+ENUM_STR_MAP_BEGIN_NS(TStatisticsFilter<TReal>, TFilterKind)
+  ENUM_STR_MAP_ADD_NS(TStatisticsFilter<TReal>, fkNormal   )
+  ENUM_STR_MAP_ADD_NS(TStatisticsFilter<TReal>, fkDynamic  )
+ENUM_STR_MAP_END_NS  (TStatisticsFilter<TReal>, TFilterKind)
+SPECIALIZE_TVARIABLE_TO_ENUM(TStatisticsFilter<TReal>::TFilterKind)
+
+//===========================================================================================
+//!\brief Configurations of MStatisticsFilter
+class TStatisticsFilterConfigurations
+//===========================================================================================
+{
+public:
+
+  TStatisticsFilter<TReal>::TFilterKind  FilterKind;
+  TReal                                  LearningRate;  //!< used with FilterKind==fkDynamic
+
+  TStatisticsFilterConfigurations (var_space::TVariableMap &mmap)
+    :
+      FilterKind    (TStatisticsFilter<TReal>::fkNormal),
+      LearningRate  (0.01l)
+    {
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( FilterKind    );
+      ADD( LearningRate  );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+//===========================================================================================
+/*!\brief statistics filter that calculates sum, mean, variance, std-deviation, max, min. */
+class MStatisticsFilter
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface   TParent;
+  typedef MStatisticsFilter  TThis;
+  SKYAI_MODULE_NAMES(MStatisticsFilter)
+
+  MStatisticsFilter (const std::string &v_instance_name)
+    : TParent           (v_instance_name),
+      conf_             (TParent::param_box_config_map()),
+      tmp_variance_     (0.0l),
+      tmp_stddev_       (0.0l),
+      slot_reset        (*this),
+      slot_step1        (*this),
+      slot_step2        (*this),
+      in_value          (*this),
+      out_sum           (*this),
+      out_max           (*this),
+      out_min           (*this),
+      out_mean          (*this),
+      out_variance      (*this),
+      out_std_deviation (*this),
+      out_num_samples   (*this)
+    {
+      add_slot_port (slot_reset        );
+      add_slot_port (slot_step1        );
+      add_slot_port (slot_step2        );
+      add_in_port   (in_value          );
+      add_out_port  (out_sum           );
+      add_out_port  (out_max           );
+      add_out_port  (out_min           );
+      add_out_port  (out_mean          );
+      add_out_port  (out_variance      );
+      add_out_port  (out_std_deviation );
+      add_out_port  (out_num_samples   );
+    }
+
+protected:
+
+  TStatisticsFilterConfigurations  conf_;
+  TStatisticsFilter<TReal>  sfilter_;
+
+  mutable TReal tmp_variance_;
+  mutable TReal tmp_stddev_;
+
+  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
+
+  MAKE_SLOT_PORT(slot_step1, void, (const TReal &x), (x), TThis);
+  //! step using in_value
+  MAKE_SLOT_PORT(slot_step2, void, (void), (), TThis);
+
+  MAKE_IN_PORT(in_value, const TReal& (void), TThis);
+
+  MAKE_OUT_PORT(out_sum, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_max, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_min, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_mean, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_variance, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_std_deviation, const TReal&, (void), (), TThis);
+  MAKE_OUT_PORT(out_num_samples, const TInt&, (void), (), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+
+  GET_FROM_IN_PORT(value, const TReal&, (void), ())
+
+  #undef GET_FROM_IN_PORT
+
+  void slot_reset_exec (void)  {sfilter_.Reset();}
+  void slot_step1_exec (const TReal &x)  {sfilter_.Step(x);}
+  void slot_step2_exec (void)  {sfilter_.Step(get_value());}
+
+  const TReal& out_sum_get  (void) const {return sfilter_.Sum();}
+  const TReal& out_max_get  (void) const {return sfilter_.Max();}
+  const TReal& out_min_get  (void) const {return sfilter_.Min();}
+  const TReal& out_mean_get (void) const {return sfilter_.Mean();}
+  const TReal& out_variance_get (void) const {tmp_variance_= sfilter_.Variance(); return tmp_variance_;}
+  const TReal& out_std_deviation_get (void) const {tmp_stddev_= sfilter_.StdDeviation(); return tmp_stddev_;}
+  const TInt& out_num_samples_get (void) const {return sfilter_.NumSamples();}
+
+};  // end of MStatisticsFilter
 //-------------------------------------------------------------------------------------------
 
 

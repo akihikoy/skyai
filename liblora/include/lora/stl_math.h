@@ -4,6 +4,7 @@
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Jun.13, 2010-
     \date    Aug.25, 2010   Added GetMaxNorm
+    \date    Nov.02, 2010   Modified ConstrainVector
 
     Copyright (C) 2010  Akihiko Yamaguchi
 
@@ -194,11 +195,20 @@ inline t_vector GetNormalized (const t_vector &vec)
 template <typename t_vec1, typename t_vec2>
 void ConstrainVector (t_vec1 &vec, const t_vec2 &min, const t_vec2 &max)
 {
-  LASSERT1op1(GenSize(vec),==,GenSize(max));
+  LASSERT1op1(GenSize(min),==,GenSize(max));
+  if (GenSize(min)==0)  return;
+  if (GenSize(min)==1)
+  {
+    const typename TypeExt<t_vec2>::value_type min0(GenAt(min,0)), max0(GenAt(max,0));
+    LASSERT1op1(min0,<,max0);
+    for (typename TypeExt<t_vec1>::iterator itr(GenBegin(vec)),last(GenEnd(vec)); itr!=last; ++itr)
+      *itr= ApplyRange(*itr,min0,max0);
+    return;
+  }
   LASSERT1op1(GenSize(vec),==,GenSize(min));
   typename TypeExt<t_vec2>::const_iterator imax(GenBegin(max)), imin(GenBegin(min));
   for (typename TypeExt<t_vec1>::iterator itr(GenBegin(vec)),last(GenEnd(vec)); itr!=last; ++itr,++imax,++imin)
-    *itr= ApplyRange(*itr,*imin,*imax);
+    if (*imin<=*imax)  *itr= ApplyRange(*itr,*imin,*imax);
 }
 //-------------------------------------------------------------------------------------------
 

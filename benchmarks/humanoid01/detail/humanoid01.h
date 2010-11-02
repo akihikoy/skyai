@@ -128,6 +128,12 @@ inline TReal GetYaw (int index)
   return real_atan2(_R(body[index].getRotation(),1,0), _R(body[index].getRotation(),0,0));
 }
 
+/*!\brief return atan2(R12,R02) */
+inline TReal GetAtan1202 (int index)
+{
+  return real_atan2(_R(body[index].getRotation(),1,2), _R(body[index].getRotation(),0,2));
+}
+
 /*!\brief return [-1,1] indicating how the body is near to the face-up posture.
     the return is the inner product of ex and (0,0,1). larger is nearer */
 inline TReal GetFaceupRatio (void)

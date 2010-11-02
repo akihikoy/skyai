@@ -110,6 +110,8 @@ SKYAI_ADD_MODULE(MSimpleAccumulator_TReal)
 SKYAI_ADD_MODULE(MSimpleAccumulator_TIntVector)
 SKYAI_ADD_MODULE(MSimpleAccumulator_TRealVector)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MStatisticsFilter)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TInt,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TReal,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_2(MFunctionSISOSharer,TIntVector,TIntVector)

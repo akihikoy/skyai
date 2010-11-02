@@ -70,10 +70,11 @@ struct TFQISample
     : Reward(v_reward), State(v_state), Action(v_action), StateValue(0.0l), IsTerminal(false)  {}
 };
 
-struct TFQIRewardStatistics : TStatisticsFilter<TSingleReward>
+class TFQIRewardStatistics : public TStatisticsFilter<TSingleReward>
 {
-  bool operator< (const TFQIRewardStatistics &rhs) const {return Total<rhs.Total;}
-  bool operator> (const TFQIRewardStatistics &rhs) const {return Total>rhs.Total;}
+public:
+  bool operator< (const TFQIRewardStatistics &rhs) const {return Sum()<rhs.Sum();}
+  bool operator> (const TFQIRewardStatistics &rhs) const {return Sum()>rhs.Sum();}
 };
 
 template <typename t_state, typename t_action>
@@ -293,7 +294,7 @@ protected:
   override void slot_finish_action_exec (void);
   void slot_puppet_action_exec (const TAction &a)  {puppet_action_= a; is_puppet_= true;}
   const TInt& out_episode_number_get (void) const {return mem_.EpisodeNumber;}
-  const TSingleReward& out_return_in_episode_get (void) const {return reward_statistics_in_episode_.Total;}  // return_in_episode_
+  const TSingleReward& out_return_in_episode_get (void) const {return reward_statistics_in_episode_.Sum();}  // return_in_episode_
   const TValue& out_td_error_get (void) const {return td_error_;}
   const TValue& out_current_action_value_get (void) const {return current_action_value_;}
 

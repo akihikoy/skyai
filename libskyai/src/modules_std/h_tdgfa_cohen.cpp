@@ -81,7 +81,7 @@ override void XMODULE::slot_finish_action_exec (void)
     {
       /*! reward */
       TSingleReward reward (0.0l);
-      if (is_updatable())  reward= get_reward();
+      reward= get_reward();
 
       /*! select next action; since it is used in Sarsa */
       prepare_next_action ();

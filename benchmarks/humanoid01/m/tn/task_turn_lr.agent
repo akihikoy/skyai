@@ -1,0 +1,59 @@
+// Turning task's agent file
+include_once "cmn_task"
+
+composite MTurningTask
+{
+  taskb_make_interface()
+
+  taskb_add_step_cost()
+
+  // reward from turning movement (angular vel around z-axis)
+  taskb_add_base_vel_reward(reward_wz,5,RewardGain,0.0005)
+
+  // penalty for xy-movement
+  taskb_add_base_vel_norm_reward(penalty_vxy,(0,1),ForwardPenaltyGain,-0.0001)
+
+  // penalty for falling down (NOTE: only base link)
+  taskb_add_falling_down_penalty(penalty_fall,(0),FallingDownPenalty,-4.0)
+
+  // penalty for head touch
+  taskb_add_falling_down_penalty(penalty_headtg,(1),HeadTouchPenalty,-0.1)
+
+  // end of episode: sum of reward is less than a const value
+  taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
+
+  // end of episode: time is greater than a const value
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,20.0)
+}
+
+def make_task_turn_base(task_id,env_id)
+{
+  module MTurningTask task_id
+
+  /// initialization process:
+
+  /// start of episode process:
+
+  /// start of time step process:
+
+  /// end of time step process:
+  connect  env_id.signal_end_of_system_timestep  , task_id.slot_finish_time_step
+
+  /// learning signals:
+  connect  env_id.signal_reward                  , task_id.slot_step_cost
+
+  /// I/O:
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
+}
+def make_task_turn_l(task_id,env_id)
+{
+  make_task_turn_base(task_id,env_id)
+  task_id.config={RewardGain=0.0005;}
+}
+def make_task_turn_r(task_id,env_id)
+{
+  make_task_turn_base(task_id,env_id)
+  task_id.config={RewardGain=-0.0005;}
+}
+
