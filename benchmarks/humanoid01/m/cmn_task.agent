@@ -9,6 +9,8 @@ def taskb_make_interface()
   export  in_base_pose.in_1  as  in_base_pose
   module  MMediator0_TRealVector  in_base_vel
   export  in_base_vel.in_1  as  in_base_vel
+  module  MMediator0_TRealMatrix  in_base_rot
+  export  in_base_rot.in_1  as  in_base_rot
   module  MMediator0_TBoolVector  in_contact_with_ground
   export  in_contact_with_ground.in_1  as  in_contact_with_ground
   module  MMediator0_TBoolVector  in_contact_with_object
@@ -71,6 +73,22 @@ def taskb_add_base_vel_sqsum_reward(block_id,vel_indexes,param_gain_export,param
   block_id.config={Factor=param_gain_init;}
   export  block_id.config.Factor  as  param_gain_export
   connect in_base_vel.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// reward for base velocity directed by a body's axis
+//   vel_indexes: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wz,wy,wz)
+//   rot_indexes: select from (0,0),..,(2,2) and serialize it (that indicates elements of 3x3 rotation matrix)
+def taskb_add_directed_base_vel_reward(block_id,vel_indexes,rot_indexes,param_gain_export,param_gain_init)
+{
+  module MTsRewardForInnerProdVecMat  block_id
+  block_id.config={IndexesVec=vel_indexes;}
+  block_id.config={IndexesMat=rot_indexes;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_vel.out_1 ,   block_id.in_vec
+  connect in_base_rot.out_1 ,   block_id.in_mat
   connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
   connect block_id.signal_reward ,   signal_reward.slot_in
 }

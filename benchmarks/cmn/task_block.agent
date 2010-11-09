@@ -57,6 +57,33 @@ composite MTsRewardForVectorNormSq
   export  normsqw_signal.signal_out  as  signal_reward
 }
 
+// emit  f * inner_prod((v[i1],v[i2],..),(m[j1,j2],m[j3,j4],..))  in each time step
+// where f: real value, v: real vector, i1,12,..: indexes, m: real matrix, j1,j2,..: indexes
+// e.g. the real vector is a 3D-velocity, the real matrix is a rotation matrix
+composite MTsRewardForInnerProdVecMat
+{
+  module  MVectorShuffler_TRealVector  in_vec
+  export  in_vec.in_x  as  in_vec
+  export  in_vec.config.Order  as  IndexesVec
+  module  MMatrixToVectorRv  in_mat
+  export  in_mat.in_x  as  in_mat
+  export  in_mat.config.Order  as  IndexesMat
+  module  MElemMultiply_TRealVector_TRealVector  vec_x_mat
+  connect in_vec.out_y ,   vec_x_mat.in_x1
+  connect in_mat.out_y ,   vec_x_mat.in_x2
+  module  MSumElem_TRealVector  inner_prod
+  connect vec_x_mat.out_y ,   inner_prod.in_x
+  module  MMultiply_TReal_TReal  inner_prodw
+  module  MConstant_TReal  inner_prodw_factor
+  export  inner_prodw_factor.config.Constant  as  Factor
+  connect inner_prodw_factor.out_const ,   inner_prodw.in_x1
+  connect inner_prod.out_y ,   inner_prodw.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  inner_prodw_signal
+  export  inner_prodw_signal.slot_in  as  slot_finish_time_step
+  connect inner_prodw.out_y ,   inner_prodw_signal.in_replace
+  export  inner_prodw_signal.signal_out  as  signal_reward
+}
+
 // at each time step, compute  (v[i1] or v[i2] or ..)  and emit  r  once in an action if it's true
 // where r: reward, v: bool vector, i1,12,..: indexes
 composite MOaTsRewardForBoolVectorOr

@@ -934,8 +934,11 @@ public:
 
   bool ExecuteFunction(
           const std::string &func_name, const std::list<var_space::TLiteral> &argv,
-          TCompositeModule &context_cmodule,  bool no_export=false);
+          TCompositeModule &context_cmodule, bool no_export=false);
 
+  bool ExecuteScript(
+          const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list=NULL,
+          const std::string &file_name="-", int start_line_num=1, bool no_export=false);
 
   /*!\brief search filename from the path-list, return the native path
       \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */

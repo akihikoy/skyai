@@ -1,6 +1,7 @@
 // Crawling task's agent file
 include_once "cmn_task"
 
+// objective is to go forward along the x-axis as fast as possible
 composite MMoveForwardTask
 {
   taskb_make_interface()
@@ -23,24 +24,53 @@ composite MMoveForwardTask
   taskb_endofeps_time_max(end_of_eps2,MaxTime,20.0)
 }
 
-def make_task_crawling(task_id,env_id)
+// objective is to go forward as fast as possible
+composite MMoveForwardTask2
 {
-  module MMoveForwardTask task_id
+  taskb_make_interface()
 
-  /// initialization process:
+  taskb_add_step_cost()
 
-  /// start of episode process:
+  // reward from forward (current direction) movement
+  taskb_add_directed_base_vel_reward(reward_v,(0,1),(0,2,1,2),ForwardRewardGain,0.01)
 
-  /// start of time step process:
+  // penalty for rotation around z-axis
+  taskb_add_base_vel_norm_reward(penalty_wz,(5),RotationPenaltyGain,-0.001)
 
-  /// end of time step process:
-  connect  env_id.signal_end_of_system_timestep  , task_id.slot_finish_time_step
+  // penalty for falling down (base link and head link)
+  taskb_add_falling_down_penalty(penalty_fall,(0,1),FallingDownPenalty,-4.0)
 
-  /// learning signals:
-  connect  env_id.signal_reward                  , task_id.slot_step_cost
+  // end of episode: sum of reward is less than a const value
+  taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
 
-  /// I/O:
+  // end of episode: time is greater than a const value
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,20.0)
+
+// for debug:
+// module   MPrinter reward_v_printer
+// connect  reward_v.signal_reward , reward_v_printer.slot_real
+// module   MPrinter penalty_wz_printer
+// connect  penalty_wz.signal_reward , penalty_wz_printer.slot_real
+}
+
+def make_task_crawling_base(task_mod,task_id,env_id)
+{
+  module  task_mod task_id
+
+  connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  connect env_id.signal_reward                   , task_id.slot_step_cost
+
   connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_base_rot                    , task_id.in_base_rot
   connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
 }
 
+def make_task_crawling(task_id,env_id)
+{
+  make_task_crawling_base(MMoveForwardTask,task_id,env_id)
+}
+
+def make_task_crawling2(task_id,env_id)
+{
+  make_task_crawling_base(MMoveForwardTask2,task_id,env_id)
+}

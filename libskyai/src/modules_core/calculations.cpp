@@ -130,6 +130,8 @@ SKYAI_ADD_MODULE(MVectorShuffler_TIntVector)
 SKYAI_ADD_MODULE(MVectorShuffler_TRealVector)
 SKYAI_ADD_MODULE(MVectorShuffler_TBoolVector)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MMatrixToVectorRv)
+//-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MAdd,TIntVector)
@@ -209,6 +211,11 @@ SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNorm,TIntVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MNorm,TRealVector)
 SKYAI_ADD_MODULE(MNorm_TIntVector)
 SKYAI_ADD_MODULE(MNorm_TRealVector)
+//-------------------------------------------------------------------------------------------
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSumElem,TIntVector)
+SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MSumElem,TRealVector)
+SKYAI_ADD_MODULE(MSumElem_TIntVector)
+SKYAI_ADD_MODULE(MSumElem_TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEqualTo,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEqualTo,TReal)

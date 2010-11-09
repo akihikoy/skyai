@@ -78,6 +78,8 @@ public:
       keywords_.insert("edit");
       keywords_.insert("include");
       keywords_.insert("include_once");
+      keywords_.insert("dump1");
+      keywords_.insert("dump2");
       keywords_.insert("module");
       keywords_.insert("remove");
       keywords_.insert("connect");
@@ -103,6 +105,8 @@ public:
   #define DECL_ACTION(x_func)  void x_func (t_iterator first, t_iterator last)
   DECL_ACTION(IncludeFile);
   DECL_ACTION(IncludeFileOnce);
+  DECL_ACTION(DumpInfo1);
+  DECL_ACTION(DumpInfo2);
   DECL_ACTION(SyntaxError);
   DECL_ACTION(PushKeyword);
   DECL_ACTION(AddModule);
@@ -254,6 +258,7 @@ public:
       rule_t  statement_composite, statement_edit, statement_def;
       rule_t  statement_std;
       rule_t  statement_include, statement_include_once;
+      rule_t  statement_dump1, statement_dump2;
       rule_t  statement_module, statement_remove, statement_connect, statement_disconnect;
       rule_t  statement_inherit, statement_inherit_prv;
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
@@ -405,6 +410,61 @@ void XCLASS::IncludeFileOnce (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("`include_once\'"))  return;
   include_file(true);
+}
+
+TEMPLATE_DEC
+void XCLASS::DumpInfo1 (t_iterator, t_iterator)
+{
+  var_space::TLiteral  lstr2(pop_literal_x()), lstr1(pop_literal_x());
+  LASSERT1op1(lstr1.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr1.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &str1(lstr1.LPrimitive.EString);
+  LASSERT1op1(lstr2.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr2.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &filename(lstr2.LPrimitive.EString);
+
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    if (!DumpCModInfo(*cmodule_stack_.back(), filename, str1, NULL))
+    {
+      error_= true;
+      LERROR("failed to dump info");
+    }
+  }
+  else
+  {
+    equivalent_code_<<"dump1 "<<ConvertToStr(str1)<<" "<<ConvertToStr(filename)<<std::endl;
+  }
+}
+
+TEMPLATE_DEC
+void XCLASS::DumpInfo2 (t_iterator, t_iterator)
+{
+  var_space::TLiteral  lstr3(pop_literal_x()), lstr2(pop_literal_x()), lstr1(pop_literal_x());
+  LASSERT1op1(lstr1.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr1.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &str1(lstr1.LPrimitive.EString);
+  LASSERT1op1(lstr2.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr2.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &str2(lstr2.LPrimitive.EString);
+  LASSERT1op1(lstr3.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr3.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &filename(lstr3.LPrimitive.EString);
+
+  if(!parse_mode_.Phantom)
+  {
+    LASSERT(!cmodule_stack_.empty());
+    if (!DumpCModInfo(*cmodule_stack_.back(), filename, str1, &str2))
+    {
+      error_= true;
+      LERROR("failed to dump info");
+    }
+  }
+  else
+  {
+    equivalent_code_<<"dump2 "<<ConvertToStr(str1)<<" "<<ConvertToStr(str2)<<" "<<ConvertToStr(filename)<<std::endl;
+  }
 }
 
 TEMPLATE_DEC
@@ -872,6 +932,8 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   ALIAS_ACTION(PushKeyword         , f_push_keyword           );
   ALIAS_ACTION(IncludeFile         , f_include_file           );
   ALIAS_ACTION(IncludeFileOnce     , f_include_file_once      );
+  ALIAS_ACTION(DumpInfo1           , f_dump1                  );
+  ALIAS_ACTION(DumpInfo2           , f_dump2                  );
   ALIAS_ACTION(AddModule           , f_add_module             );
   ALIAS_ACTION(RemoveModule        , f_remove_module          );
   ALIAS_ACTION(Connect             , f_connect                );
@@ -929,6 +991,8 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
       | statement_def
       | statement_include [f_include_file]
       | statement_include_once [f_include_file_once]
+      | statement_dump1 [f_dump1]
+      | statement_dump2 [f_dump2]
       | statement_module [f_add_module]
       | statement_remove [f_remove_module]
       | statement_connect [f_connect]
@@ -969,6 +1033,14 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   statement_include_once
     = str_p("include_once")
       >> +blank_p >> literal_string;
+
+  statement_dump1
+    = str_p("dump1")
+      >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string;
+
+  statement_dump2
+    = str_p("dump2")
+      >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string;
 
   statement_module
     = str_p("module")
@@ -1133,21 +1205,42 @@ bool TFunctionManager::ExecuteFunction(
   in.LiteralTable       = &literal_table;
   out.EquivalentCode    = NULL;
 
-  return loco_rabbits::ExecuteFunction(pfunction->Script, current_dir, pfunction->FileName, in, out);
+  return loco_rabbits::ExecuteScript(pfunction->Script, current_dir, pfunction->FileName, in, out);
 }
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-//!\brief Execute a function whose contents is func_script
-bool ExecuteFunction(const std::string &func_script,
+bool TAgent::ExecuteScript(
+        const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list,
+        const std::string &file_name, int start_line_num, bool no_export)
+//===========================================================================================
+{
+  TAgentParserInfoIn  in(context_cmodule);
+  TAgentParserInfoOut out;
+  TAgentParseMode parse_mode;
+  parse_mode.NoExport= no_export;
+  in.ParseMode          = parse_mode;
+  in.StartLineNum       = start_line_num;
+  in.PathList           = path_list_;
+  in.IncludedList       = included_list;
+  in.CmpModuleGenerator = &cmp_module_generator_;
+  in.FunctionManager    = &function_manager_;
+
+  return loco_rabbits::ExecuteScript(exec_script,  boost::filesystem::current_path(), file_name, in, out);
+}
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+//!\brief Execute script
+bool ExecuteScript(const std::string &exec_script,
       const boost::filesystem::path &current_dir, const std::string &file_name,
       TAgentParserInfoIn &in, TAgentParserInfoOut &out)
 //===========================================================================================
 {
   using namespace boost::spirit::classic;
   typedef std::string::const_iterator TIterator;
-  TIterator  first(func_script.begin());
-  TIterator  last(func_script.end());
+  TIterator  first(exec_script.begin());
+  TIterator  last(exec_script.end());
 
   std::list<boost::filesystem::path>  null_path_list;
   if (in.PathList==NULL)  in.PathList= &null_path_list;
@@ -1254,6 +1347,15 @@ static bool save_connection_to_stream (const TConstPortInfo *from_port, const TC
 }
 //-------------------------------------------------------------------------------------------
 
+static bool save_agent_config_to_stream (const TAgent *agent, ostream *os, const std::string &indent)
+{
+  (*os) <<indent<< "config ={" << endl;
+  agent->ParamBoxConfig().WriteToStream (*os, true, indent+"    ");
+  (*os) <<indent<< "  }" << endl;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 static bool save_config_to_stream (const TModuleInterface *module, ostream *os, const std::string &indent)
 {
   if(module->ParamBoxConfig().NoMember())  return true;
@@ -1274,23 +1376,34 @@ static bool save_memory_to_stream (const TModuleInterface *module, ostream *os, 
 }
 //-------------------------------------------------------------------------------------------
 
-static bool save_params_to_stream (const TCompositeModule::TModuleCell &module, ostream *os, const std::string &indent)
-{
-  if(!module.Managed)  return true;
+static bool save_cmp_params_to_stream (const TCompositeModule::TModuleCell &module, ostream *os, const std::string &indent,
+              bool save_conf, bool save_mem);
 
-  if(const TCompositeModule *cmodule= dynamic_cast<const TCompositeModule*>(module.Ptr))
+static bool save_cmp_params_to_stream_base (const TModuleInterface *module, ostream *os, const std::string &indent,
+              bool save_conf, bool save_mem)
+{
+  if(const TCompositeModule *cmodule= dynamic_cast<const TCompositeModule*>(module))
   {
-    (*os) <<indent<< "edit  " << module.Ptr->InstanceName() << endl;
+    (*os) <<indent<< "edit  " << module->InstanceName() << endl;
     (*os) <<indent<< "{" << endl;
-    cmodule->ForEachSubModuleCell (boost::bind(save_params_to_stream,_1,os,indent+"  "));
+    cmodule->ForEachSubModuleCell (boost::bind(save_cmp_params_to_stream,_1,os,indent+"  ",save_conf,save_mem));
     (*os) <<indent<< "}" << endl;
   }
   else
   {
-    save_config_to_stream(module.Ptr,os,indent);
-    save_memory_to_stream(module.Ptr,os,indent);
+    if(save_conf)  save_config_to_stream(module,os,indent);
+    if(save_mem)   save_memory_to_stream(module,os,indent);
   }
   return true;
+}
+//-------------------------------------------------------------------------------------------
+
+static bool save_cmp_params_to_stream (const TCompositeModule::TModuleCell &module, ostream *os, const std::string &indent,
+              bool save_conf, bool save_mem)
+{
+  if(!module.Managed)  return true;
+
+  return save_cmp_params_to_stream_base(module.Ptr, os, indent, save_conf, save_mem);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1312,7 +1425,18 @@ bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &inden
   }
 
   os<<endl;
-  ForEachSubModuleCell (boost::bind(save_params_to_stream,_1,&os,indent));
+  ForEachSubModuleCell (boost::bind(save_cmp_params_to_stream,_1,&os,indent,true,true));
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+static bool save_cmodule_generator (const std::string &id, const TCompositeModuleGenerator::TGeneratorInfo &generator,
+              std::ostream &os, const std::string &indent)
+{
+  os<<indent<<"composite  "<<id<<endl;
+  os<<indent<<"{"<<endl;
+  os<<TIndentString(generator.Script, indent+"  ");
+  os<<indent<<"}"<<endl;
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -1328,27 +1452,34 @@ bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::stri
     igenerator= generators_.find(*itr);
     if (igenerator==generators_.end())
     {
-      LERROR("fatal!");
+      LERROR("fatal! composite module generator is lost: "<<igenerator->first);
       lexit(df);
     }
-    os<<indent<<"composite  "<<*itr<<endl;
-    os<<indent<<"{"<<endl;
-    os<<TIndentString(igenerator->second.Script, indent+"  ");
-    os<<indent<<"}"<<endl;
+    save_cmodule_generator(*itr,igenerator->second,os,indent);
   }
   return true;
 }
 //-------------------------------------------------------------------------------------------
 
+static bool save_function (const std::string &id, const TFunctionManager::TFunctionInfo &finfo,
+              std::ostream &os, const std::string &indent)
+{
+  os<<indent<<"def  "<<id<<"("<<ContainerToStr(finfo.ParamList.begin(),finfo.ParamList.end(),", ")<<")"<<endl;
+  os<<indent<<"{"<<endl;
+  os<<TIndentString(finfo.Script, indent+"  ");
+  os<<indent<<"}"<<endl;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
 //! Write all function definitions to a stream
 bool TFunctionManager::WriteToStream (std::ostream &os, const std::string &indent) const
+//===========================================================================================
 {
   for (std::map<std::string, TFunctionInfo>::const_iterator itr(functions_.begin()),last(functions_.end()); itr!=last; ++itr)
   {
-    os<<indent<<"def  "<<itr->first<<"("<<ContainerToStr(itr->second.ParamList.begin(),itr->second.ParamList.end(),", ")<<")"<<endl;
-    os<<indent<<"{"<<endl;
-    os<<TIndentString(itr->second.Script, indent+"  ");
-    os<<indent<<"}"<<endl;
+    save_function (itr->first,itr->second,os,indent);
   }
   return true;
 }
@@ -1380,17 +1511,121 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
   }
   if (!CanOpenFile(file_path.file_string(),fopAsk))  return false;
 
-  ofstream  ofs (file_path.file_string().c_str());
-  agent.CompositeModuleGenerator().WriteToStream(ofs);
-  ofs<<endl;
-  agent.FunctionManager().WriteToStream(ofs);
-  ofs<<endl;
-  return  agent.Modules().WriteToStream(ofs);
+  ofstream  ofs(file_path.file_string().c_str());
+  return  WriteAgentToStream(agent, ofs);
 }
 //-------------------------------------------------------------------------------------------
 
+//===========================================================================================
+/*!\brief save modules, connections, configurations to the stream [os] */
+bool WriteAgentToStream (const TAgent &agent, ostream &os)
+//===========================================================================================
+{
+  save_agent_config_to_stream (&agent, &os, "");
+  os<<endl;
+  agent.CompositeModuleGenerator().WriteToStream(os);
+  os<<endl;
+  agent.FunctionManager().WriteToStream(os);
+  os<<endl;
+  return  agent.Modules().WriteToStream(os);
+}
+//-------------------------------------------------------------------------------------------
 
 //===========================================================================================
+
+
+//===========================================================================================
+/*!\brief dump information */
+bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
+      const std::string &kind, const std::string *opt, const std::string &indent)
+//===========================================================================================
+{
+  ostream  *p_os(NULL);
+  ofstream  ofs;
+  if (filename!="")
+  {
+    std::string file_path= cmodule.Agent().GetDataFileName(filename);
+    if (!CanOpenFile(file_path,fopAsk))  return false;
+    ofs.open(file_path.c_str());
+    p_os= &ofs;
+  }
+  else
+  {
+    p_os= &std::cout;
+  }
+
+  if(kind=="agent")
+  {
+    return WriteAgentToStream (cmodule.Agent(), *p_os);
+  }
+  else if(kind=="config")
+  {
+    *p_os <<indent<< "config ={" << endl;
+    cmodule.ParamBoxConfig().WriteToStream (*p_os, true, indent+"    ");
+    *p_os <<indent<< "  }" << endl;
+  }
+  else if(kind=="mod_list")
+  {
+    cmodule.ForEachSubModuleCell (boost::bind(save_module_to_stream,_1,p_os,indent));
+  }
+  else if(kind=="conn_list")
+  {
+    cmodule.ForEachSubConnection (boost::bind(save_connection_to_stream,_1,_2,p_os,indent));
+  }
+  else if(kind=="all_mod")
+  {
+    cmodule.ForEachSubModuleCell (boost::bind(save_cmp_params_to_stream,_1,p_os,indent,true,true));
+  }
+  else if(kind=="all_mod_conf")
+  {
+    cmodule.ForEachSubModuleCell (boost::bind(save_cmp_params_to_stream,_1,p_os,indent,true,false));
+  }
+  else if(kind=="all_mod_mem")
+  {
+    cmodule.ForEachSubModuleCell (boost::bind(save_cmp_params_to_stream,_1,p_os,indent,false,true));
+  }
+  else if(kind=="all_cmp")
+  {
+    cmodule.Agent().CompositeModuleGenerator().WriteToStream(*p_os);
+  }
+  else if(kind=="all_func")
+  {
+    cmodule.Agent().FunctionManager().WriteToStream(*p_os);
+  }
+  else if(kind=="mod" || kind=="mod_conf" || kind=="mod_mem")
+  {
+    if (opt==NULL)  {LERROR("use dump2"); return false;}
+    if (*opt=="")   {LERROR("invalid second option"); return false;}
+    const TModuleInterface *module(cmodule.SubModulePtr(*opt));
+    if (module==NULL)  {LERROR(*opt<<": module not found"); *p_os<<*opt<<": module not found"<<endl; return false;}
+    if (kind=="mod")            save_cmp_params_to_stream_base (module, p_os, "",true,true);
+    else if (kind=="mod_conf")  save_cmp_params_to_stream_base (module, p_os, "",true,false);
+    else if (kind=="mod_mem")   save_cmp_params_to_stream_base (module, p_os, "",false,true);
+  }
+  else if(kind=="cmp")
+  {
+    if (opt==NULL)  {LERROR("use dump2"); return false;}
+    if (*opt=="")   {LERROR("invalid second option"); return false;}
+    const TCompositeModuleGenerator::TGeneratorInfo *pgenerator= cmodule.Agent().CompositeModuleGenerator().Generator(*opt);
+    if (pgenerator)  save_cmodule_generator(*opt,*pgenerator,*p_os,indent);
+    else  return false;
+  }
+  else if(kind=="func")
+  {
+    if (opt==NULL)  {LERROR("use dump2"); return false;}
+    if (*opt=="")   {LERROR("invalid second option"); return false;}
+    const TFunctionManager::TFunctionInfo *pfunction= cmodule.Agent().FunctionManager().Function(*opt);
+    if (pfunction)  save_function(*opt,*pfunction,*p_os,indent);
+    else  return false;
+  }
+  else
+  {
+    LERROR("invalid dump kind: "<<kind);
+    return false;
+  }
+  return true;
+}
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------

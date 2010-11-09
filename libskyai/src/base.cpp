@@ -1270,6 +1270,11 @@ bool TAgent::ExecuteFunction(
 }
 //-------------------------------------------------------------------------------------------
 
+// NOTE: the following member function is defined in parser.cpp
+// bool TAgent::ExecuteScript(
+        // const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list,
+        // const std::string &file_name, int start_line_num, bool no_export);
+
 /*!\brief search filename from the path-list, return the native path
     \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */
 std::string TAgent::SearchFileName (const std::string &filename, const std::string &omissible_extension) const

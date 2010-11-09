@@ -77,8 +77,8 @@ struct TAgentParserInfoOut
 };
 //-------------------------------------------------------------------------------------------
 
-//!\brief Execute a function whose contents is func_script
-bool ExecuteFunction(const std::string &func_script,
+//!\brief Execute script
+bool ExecuteScript(const std::string &exec_script,
       const boost::filesystem::path &current_dir, const std::string &file_name,
       TAgentParserInfoIn &in, TAgentParserInfoOut &out);
 //-------------------------------------------------------------------------------------------
@@ -90,6 +90,14 @@ bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &i
 /*!\brief save modules, connections, configurations to the file [path_list] */
 bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path);
 
+/*!\brief save modules, connections, configurations to the stream [os] */
+bool WriteAgentToStream (const TAgent &agent, std::ostream &os);
+//-------------------------------------------------------------------------------------------
+
+/*!\brief dump information */
+bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
+      const std::string &kind, const std::string *opt=NULL, const std::string &indent="");
+//-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits

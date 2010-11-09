@@ -34,6 +34,8 @@
       <item> as </item>
       <item> as_is </item>
       <item> def </item>
+      <item> dump1 </item>
+      <item> dump2 </item>
     </list>
 
     <list name="kwListAsign">

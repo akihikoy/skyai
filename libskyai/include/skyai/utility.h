@@ -27,6 +27,7 @@
 //-------------------------------------------------------------------------------------------
 #include <iostream>
 #include <fstream>
+#include <lora/stl_fwd.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -49,7 +50,8 @@ class TAgent;
     }
     \endcode
 */
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream=std::cout);
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream=std::cout,
+      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
 
 /*!\brief Parse command line option for an instance of TAgent
 
@@ -65,7 +67,8 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
     }
     \endcode
 */
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream);
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream,
+      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
 
 
 //-------------------------------------------------------------------------------------------

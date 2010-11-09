@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    manoi01.h
+/*! \file    humanoid01.h
     \brief   benchmarks - humanoid motion learning task
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Nov.10, 2009-
@@ -92,6 +92,18 @@ inline void GetBaseVel (ColumnVector &state1)
   state1(3) = body[0].getAngularVel()[0] ; // wx
   state1(4) = body[0].getAngularVel()[1] ; // wy
   state1(5) = body[0].getAngularVel()[2] ; // wz
+}
+//-------------------------------------------------------------------------------------------
+
+inline void GetRot (int index, Matrix &r)
+{
+  const dReal *br(body[index].getRotation());
+#define _R(i,j) (br[(i)*4+(j)])
+  r.resize(3,3);
+  r(0,0)=_R(0,0); r(0,1)=_R(0,1); r(0,2)=_R(0,2);
+  r(1,0)=_R(1,0); r(1,1)=_R(1,1); r(1,2)=_R(1,2);
+  r(2,0)=_R(2,0); r(2,1)=_R(2,1); r(2,2)=_R(2,2);
+#undef _R
 }
 //-------------------------------------------------------------------------------------------
 

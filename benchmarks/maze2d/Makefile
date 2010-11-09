@@ -16,8 +16,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-# EXEC = GENERATING_PROGRAM_NAME
-# ARC = GENERATING_ARCHIVE
+EXEC = maze2d.out
 LIBOBJS =
 CXX = g++
 AR = ar
@@ -33,10 +32,6 @@ RMFLAGS  :=  -vf
 OBJS := \
       $(patsubst %.c,%.o,$(wildcard *.c)) \
       $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-EXECS := $(OBJS:.o=.out)
-# EXECS    = \
-#       $(patsubst %.c,%.out,$(wildcard *.c)) \
-#       $(patsubst %.cpp,%.out,$(wildcard *.cpp)) #
 ##-------------------------------------------------------------------------------------------
 LIBS    = -I/usr/include -I/usr/local/include
 LDLIBS  = -lm -L/usr/local/lib
@@ -62,31 +57,32 @@ LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
 # include $(LIBLORA)/src/Makefile_odeflags
 # LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
 ##-------------------------------------------------------------------------------------------
-all : lib $(EXECS)
-# all : libobjs $(ARC)
+all : lib $(EXEC)
+
+lib : adlib libmaze2d.o
 ##-------------------------------------------------------------------------------------------
 ## additional make
-lib :
+adlib :
 	@(set -e; make -C $(LIBLORA)/src std oct)
 	@(set -e; make -C $(LIBSKYAI)/src)
 ##-------------------------------------------------------------------------------------------
 ## generic make rules
 
 clean   :
-	@rm $(RMFLAGS) *.o *.a *.il $(EXECS) $(ARC) $(EXTRA_CLEAN)
+	@rm $(RMFLAGS) *.o *.a *.il $(EXEC) $(ARC) $(EXTRA_CLEAN)
 	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
 
 # %.out : %.cpp $(LIBOBJS)
 # 	$(CXX) -o $@ $< $(LIBS) $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
 # 	@(echo "$@ is generated")
 
-%.out : %.o $(LIBOBJS)
-	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-	@(echo "$@ is generated")
+# %.out : %.o $(LIBOBJS)
+# 	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+# 	@(echo "$@ is generated")
 
-# $(EXEC) : $(OBJS) $(LIBOBJS)
-# 	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-# 	@(echo "$(EXEC) is generated")
+$(EXEC) : $(OBJS) $(LIBOBJS)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+	@(echo "$(EXEC) is generated")
 
 # $(ARC) : $(OBJS) $(LIBOBJS)
 # 	$(AR) r $(ARC) $(OBJS) $(LIBOBJS)

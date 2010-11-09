@@ -209,6 +209,32 @@ template <typename t_vector> void MVectorShuffler<t_vector>::function (const TIn
 //-------------------------------------------------------------------------------------------
 
 
+/*!\brief MMatrixToVector's Configurations */
+struct TMatrixToVectorConfigurations
+{
+  TIntVector    Order;
+
+  TMatrixToVectorConfigurations (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( Order   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+/*!\brief MMatrixToVectorRv: serialize (real value) matrix elements so that y[i]=x[Order[2*i]][Order[2*i+1]] where i=0,..,size(Order)/2-1  */
+FUNCTION_SISO_GEN_CFG (MMatrixToVectorRv, TRealMatrix, TRealVector, TMatrixToVectorConfigurations)
+void MMatrixToVectorRv::function (const TInput &x, TOutput &y) const
+{
+  LASSERT1op1(GenSize(conf_.Order)%2,==,0);
+  GenResize(y,GenSize(conf_.Order)/2);
+  TypeExtS<TOutput>::iterator  yitr(GenBegin(y));
+  for (TypeExtS<TIntVector>::const_iterator oitr(GenBegin(conf_.Order)),olast(GenEnd(conf_.Order)); oitr!=olast; oitr+=2,++yitr)
+    (*yitr)= x(*oitr,*(oitr+1));
+}
+//-------------------------------------------------------------------------------------------
+
+
 /*!\brief MAdd: addition calculator (y = x1 + x2)
     \todo specialize for vector to make efficient */
 template <typename t_input>FUNCTION_2ISO_GEN (MAdd, t_input, t_input, t_input)
@@ -335,6 +361,16 @@ template <typename t_input> FUNCTION_SISO_GEN (MNorm, t_input, typename TypeExtS
 template <typename t_input> void MNorm<t_input>::function (const TInput &x, TOutput &y) const
 {
   y= GetNorm(x);
+}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief MSumElem: sum of elements (y = x[0]+x[1]+..)  */
+template <typename t_input> FUNCTION_SISO_GEN (MSumElem, t_input, typename TypeExtS<t_input>::s_value_type)
+template <typename t_input> void MSumElem<t_input>::function (const TInput &x, TOutput &y) const
+{
+  SetZero(y);
+  for (typename TypeExtS<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
+    y+= (*x_itr);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -528,6 +564,9 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MElemSquare,TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNorm,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MNorm,TRealVector)
+//-------------------------------------------------------------------------------------------
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSumElem,TIntVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MSumElem,TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEqualTo,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MEqualTo,TReal)

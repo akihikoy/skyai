@@ -22,8 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_utility_h
-#define skyai_utility_h
+#ifndef skyai_core_utility_h
+#define skyai_core_utility_h
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
 #include <lora/stl_math.h>   // for operator+ for TIntVector
@@ -1844,12 +1844,14 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TBoolVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TRealMatrix)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MMediator0,TRealVectorSet)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TInt)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TReal)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TRealVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TBoolVector)
+SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MMediator1,TVoid,TRealMatrix)
 //-------------------------------------------------------------------------------------------
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TIntVector)
 SKYAI_SPECIALIZE_TEMPLATE_MODULE_1(MVectorMixer,TRealVector)
@@ -1896,5 +1898,5 @@ SKYAI_SPECIALIZE_TEMPLATE_MODULE_2(MCompositeHolder2,TInt,TInt)
 //-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
-#endif // skyai_utility_h
+#endif // skyai_core_utility_h
 //-------------------------------------------------------------------------------------------

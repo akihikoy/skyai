@@ -16,9 +16,8 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-# EXEC = GENERATING_PROGRAM_NAME
-# ARC = GENERATING_ARCHIVE
-LIBOBJS =
+EXEC := humanoid01.out
+LIBOBJS :=
 CXX = g++
 AR = ar
 ifeq ($(DEBUG),true)
@@ -29,16 +28,10 @@ endif
 LDFLAGS  := $(CXXFLAGS)
 RMFLAGS  :=  -vf
 ##-------------------------------------------------------------------------------------------
-BASEPREFIX := $(wildcard ~/prg)
-##-------------------------------------------------------------------------------------------
 ## make  *.out  from  *.c and *.cpp
 OBJS := \
       $(patsubst %.c,%.o,$(wildcard *.c)) \
       $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-EXECS := $(OBJS:.o=.out)
-# EXECS    = \
-#       $(patsubst %.c,%.out,$(wildcard *.c)) \
-#       $(patsubst %.cpp,%.out,$(wildcard *.cpp)) #
 ##-------------------------------------------------------------------------------------------
 LIBS    = -I/usr/include -I/usr/local/include
 LDLIBS  = -lm -L/usr/local/lib
@@ -49,11 +42,6 @@ LIBS    += -I$(LIBSKYAI)/include
 # LIBOBJS += $(LIBSKYAI)/lib/libskyai.a
 LIBOBJS+= $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
 LDLIBS += -lboost_filesystem
-##-------------------------------------------------------------------------------------------
-## for oldngnet
-# LIBNGNET := $(BASEPREFIX)/robotics/ngnet-smem
-# LIBS   += -I$(LIBNGNET)
-# LIBOBJS+= $(LIBNGNET)/ngnet_smem.o
 ##-------------------------------------------------------------------------------------------
 ## for liblora
 LIBLORA := ../../liblora
@@ -69,36 +57,32 @@ LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
 include $(LIBLORA)/src/Makefile_odeflags
 LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
 ##-------------------------------------------------------------------------------------------
-# manoi01.o : LIBS += -I$(BASEPREFIX)/robotics/def-manoi01
-# manoi01.d : LIBS += -I$(BASEPREFIX)/robotics/def-manoi01
-# manoi01.o : CXXFLAGS += -DHUMANOID_VERSION=1
-# manoi01.d : CXXFLAGS += -DHUMANOID_VERSION=1
-##-------------------------------------------------------------------------------------------
-all : lib $(EXECS)
-# all : libobjs $(ARC)
+all : lib $(EXEC)
+
+lib : adlib libhumanoid01.o
 ##-------------------------------------------------------------------------------------------
 ## additional make
-lib :
+adlib :
 	@(set -e; make -C $(LIBLORA)/src std oct ode)
 	@(set -e; make -C $(LIBSKYAI)/src)
 ##-------------------------------------------------------------------------------------------
 ## generic make rules
 
 clean   :
-	@rm $(RMFLAGS) *.o *.a *.il $(EXECS) $(ARC) $(EXTRA_CLEAN)
+	@rm $(RMFLAGS) *.o *.a *.il $(EXEC) $(ARC) $(EXTRA_CLEAN)
 	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
 
 # %.out : %.cpp $(LIBOBJS)
 # 	$(CXX) -o $@ $< $(LIBS) $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
 # 	@(echo "$@ is generated")
 
-%.out : %.o $(LIBOBJS)
-	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-	@(echo "$@ is generated")
+# %.out : %.o $(LIBOBJS)
+# 	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+# 	@(echo "$@ is generated")
 
-# $(EXEC) : $(OBJS) $(LIBOBJS)
-# 	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-# 	@(echo "$(EXEC) is generated")
+$(EXEC) : $(OBJS) $(LIBOBJS)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+	@(echo "$(EXEC) is generated")
 
 # $(ARC) : $(OBJS) $(LIBOBJS)
 # 	$(AR) r $(ARC) $(OBJS) $(LIBOBJS)
