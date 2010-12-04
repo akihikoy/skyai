@@ -5,7 +5,7 @@ include "task_crawling"
 include_once "qlfqi_wfdcob"
 
 make_task_crawling(task,env)
-module MTDFQIWireFittingDCOBActSp behavior
+module MTDFQIWireFittingDCOBActSp1 behavior
 include "cmn_wfdcob"
 
 /// parameter setting:

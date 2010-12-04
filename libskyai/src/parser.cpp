@@ -71,6 +71,7 @@ public:
       equivalent_code_(equivalent_code),
       var_cparser_    (var_pagent_)
     {
+      keywords_.insert("_destroy");
       keywords_.insert("as");
       keywords_.insert("as_is");
       keywords_.insert("def");
@@ -107,6 +108,7 @@ public:
   DECL_ACTION(IncludeFileOnce);
   DECL_ACTION(DumpInfo1);
   DECL_ACTION(DumpInfo2);
+  DECL_ACTION(DestroyDef);
   DECL_ACTION(SyntaxError);
   DECL_ACTION(PushKeyword);
   DECL_ACTION(AddModule);
@@ -259,6 +261,7 @@ public:
       rule_t  statement_std;
       rule_t  statement_include, statement_include_once;
       rule_t  statement_dump1, statement_dump2;
+      rule_t  statement_destroy;
       rule_t  statement_module, statement_remove, statement_connect, statement_disconnect;
       rule_t  statement_inherit, statement_inherit_prv;
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
@@ -464,6 +467,31 @@ void XCLASS::DumpInfo2 (t_iterator, t_iterator)
   else
   {
     equivalent_code_<<"dump2 "<<ConvertToStr(str1)<<" "<<ConvertToStr(str2)<<" "<<ConvertToStr(filename)<<std::endl;
+  }
+}
+
+TEMPLATE_DEC
+void XCLASS::DestroyDef (t_iterator, t_iterator)
+{
+  std::string identifier(pop_id_x());
+
+  var_space::TLiteral  lstr1(pop_literal_x());
+  LASSERT1op1(lstr1.LType,==,var_space::TLiteral::ltPrimitive);
+  LASSERT1op1(lstr1.LPrimitive.Type,==,static_cast<int>(var_space::TAnyPrimitive::ptString));
+  std::string &str1(lstr1.LPrimitive.EString);
+
+  if(!parse_mode_.Phantom)
+  {
+    if (str1=="func")
+      {if (!function_manager_.RemoveFunction(identifier))  error_= true;}
+    else if (str1=="cmp")
+      {if (!cmp_module_generator_.RemoveGenerator(identifier))  error_= true;}
+    else
+      {LERROR("invalid destroy kind: "<<ConvertToStr(str1));}
+  }
+  else
+  {
+    equivalent_code_<<"_destroy "<<ConvertToStr(str1)<<" "<<identifier<<std::endl;
   }
 }
 
@@ -934,6 +962,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   ALIAS_ACTION(IncludeFileOnce     , f_include_file_once      );
   ALIAS_ACTION(DumpInfo1           , f_dump1                  );
   ALIAS_ACTION(DumpInfo2           , f_dump2                  );
+  ALIAS_ACTION(DestroyDef          , f_destroy_def            );
   ALIAS_ACTION(AddModule           , f_add_module             );
   ALIAS_ACTION(RemoveModule        , f_remove_module          );
   ALIAS_ACTION(Connect             , f_connect                );
@@ -1001,6 +1030,7 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
       | statement_inherit_prv [f_inherit_prv]
       | statement_export
       | statement_assign_agent_config
+      | statement_destroy [f_destroy_def]
       | statement_starting_with_identifier
       );
 
@@ -1041,6 +1071,10 @@ TSKYAICodeParser<t_iterator>::definition<ScannerT>::definition (const TSKYAICode
   statement_dump2
     = str_p("dump2")
       >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string;
+
+  statement_destroy
+    = str_p("_destroy")
+      >> +blank_eol_p >> literal_string >> +blank_eol_p >> expr_identifier;
 
   statement_module
     = str_p("module")
@@ -1620,7 +1654,7 @@ bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
   }
   else
   {
-    LERROR("invalid dump kind: "<<kind);
+    LERROR("invalid dump kind: "<<ConvertToStr(kind));
     return false;
   }
   return true;

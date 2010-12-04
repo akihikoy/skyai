@@ -16,7 +16,7 @@ behavior.config={
     AlphaDecreasingFactor = 0.002
     Lambda = 0.9
 
-    ActionMin = (-3.14159265, 0.03, 0.1)
+    ActionMin = (-2.51327412, 0.03, 0.1)  // : ocq 'printf("%.8f\n",-pi()+2*pi()/10)'
     ActionMax = (+3.14159265, 0.03, 0.1)
     ActionDim = 3
     SmoothingFactor = 0.001
@@ -31,6 +31,10 @@ behavior.config={
         resize(1)
         [0]= 1.0
       }
-    Levels = (11, 1, 1)
+    Levels = (10, 1, 1)
     Radiuses = (1.0, 0.0, 0.0)
+    GConstraintKind = "gckEllipseOnGrid"
   }
+
+// module  MPrinter command_printer
+// connect cmn.slot_execute_command_finished , command_printer.slot_real_vector

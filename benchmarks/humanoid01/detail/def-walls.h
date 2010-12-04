@@ -83,7 +83,7 @@ void init_walls(dSimpleSpace &_space, int map_kind=-1)
 {
   walls.clear();
 
-  if (!IsIn(map_kind,-1,4) && map_kind!=20)
+  if (!IsIn(map_kind,-1,5) && map_kind!=20)
     {LERROR("in init_walls(), invalid map_kind= "<<map_kind); exit(1);}
 
   if (map_kind<0)  return;
@@ -125,6 +125,13 @@ void init_walls(dSimpleSpace &_space, int map_kind=-1)
   else if (map_kind==3)
   {
     walls.push_back (TWall(-0.10l,  1.00l,   0.10l, -0.20l));
+  }
+  else if (map_kind==4)
+  {
+    walls.push_back (TWall(-0.20l, -1.00l,   0.20l,  0.20l));
+    walls.push_back (TWall( 0.20l, -1.00l,   0.20l,  0.20l));
+    walls.push_back (TWall(-0.70l,  1.00l,  -0.20l,  0.60l));
+    walls.push_back (TWall( 0.30l,  1.00l,  -0.20l,  0.60l));
   }
   else if (map_kind==20)
   {

@@ -1135,9 +1135,22 @@ void TCompositeModule::ExportToDOT (std::ostream &os) const
 //! Added: return true, failed: return false
 bool TCompositeModuleGenerator::AddGenerator(const std::string &cmodule_name, const TGeneratorInfo &generator)
 {
-  if(GeneratorExists(cmodule_name))  {LERROR(cmodule_name<<" already exists.");  return false;}
+  if(GeneratorExists(cmodule_name))  {LERROR(cmodule_name<<" already exists");  return false;}
   generators_[cmodule_name]= generator;
   cmodule_name_list_.push_back(cmodule_name);
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//! Removed: return true, failed: return false
+bool TCompositeModuleGenerator::RemoveGenerator(const std::string &cmodule_name)
+{
+  std::map<std::string, TGeneratorInfo>::iterator  g_itr(generators_.find(cmodule_name));
+  std::list<std::string>::iterator   cnl_itr(std::find(cmodule_name_list_.begin(),cmodule_name_list_.end(),cmodule_name));
+  if (g_itr==generators_.end() && cnl_itr==cmodule_name_list_.end())
+    {LERROR(cmodule_name<<": module (composite) not found"); return false;}
+  if (g_itr!=generators_.end())  generators_.erase(g_itr);
+  if (cnl_itr!=cmodule_name_list_.end())  cmodule_name_list_.erase(cnl_itr);
   return true;
 }
 //-------------------------------------------------------------------------------------------
@@ -1171,12 +1184,24 @@ const TCompositeModuleGenerator::TGeneratorInfo* TCompositeModuleGenerator::Gene
 //! Added: return true, failed: return false
 bool TFunctionManager::AddFunction(const std::string &func_name, const TFunctionInfo &function)
 {
-  if(FunctionExists(func_name))  {LERROR(func_name<<" already exists.");  return false;}
+  if(FunctionExists(func_name))  {LERROR(func_name<<" already exists");  return false;}
   functions_[func_name]= function;
 // std::stringstream plist;PrintContainer(functions_[func_name].ParamList.begin(),functions_[func_name].ParamList.end(),plist, ",");
 // LDEBUG("#####ADDED FUNCTION: "<<func_name
 // <<"("<<plist.str()<<"); defined in "<<functions_[func_name].FileName<<":"<<functions_[func_name].LineNum<<endl
 // <<functions_[func_name].Script<<"#####");
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//! Removed: return true, failed: return false
+bool TFunctionManager::RemoveFunction(const std::string &func_name)
+{
+  std::map<std::string, TFunctionInfo>::iterator  itr(functions_.find(func_name));
+  if (itr==functions_.end())
+    {LERROR(func_name<<": function not found");  return false;}
+  else
+    functions_.erase(itr);
   return true;
 }
 //-------------------------------------------------------------------------------------------

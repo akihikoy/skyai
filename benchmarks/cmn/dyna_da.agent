@@ -1,0 +1,57 @@
+// Dyna+TD(lambda) modules for discrete action set
+// Using linear function approximator and generic TD learner
+
+include_once "ql_da"
+
+composite MDynaDiscAct
+{
+  make_td_disc_act_module(MTDDyna_TDiscreteAction)
+
+  connect rl_in_feature.out_1               , behavior.in_feature
+  connect avf_linear.out_settable_avtable   , behavior.in_settable_avtable
+
+  export  behavior.in_dynm_trans_probability        as_is
+  export  behavior.in_dynm_next_feature             as_is
+  export  behavior.in_dynm_most_probable_action     as_is
+  export  behavior.in_rwdm_trans_reward             as_is
+  export  behavior.in_rwdm_trans_reward_at_feature  as_is
+
+  export behavior.config.UsingDyna                  as_is
+  export behavior.config.DynaScheme                 as_is
+
+  export behavior.config.DynaPSFeatureValMin        as_is
+  export behavior.config.DynaPSStateTrProbMin       as_is
+  export behavior.config.DynaPSPlanningCount        as_is
+  export behavior.config.DynaPSPlanningTDErrMin     as_is
+  export behavior.config.DynaPSKeepUnplannedElem    as_is
+  export behavior.config.DynaVINumIteration         as_is
+
+  export behavior.config.DynaPSAlpha                as_is
+  export behavior.config.DynaPSAlphaMin             as_is
+  export behavior.config.DynaVIAlpha                as_is
+  export behavior.config.DynaVIAlphaMin             as_is
+}
+
+def connect_dynamics_model_to_behavior(mod_id,behavior_id)
+{
+  connect mod_id.out_trans_probability       , behavior_id.in_dynm_trans_probability
+  connect mod_id.out_next_feature            , behavior_id.in_dynm_next_feature
+  connect mod_id.out_most_probable_action    , behavior_id.in_dynm_most_probable_action
+}
+def disconnect_dynamics_model_from_behavior(mod_id,behavior_id)
+{
+  disconnect mod_id.out_trans_probability       , behavior_id.in_dynm_trans_probability
+  disconnect mod_id.out_next_feature            , behavior_id.in_dynm_next_feature
+  disconnect mod_id.out_most_probable_action    , behavior_id.in_dynm_most_probable_action
+}
+
+def connect_reward_model_to_behavior(mod_id,behavior_id)
+{
+  connect mod_id.out_trans_reward              , behavior_id.in_rwdm_trans_reward
+  connect mod_id.out_trans_reward_at_feature   , behavior_id.in_rwdm_trans_reward_at_feature
+}
+def disconnect_reward_model_from_behavior(mod_id,behavior_id)
+{
+  disconnect mod_id.out_trans_reward              , behavior_id.in_rwdm_trans_reward
+  disconnect mod_id.out_trans_reward_at_feature   , behavior_id.in_rwdm_trans_reward_at_feature
+}

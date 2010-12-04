@@ -1,0 +1,71 @@
+// agent file for maze2d task using Dyna
+
+include "dyna_da"
+include "cmn"
+
+module MDynaDiscAct behavior
+
+include "cmn_da"
+
+module MSimpleDynamicsModel dyn_model
+connect radial_action.slot_initialize_finished , dyn_model.slot_initialize
+connect cmn.signal_start_of_episode       , dyn_model.slot_start_episode
+connect behavior.signal_execute_action    , dyn_model.slot_start_action
+connect cmn.out_ngnet                     , dyn_model.in_feature
+connect radial_action.out_action_set_size , dyn_model.in_action_set_size
+connect_dynamics_model_to_behavior(dyn_model,behavior)
+
+module MSimpleRewardModel rwd_model
+connect radial_action.slot_initialize_finished , rwd_model.slot_initialize
+connect cmn.signal_start_of_episode       , rwd_model.slot_start_episode
+connect behavior.signal_execute_action    , rwd_model.slot_start_action
+connect cmn.out_ngnet                     , rwd_model.in_feature
+connect behavior.out_reward_in_action     , rwd_model.in_reward
+connect radial_action.out_action_set_size , rwd_model.in_action_set_size
+connect_reward_model_to_behavior(rwd_model,behavior)
+
+disconnect  radial_action.signal_end_of_action , behavior.slot_finish_action
+connect  radial_action.signal_end_of_action    , dyn_model.slot_finish_action
+connect  dyn_model.slot_finish_action_finished , rwd_model.slot_finish_action
+connect  rwd_model.slot_finish_action_finished , behavior.slot_finish_action
+
+/// parameter setting:
+
+radial_action.config ={
+    NumOfDirs = 4
+  }
+cmn.config={
+    MapKind = 3  // using an easy maze
+  }
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    GradientMax = 1.0e+100
+    UsingReplacingTrace = false
+    Lambda = 0.0
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+
+    // Alpha = 1.0e-300   // uncomment to use only planning
+    // UsingDyna = false  // uncomment not to use planning
+
+    DynaPSAlpha = 0.1
+    DynaPSKeepUnplannedElem = 0.5
+    DynaPSPlanningCount = 40
+    DynaPSStateTrProbMin = 0.1
+    DynaScheme = {
+        PostActionPS = false
+        PreEpisodeVI = false
+        PreEpisodePS = true
+      }
+  }
+
+dyn_model.config={Alpha=0.1;}
+rwd_model.config={Alpha=0.1;}
+

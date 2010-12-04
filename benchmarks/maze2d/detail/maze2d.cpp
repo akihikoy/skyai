@@ -174,6 +174,13 @@ public:
       {
         walls_.push_back (TWall(-0.10l,  1.00l,   0.10l, -0.20l));
       }
+      else if (MAP_KIND==4)
+      {
+        walls_.push_back (TWall(-0.20l, -1.00l,   0.20l,  0.20l));
+        walls_.push_back (TWall( 0.20l, -1.00l,   0.20l,  0.20l));
+        walls_.push_back (TWall(-0.70l,  1.00l,  -0.20l,  0.60l));
+        walls_.push_back (TWall( 0.30l,  1.00l,  -0.20l,  0.60l));
+      }
       else
         {LERROR("in TRealWorld::TRealWorld(), invalid MAP_KIND= "<<MAP_KIND); lexit(df);}
     }

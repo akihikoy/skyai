@@ -1,6 +1,6 @@
 // common agent file for maze2d task
 
-include "task_block"
+include_once "task_block"
 
 // This module completely defines a navigation task in a 2 dimensional maze
 composite M2DNavigationTask
@@ -42,7 +42,7 @@ composite MMaze2DCommon
   module  MBasicLearningManager                      lmanager
   module  MMazeEnvironment                           environment
   module  M2DNavigationTask                          task
-  module  MBasisFunctionsNGnet                       ngnet
+  module  MBasisFunctionsDCOBNGnet                   ngnet
   module  MUserEmittedTimer                          timer
   module  MTimedResourceXX_TRealVector               tr_state
   module  MTimedResourceXY_TRealVector_TRealVector   tr_ngnet
@@ -75,6 +75,9 @@ composite MMaze2DCommon
 
   /// learning signals:
   export   environment.slot_execute_command  as_is
+  export   environment.slot_execute_command_finished  as_is
+  export   environment.slot_execute_command_trg  as_is
+  export   environment.slot_execute_command_trg_finished  as_is
 
   connect  task.signal_reward                            , cmn_signal_reward.slot_in
   connect  environment.signal_system_reward              , cmn_signal_reward.slot_in
@@ -92,6 +95,11 @@ composite MMaze2DCommon
   export   tr_state.out_x  as  out_state
   export   tr_ngnet.out_y  as  out_ngnet
   export   timer.out_cont_time  as_is
+
+  export   ngnet.out_distance_to_nearest_bf  as out_ngnet_distance_to_nearest_bf
+  export   ngnet.out_center_state_set        as out_ngnet_center_state_set
+  export   ngnet.in_extract_proportional     as in_ngnet_extract_proportional
+  export   ngnet.out_f2                      as out_state_to_ngnet
 
   connect  environment.out_position                      , tr_state.in_x
   connect  ngnet.out_f2                                  , tr_ngnet.in_converter

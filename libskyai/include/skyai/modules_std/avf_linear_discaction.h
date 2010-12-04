@@ -205,12 +205,15 @@ public:
     : TParent           (v_instance_name),
       conf_             (TParent::param_box_config_map()),
       param_            (TParent::param_box_memory_map()),
+      mutable_theta_    (&param_.Theta),
       in_feature              (*this),
       out_feature             (*this),
       in_episode_number       (*this),
       in_action_set_size      (*this),
       in_action_availability  (*this),
-      in_action_availability_s(*this)
+      in_action_availability_s(*this),
+      out_avtable             (*this),
+      out_settable_avtable    (*this)
     {
       add_in_port (in_feature);
       add_out_port (out_feature);
@@ -218,13 +221,23 @@ public:
       add_in_port (in_action_set_size);
       add_in_port (in_action_availability);
       add_in_port (in_action_availability_s);
+      add_out_port (out_avtable);
+      add_out_port (out_settable_avtable);
     }
+
+  TAVFLinearDiscActionConfigurations& Config()  {return conf_;}
+  const TAVFLinearDiscActionConfigurations& Config() const {return conf_;}
+
+  TAVFLinearDiscActionParameter& Param()  {return param_;}
+  const TAVFLinearDiscActionParameter& Param() const {return param_;}
 
 protected:
 
   TAVFLinearDiscActionConfigurations conf_;
   // TAVFLinearDiscActionMemories param_;
   TAVFLinearDiscActionParameter param_;
+
+  mutable TRealVectorSet *mutable_theta_;  // defined only for out_settable_avtable_get
 
 
   //!\brief input a feature vector (output of basis functions) by this port
@@ -247,6 +260,14 @@ protected:
             confirm that in_action_availability.GetFirst()==in_action_availability_s.GetFirst(in_feature.GetFirst()) */
   MAKE_IN_PORT(in_action_availability_s, const TBoolVector& (const TState &x), TThis);
 
+  /*!\brief output parameter vector; action value table
+      (Theta[0,..,NA-1],  Theta[a][0,..,NK], NA: number of action, NK: number of basis functions) */
+  MAKE_OUT_PORT(out_avtable, const TRealVectorSet&, (void), (), TThis);
+
+  /*!\brief output settable parameter vector; action value table
+      (Theta[0,..,NA-1],  Theta[a][0,..,NK], NA: number of action, NK: number of basis functions) */
+  MAKE_OUT_PORT(out_settable_avtable, TRealVectorSet&, (void), (), TThis);
+
   override void slot_initialize_exec (void);
   override void slot_reset_exec (void);
   override void slot_add_to_parameter_exec (const TParameter &diff);
@@ -261,7 +282,9 @@ protected:
   override TParameter* out_create_parameter_get (void) const;
   override void out_zero_parameter_get (TParameter &outerparam) const;
 
-  virtual const TRealVector& out_feature_get(void) const {return get_feature();}
+  const TRealVector& out_feature_get(void) const {return get_feature();}
+  const TRealVectorSet& out_avtable_get(void) const {return param_.Theta;}
+  TRealVectorSet& out_settable_avtable_get(void) const {return *mutable_theta_;}
 
   #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
     x_return_type  get_##x_in x_arg_list const                                                  \

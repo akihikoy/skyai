@@ -229,8 +229,6 @@ TEMPLATE_DEC
 
   if (conf_.UsingEligibilityTrace)
     activity_trace.Allocate();
-
-  action_sequence_index= 0;
 }
 //-------------------------------------------------------------------------------------------
 

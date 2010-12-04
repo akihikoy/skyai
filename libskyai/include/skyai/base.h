@@ -734,6 +734,9 @@ public:
   //! Added: return true, failed: return false
   bool AddGenerator(const std::string &cmodule_name, const TGeneratorInfo &generator);
 
+  //! Removed: return true, failed: return false
+  bool RemoveGenerator(const std::string &cmodule_name);
+
   bool GeneratorExists(const std::string &cmodule_name) const;
 
   const TGeneratorInfo* Generator(const std::string &cmodule_name) const;
@@ -770,6 +773,9 @@ public:
 
   //! Added: return true, failed: return false
   bool AddFunction(const std::string &func_name, const TFunctionInfo &function);
+
+  //! Removed: return true, failed: return false
+  bool RemoveFunction(const std::string &func_name);
 
   bool FunctionExists(const std::string &func_name) const;
 

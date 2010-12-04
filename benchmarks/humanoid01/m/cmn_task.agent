@@ -1,6 +1,6 @@
 // common task blocks
 
-include "task_block"
+include_once "task_block"
 
 def taskb_make_interface()
 {
@@ -33,6 +33,7 @@ def taskb_make_interface()
 
   module  MForwarder0  slot_start_episode
   export  slot_start_episode.slot_in  as  slot_start_episode
+  export  slot_start_episode.slot_in_finished  as  slot_start_episode_finished
 }
 
 def taskb_add_step_cost()

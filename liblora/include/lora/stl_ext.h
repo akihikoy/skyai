@@ -249,6 +249,36 @@ inline typename std::vector<T>::const_iterator container_itr_at (const std::vect
 }
 //-------------------------------------------------------------------------------------------
 
+//!\brief Add a value to container in ascending order; overwrap is not allowed
+template <typename t_container>
+void UniqueInsertAscending (t_container &container, const typename t_container::value_type &value)
+{
+  typename t_container::iterator itr=
+              container.insert(std::find_if(container.begin(),container.end(),
+                  std::bind1st(std::less<typename t_container::value_type>(),value)),value);
+  if(itr!=container.begin())
+  {
+    --itr;
+    if(*itr==value) container.erase(itr);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+//!\brief Add a value to container in descending order; overwrap is not allowed
+template <typename t_container>
+void UniqueInsertDescending (t_container &container, const typename t_container::value_type &value)
+{
+  typename t_container::iterator itr=
+              container.insert(std::find_if(container.begin(),container.end(),
+                  std::bind2nd(std::less<typename t_container::value_type>(),value)),value);
+  if(itr!=container.begin())
+  {
+    --itr;
+    if(*itr==value) container.erase(itr);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 //! function object to compare two std::pair objects by their second values (use this with max_element, etc.)
 template <typename t_key,typename t_value>
 struct TSecondComp

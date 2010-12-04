@@ -1,0 +1,37 @@
+// agent file for maze2d task using Q(lambda)-learning and WF-DCOB
+
+include "cmn"
+include_once "ql_wfdcob"
+
+module MTDWireFittingDCOBActSp2 behavior
+
+include "cmn_wfdcob"
+
+edit behavior
+{
+  avf_wire_fitting.config={UsingMaxNorm=true;}
+  edit  bftrans {bftrans.config ={UsingMaxNorm=true;};}
+}
+edit cmn {ngnet.config ={UsingMaxNorm = true;};}
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+
+    SmoothingFactor = 0.001
+    Tiny = 0.0001
+    ActionSelection = "asWFBoltzman"
+    NoiseFactor = 0.0
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax ={
+        clear()
+        resize(1)
+        [0]= 1.0
+      }
+  }

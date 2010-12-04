@@ -95,6 +95,7 @@ public:
       slot_initialize             (*this),
       slot_start_episode          (*this),
       slot_execute_command        (*this),
+      slot_execute_command_trg    (*this),
       slot_step_loop              (*this),
       signal_start_of_timestep    (*this),
       signal_end_of_timestep      (*this),
@@ -106,6 +107,7 @@ public:
       add_slot_port   (slot_initialize           );
       add_slot_port   (slot_start_episode        );
       add_slot_port   (slot_execute_command      );
+      add_slot_port   (slot_execute_command_trg  );
       add_slot_port   (slot_step_loop            );
       add_signal_port (signal_start_of_timestep  );
       add_signal_port (signal_end_of_timestep    );
@@ -134,6 +136,9 @@ protected:
   //! u: displacement of the robot
   MAKE_SLOT_PORT(slot_execute_command, void, (const TRealVector &u), (u), TThis);
 
+  //! x_trg: target state of the robot
+  MAKE_SLOT_PORT(slot_execute_command_trg, void, (const TRealVector &x_trg), (x_trg), TThis);
+
   MAKE_SLOT_PORT(slot_step_loop, void, (void), (), TThis);
 
 
@@ -152,22 +157,27 @@ protected:
   virtual void slot_initialize_exec (void)
     {
       // current_command_= CVector2(0.0, 0.0);
-      in_bad_state_= false;
       world_.MAP_KIND     = conf_.MapKind;
       world_.WIND_FORCE1  = conf_.WindForce1;
       world_.WIND_FORCE2  = conf_.WindForce2;
       world_.Init();
+      in_bad_state_= false;
     }
 
   virtual void slot_start_episode_exec (void)
     {
-      in_bad_state_= false;
+      slot_initialize_exec();
       world_.Reset (conf_.StartPos);
+      in_bad_state_= false;
     }
 
   virtual void slot_execute_command_exec (const TRealVector &u)
     {
       current_command_= u;
+    }
+  virtual void slot_execute_command_trg_exec (const TRealVector &x_trg)
+    {
+      current_command_= x_trg - world_.State();
     }
 
   virtual void slot_step_loop_exec (void)

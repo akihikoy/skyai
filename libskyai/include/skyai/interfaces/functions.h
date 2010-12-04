@@ -67,6 +67,10 @@ public:
 
   virtual ~MFunctionSISOInterface() {}
 
+  void Initialize(void) {slot_initialize_exec();}
+
+  void ExecFunction(const TInput &x, TOutput &y) const {function(x,y);}
+
 protected:
 
   mutable TOutput tmp_y_;
@@ -170,6 +174,10 @@ public:
 
   virtual ~MFunction2ISOInterface() {}
 
+  void Initialize(void) {slot_initialize_exec();}
+
+  void ExecFunction(const TInput1 &x1, const TInput2 &x2, TOutput &y) const {function(x1,x2,y);}
+
 protected:
 
   mutable TOutput tmp_y_;
@@ -258,6 +266,8 @@ public:
     }
 
   virtual ~MBasisFunctionsInterface() {}
+
+  const TInt& GetFeatureDim(void) const {return out_feature_dim_get();}
 
 protected:
 

@@ -1,0 +1,31 @@
+// agent file for maze2d task using Q(lambda)-learning and DCOB-Q
+
+include "cmn"
+include_once "ql_da"
+include_once "dcob_q"
+
+module MTDDiscAct behavior
+module MDCOB2Q dcob
+include "cmn_dcob"
+
+connect  dcob.out_extract_proportional , cmn.in_ngnet_extract_proportional
+
+edit dcob {edit bftrans {bftrans.config ={UsingMaxNorm=true;};};}
+edit cmn {ngnet.config ={UsingMaxNorm = true;};}
+
+/// parameter setting:
+
+behavior.config={
+    UsingEligibilityTrace = true
+    Alpha = 0.7
+    AlphaDecreasingFactor = 0.002
+    Lambda = 0.9
+    GradientMax = 1.0e+100
+    UsingReplacingTrace = true
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 0.1
+    TauDecreasingFactor = 0.005
+    TraceMax = 1.0
+  }

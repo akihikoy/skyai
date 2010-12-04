@@ -311,8 +311,6 @@ protected:
   // for activity trace
   TParameterMemory      activity_trace;  //!< activity trace
 
-  std::size_t           action_sequence_index;
-
 
   inline TReal get_alpha (void) const;
 

@@ -1,7 +1,7 @@
 // common agent file for DCOB
 //NOTE ngnet should be defined as a MBasisFunctionsDCOBNGnet
 
-include_once "dcob2"
+include_once "dcob"
 module MDCOB2 dcob
 
 /// initialization process:

@@ -43,6 +43,10 @@
       <item> false </item>
     </list>
 
+    <list name="kwListSys">
+      <item> _destroy </item>
+    </list>
+
     <contexts>
       <context attribute="Normal Text" lineEndContext="#pop" name="Normal Text" >
         <IncludeRules context="##Doxygen" />
@@ -81,6 +85,7 @@
         <AnyChar attribute="Symbol" context="#stay" String=":!%#@&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
 
         <keyword attribute="ExtSymbol" context="#stay" String="kwList1" />
+        <keyword attribute="ExtSymbol3" context="#stay" String="kwListSys" />
         <!--<DetectIdentifier attribute="Identifier"/>-->
         <RegExpr attribute="Identifier" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
       </context>
@@ -184,6 +189,7 @@
       <itemData name="Symbol"          defStyleNum="dsNormal" color="#850"/>
       <itemData name="ExtSymbol"       defStyleNum="dsNormal" color="#0AF" bold="1"/>
       <itemData name="ExtSymbol2"      defStyleNum="dsNormal" color="#A0F" bold="1"/>
+      <itemData name="ExtSymbol3"      defStyleNum="dsAlert"/>
       <!--<itemData name="URL"             defStyleNum="dsNormal" color="#00F" underline="1"/>-->
       <itemData name="Comment"         defStyleNum="dsComment"/>
       <itemData name="String"          defStyleNum="dsString"/>

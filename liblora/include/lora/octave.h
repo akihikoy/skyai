@@ -68,6 +68,12 @@ inline const RowVector& operator*= (RowVector &lhs, const double &rhs)
     *ptr*= rhs;
   return lhs;
 }
+inline const Matrix& operator*= (Matrix &lhs, const double &rhs)
+{
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
+    *ptr*= rhs;
+  return lhs;
+}
 //-------------------------------------------------------------------------------------------
 
 inline const ColumnVector& operator/= (ColumnVector &lhs, const double &rhs)
@@ -77,6 +83,12 @@ inline const ColumnVector& operator/= (ColumnVector &lhs, const double &rhs)
   return lhs;
 }
 inline const RowVector& operator/= (RowVector &lhs, const double &rhs)
+{
+  for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
+    *ptr/= rhs;
+  return lhs;
+}
+inline const Matrix& operator/= (Matrix &lhs, const double &rhs)
 {
   for (double *ptr=OctBegin(lhs),*last=OctEnd(lhs); ptr!=last; ++ptr)
     *ptr/= rhs;
