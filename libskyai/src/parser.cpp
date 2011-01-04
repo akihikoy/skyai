@@ -137,7 +137,10 @@ public:
 
 private:
 
+  enum TInternalParseMode {ipmNormal=0, ipmFunctionDef, ipmCompositeDef, ipmEdit};
+
   std::list<TCompositeModule*>         cmodule_stack_;
+  std::list<TInternalParseMode>        ipmode_stack_;
   boost::filesystem::path              current_dir_;
   std::list<boost::filesystem::path>   &path_list_;
   std::list<std::string>               &included_list_;
@@ -182,7 +185,8 @@ private:
 
   bool is_allowed_in_composite(const std::string &x)
     {
-      if(cmodule_entity_stack_.size()>0)
+      LASSERT(!ipmode_stack_.empty());
+      if(ipmode_stack_.back()==ipmCompositeDef)
       {
         PRINT_ERROR (x<<" is not allowed within a composite module definition");
         return false;
@@ -191,9 +195,20 @@ private:
     }
   bool is_allowed_in_funcdef(const std::string &x)
     {
-      if(parse_mode_.FunctionDef)
+      LASSERT(!ipmode_stack_.empty());
+      if(ipmode_stack_.back()==ipmFunctionDef)
       {
         PRINT_ERROR (x<<" is not allowed within a function definition");
+        return false;
+      }
+      return true;
+    }
+  bool is_allowed_in_edit(const std::string &x)
+    {
+      LASSERT(!ipmode_stack_.empty());
+      if(ipmode_stack_.back()==ipmEdit)
+      {
+        PRINT_ERROR (x<<" is not allowed within an edit mode");
         return false;
       }
       return true;
@@ -301,6 +316,7 @@ boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule 
   set_parse_mode(parse_mode);
   TSKYAICodeParser<t_iterator> parser(*this);
   cmodule_stack_.push_back(&cmodule);
+  ipmode_stack_.push_back(ipmNormal);
 
   tmp_lora_msg_format_= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
   message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&XCLASS::lora_error,this,_1,_2,_3,_4,_5)) );
@@ -310,13 +326,17 @@ boost::spirit::classic::parse_info<t_iterator>  XCLASS::Parse (TCompositeModule 
   message_system::SetFormat(tmp_lora_msg_format_);
 
   LASSERT(!cmodule_stack_.empty());
+  LASSERT(!ipmode_stack_.empty());
   cmodule_stack_.pop_back();
+  LASSERT1op1(ipmode_stack_.back(),==,ipmNormal);
+  ipmode_stack_.pop_back();
 
   #define STACK_CHECK(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty:"); error_=true;}} while(0)
   #define STACK_CHECK_S(x_stack)  do{if(!x_stack.empty()) {LERROR(#x_stack " is not empty:"); PrintContainer(x_stack,"  " #x_stack "= "); error_=true;}} while(0)
   if(!error_)
   {
     STACK_CHECK(cmodule_stack_);
+    STACK_CHECK(ipmode_stack_);
     STACK_CHECK(literal_stack_);
     STACK_CHECK(cmodule_entity_stack_);
     STACK_CHECK_S(line_num_stack_);
@@ -411,7 +431,6 @@ void XCLASS::IncludeFile (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::IncludeFileOnce (t_iterator first, t_iterator last)
 {
-  if(!is_allowed_in_composite("`include_once\'"))  return;
   include_file(true);
 }
 
@@ -522,6 +541,8 @@ void XCLASS::PushKeyword (t_iterator first, t_iterator last)
 TEMPLATE_DEC
 void XCLASS::AddModule (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`module\'"))  return;
+
   std::string identifier(pop_id_x()), type(pop_id_x());
   if(!parse_mode_.Phantom)
   {
@@ -537,6 +558,8 @@ void XCLASS::AddModule (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::RemoveModule (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`remove\'"))  return;
+
   std::string identifier(pop_id_x());
   if(!parse_mode_.Phantom)
   {
@@ -552,6 +575,8 @@ void XCLASS::RemoveModule (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::Connect (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`connect\'"))  return;
+
   std::string port2(pop_id_x()), module2(pop_id_x()), port1(pop_id_x()), module1(pop_id_x());
   if(!parse_mode_.Phantom)
   {
@@ -567,6 +592,8 @@ void XCLASS::Connect (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::Disconnect (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`disconnect\'"))  return;
+
   std::string port2(pop_id_x()), module2(pop_id_x()), port1(pop_id_x()), module1(pop_id_x());
   if(!parse_mode_.Phantom)
   {
@@ -682,6 +709,8 @@ TEMPLATE_DEC
 void XCLASS::CompositeDefS (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("`composite\'"))  return;
+  if(!is_allowed_in_edit("`edit\'"))  return;
+
   std::string module_name(pop_id_x());
   if(!parse_mode_.Phantom)
   {
@@ -696,10 +725,14 @@ void XCLASS::CompositeDefS (t_iterator first, t_iterator last)
     cmodule_entity_stack_.push_back(TCompositeModule("DUMMY","dummy"));
     equivalent_code_<<"composite "<<module_name<<"{"<<std::endl;
   }
+  ipmode_stack_.push_back(ipmCompositeDef);
 }
 TEMPLATE_DEC
 void XCLASS::CompositeDefE (t_iterator first, t_iterator last)
 {
+  LASSERT(!ipmode_stack_.empty());
+  LASSERT1op1(ipmode_stack_.back(),==,ipmCompositeDef);
+  ipmode_stack_.pop_back();
   if(parse_mode_.Phantom)
   {
     LASSERT(!cmodule_entity_stack_.empty());
@@ -752,10 +785,14 @@ void XCLASS::EditS (t_iterator first, t_iterator last)
   {
     equivalent_code_<<"edit "<<identifier<<"{"<<std::endl;
   }
+  ipmode_stack_.push_back(ipmEdit);
 }
 TEMPLATE_DEC
 void XCLASS::EditE (t_iterator first, t_iterator last)
 {
+  LASSERT(!ipmode_stack_.empty());
+  LASSERT1op1(ipmode_stack_.back(),==,ipmEdit);
+  ipmode_stack_.pop_back();
   if(!parse_mode_.Phantom)
   {
     LASSERT(!cmodule_stack_.empty());
@@ -773,6 +810,13 @@ void XCLASS::inherit_module (bool no_export)
   std::string  cmodule_name(pop_id_x());
   if(!parse_mode_.Phantom)
   {
+    LASSERT(!ipmode_stack_.empty());
+    if(ipmode_stack_.back()!=ipmCompositeDef)
+    {
+      PRINT_ERROR("inherit/inherit_prv is available within only a composite definition");
+      return;
+    }
+
     LASSERT(!cmodule_stack_.empty());
     if(!cmp_module_generator_.Create(*cmodule_stack_.back(), cmodule_name, cmodule_stack_.back()->InstanceName(), no_export))
     {
@@ -800,6 +844,8 @@ void XCLASS::InheritPrv (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::ExportPort (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`export\'"))  return;
+
   std::string  export_name(pop_id_x()), as_type(pop_id_x()), port_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= port_name;
   if(parse_mode_.NoExport)  return;
@@ -817,6 +863,8 @@ void XCLASS::ExportPort (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::ExportConfig (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`export\'"))  return;
+
   std::string  export_name(pop_id_x()), as_type(pop_id_x()), param_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= param_name;
   if(parse_mode_.NoExport)  return;
@@ -834,6 +882,8 @@ void XCLASS::ExportConfig (t_iterator, t_iterator)
 TEMPLATE_DEC
 void XCLASS::ExportMemory (t_iterator, t_iterator)
 {
+  if(!is_allowed_in_edit("`export\'"))  return;
+
   std::string  export_name(pop_id_x()), as_type(pop_id_x()), param_name(pop_id_x()), module_name(pop_id_x());
   if(as_type=="as_is")  export_name= param_name;
   if(parse_mode_.NoExport)  return;
@@ -853,6 +903,7 @@ void XCLASS::FunctionDefS (t_iterator first, t_iterator last)
 {
   if(!is_allowed_in_composite("`def\'"))  return;
   if(!is_allowed_in_funcdef("`def\'"))  return;
+  if(!is_allowed_in_edit("`def\'"))  return;
   LASSERT(func_param_stack_.empty());
   do
   {
@@ -865,8 +916,8 @@ void XCLASS::FunctionDefS (t_iterator first, t_iterator last)
   {
     LASSERT1op1(equivalent_code_.str(),==,"");
     parse_mode_.Phantom= true;
-    parse_mode_.FunctionDef= true;
     set_parse_mode(parse_mode_);
+    ipmode_stack_.push_back(ipmFunctionDef);
     line_num_stack_.push_back(line_num_);
   }
   else
@@ -874,20 +925,23 @@ void XCLASS::FunctionDefS (t_iterator first, t_iterator last)
     equivalent_code_<<"def "<<tmp_func_name_<<"(";
     PrintContainer(func_param_stack_.begin(),func_param_stack_.end(), equivalent_code_, ",");
     equivalent_code_<<")"<<"{"<<std::endl;
+    ipmode_stack_.push_back(ipmNormal);
   }
 }
 TEMPLATE_DEC
 void XCLASS::FunctionDefE (t_iterator first, t_iterator last)
 {
-  if(!parse_mode_.FunctionDef && parse_mode_.Phantom)
+  LASSERT(!ipmode_stack_.empty());
+  if(ipmode_stack_.back()==ipmNormal && parse_mode_.Phantom)
   {
     func_param_stack_.clear();
     tmp_func_name_="";
     equivalent_code_<<"}"<<std::endl;
     return;
   }
+  LASSERT1op1(ipmode_stack_.back(),==,ipmFunctionDef);
+  ipmode_stack_.pop_back();
   parse_mode_.Phantom= false;
-  parse_mode_.FunctionDef= false;
   set_parse_mode(parse_mode_);
   if (function_manager_.FunctionExists (tmp_func_name_))
   {
@@ -1454,8 +1508,18 @@ bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &inden
   if (!export_list_.empty())
   {
     os<<endl;
-    for (std::list<std::pair<std::string,std::string> >::const_iterator itr(export_list_.begin()),last(export_list_.end()); itr!=last; ++itr)
-      os<<indent<< "export  "<<itr->first<<"  as  "<<itr->second<<endl;
+    for (std::list<TExportItem>::const_iterator itr(export_list_.begin()),last(export_list_.end()); itr!=last; ++itr)
+    {
+      os<<indent<< "export  "<<itr->ModuleName;
+      switch (itr->Kind)
+      {
+      case ekPort   : break;
+      case ekConfig : os<<".config"; break;
+      case ekMemory : os<<".memory"; break;
+      default : LERROR("fatal!"); lexit(df);
+      }
+      os<<"."<<itr->ElemName<<"  as  "<<itr->ExportName<<endl;
+    }
   }
 
   os<<endl;

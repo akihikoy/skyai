@@ -443,12 +443,14 @@ protected:
   void add_out_port    (TOutPortInterface    &v_port, const std::string &v_name);
   void add_in_port     (TInPortInterface     &v_port, const std::string &v_name);
   void add_signal_port (TSignalPortInterface &v_port, const std::string &v_name);
-  void add_slot_port   (TSlotPortInterface   &v_port, const std::string &v_name);  //!\note this method does not add forwarding-sinal-port
+  void add_slot_port   (TSlotPortInterface   &v_port, const std::string &v_name);  //!<\note this method does not add forwarding-sinal-port
 
   void add_out_port    (TOutPortInterface    &v_port);
   void add_in_port     (TInPortInterface     &v_port);
   void add_signal_port (TSignalPortInterface &v_port);
-  void add_slot_port   (TSlotPortInterface   &v_port);  //!\note this method also adds forwarding-sinal-port
+  void add_slot_port   (TSlotPortInterface   &v_port);  //!<\note this method also adds forwarding-sinal-port
+
+  bool remove_port (const std::string &v_name);  //!< remove port v_name. return true if removed
 
   void clear_ports();
 
@@ -641,11 +643,22 @@ protected:
   /*! Type of module set (map) whose key is module.InstanceName() */
   typedef std::set<TModuleCell>  TModuleSet;
 
+  enum TExportKind {ekPort=0, ekConfig, ekMemory};
+  struct TExportItem
+    {
+      TExportKind  Kind;
+      std::string  ModuleName;
+      std::string  ElemName;
+      std::string  ExportName;
+      TExportItem(TExportKind k, const std::string &mname, const std::string &ename, const std::string &xname)
+        : Kind(k), ModuleName(mname), ElemName(ename), ExportName(xname)  {}
+    };
+
   std::string cmodule_name_;
 
   TModuleSet  sub_modules_;
 
-  std::list<std::pair<std::string,std::string> >  export_list_;  //!< stored in Export{Port,Memory,Config} to be used in WriteToStream
+  std::list<TExportItem>  export_list_;  //!< stored in Export{Port,Memory,Config} to be used in WriteToStream
 
 
   inline TModuleInterface* find_sub_module (const std::string &module_name, bool error=false) const;

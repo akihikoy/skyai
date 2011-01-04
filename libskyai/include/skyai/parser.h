@@ -49,8 +49,7 @@ struct TAgentParseMode
 {
   bool  NoExport;  //!< if true, export sentences are ignored (used in a private inheritance)
   bool  Phantom;
-  bool  FunctionDef;
-  TAgentParseMode() : NoExport(false), Phantom(false), FunctionDef(false)  {}
+  TAgentParseMode() : NoExport(false), Phantom(false)  {}
 };
 struct TAgentParserInfoIn
 {

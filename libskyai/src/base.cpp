@@ -397,6 +397,23 @@ void TModuleInterface::ShowModule (const std::string &option, std::ostream &os) 
   }
   // for signal forwarding  --]
 }
+//-------------------------------------------------------------------------------------------
+
+//! remove port v_name. return true if removed
+bool TModuleInterface::remove_port (const std::string &v_name)
+{
+#define X_REMOVE_PORT(x_type,x_set_name)  \
+  {TPortSet<x_type*>::type::iterator item= x_set_name.find(v_name);    \
+  if(item!=x_set_name.end())  {x_set_name.erase(item); return true;} }
+  X_REMOVE_PORT(TOutPortInterface    , out_ports_   );
+  X_REMOVE_PORT(TInPortInterface     , in_ports_    );
+  X_REMOVE_PORT(TSignalPortInterface , signal_ports_);
+  X_REMOVE_PORT(TSlotPortInterface   , slot_ports_  );
+#undef X_REMOVE_PORT
+  LWARNING("in module "<<ModuleUniqueCode()<<": failed to remove port "<<v_name);
+  return false;
+}
+//-------------------------------------------------------------------------------------------
 
 void TModuleInterface::clear_ports()
 {
@@ -639,6 +656,24 @@ bool add_to_remove_list (TPortInterface *first, TPortInterface *second, TRemoveC
   for(TRemoveCList::iterator rm_itr(remove_list.begin()),rm_last(remove_list.end()); rm_itr!=rm_last; ++rm_itr)
     if (!rm_itr->first->Disconnect(rm_itr->second) || !rm_itr->second->Disconnect(rm_itr->first))
       {LERROR("fatal!"); lexit(df);}
+
+  // remove exported items...
+  for (std::list<TExportItem>::iterator itr(export_list_.begin()),last(export_list_.end()); itr!=last; )
+  {
+    if (mod_itr->Name==itr->ModuleName)
+    {
+      switch (itr->Kind)
+      {
+      case ekPort   : remove_port(itr->ExportName);  break;
+      case ekConfig : ParamBoxConfig().RemoveMemberVariable(itr->ExportName); break;
+      case ekMemory : ParamBoxMemory().RemoveMemberVariable(itr->ExportName); break;
+      default : LERROR("fatal!"); lexit(df);
+      }
+      itr= export_list_.erase(itr);
+    }
+    else
+      ++itr;
+  }
 
   // free memory of the module
   if (mod_itr->Ptr!=NULL && mod_itr->Managed)  {delete mod_itr->Ptr;}
@@ -892,7 +927,7 @@ void TCompositeModule::ForEachSubConnection (TConstConnectionManipulator f) cons
 /*!\brief export a port sub_module_name.port_name as export_name */
 bool TCompositeModule::ExportPort (const std::string &sub_module_name, const std::string &port_name, const std::string &export_name)
 {
-  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+"."+port_name, export_name));
+  export_list_.push_back (TExportItem(ekPort, sub_module_name, port_name, export_name));
 
   TModuleInterface  &sub_module(SubModule(sub_module_name));
   if (TOutPortInterface    *p= sub_module.OutPortPtr    (port_name))  {add_out_port    (*p,export_name); return true;}
@@ -908,7 +943,7 @@ bool TCompositeModule::ExportPort (const std::string &sub_module_name, const std
 /*!\brief export a config-parameter sub_module_name.config.param_name as export_name */
 bool TCompositeModule::ExportConfig (const std::string &sub_module_name, const std::string &param_name, const std::string &export_name)
 {
-  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+".config."+param_name, export_name));
+  export_list_.push_back (TExportItem(ekConfig, sub_module_name, param_name, export_name));
 
   std::string id(param_name);
   if (!ParamBoxConfig().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxConfig().GetMember(var_space::TVariable(id))))
@@ -924,7 +959,7 @@ bool TCompositeModule::ExportConfig (const std::string &sub_module_name, const s
 /*!\brief export a memory-parameter sub_module_name.memory.param_name as export_name */
 bool TCompositeModule::ExportMemory (const std::string &sub_module_name, const std::string &param_name, const std::string &export_name)
 {
-  export_list_.push_back (std::pair<std::string,std::string>(sub_module_name+".memory."+param_name, export_name));
+  export_list_.push_back (TExportItem(ekMemory, sub_module_name, param_name, export_name));
 
   std::string id(param_name);
   if (!ParamBoxMemory().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxMemory().GetMember(var_space::TVariable(id))))

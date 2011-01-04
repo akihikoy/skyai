@@ -54,6 +54,8 @@ inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, T &x
 template <>
 inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, TVariable &x);
 //-------------------------------------------------------------------------------------------
+inline bool RemoveFromVarMap (TVariableMap &mmap, const std::string &identifier);
+//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -160,6 +162,7 @@ public:
   template <typename T>
   bool AddMemberVariable(const TIdentifier &id, T &x)  {return AddToVarMap<T>(members_,id,x);}
   bool AddMemberVariable(const TIdentifier &id, TVariable var)  {return AddToVarMap(members_,id,var);}
+  bool RemoveMemberVariable(const TIdentifier &id)  {return RemoveFromVarMap(members_,id);}
 
   const TVariableMap& MemberMap() const {return members_;}
   TVariableMap& SetMemberMap()  {return members_;}
@@ -612,6 +615,16 @@ inline bool AddToVarMap (TVariableMap &mmap, const std::string &identifier, TVar
   if (itr!=mmap.end())
     {LWARNING(identifier<<" was already registered to the variable map."); return false;}
   mmap[identifier]= x;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+inline bool RemoveFromVarMap (TVariableMap &mmap, const std::string &identifier)
+{
+  TVariableMap::iterator itr=mmap.find(identifier);
+  if (itr==mmap.end())
+    {LWARNING(identifier<<" is not registered to the variable map."); return false;}
+  mmap.erase (itr);
   return true;
 }
 //-------------------------------------------------------------------------------------------
