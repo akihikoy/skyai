@@ -1063,7 +1063,7 @@ basic_parser_definition<t_iterator,ScannerT>::basic_parser_definition (TBasicPar
   end_of_line
     = eol_p [f_end_of_line];
   blank_eol_p
-    = blank_p | end_of_line;
+    = blank_p | end_of_line | (lcomment>>end_of_line);
 
   op_semicolon
     = *blank_p >> ch_p(';') >> *blank_p ;

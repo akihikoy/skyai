@@ -58,6 +58,7 @@
 
         <RegExpr attribute="ExtSymbol" context="Include" String="include\s+"/>
         <RegExpr attribute="ExtSymbol" context="Include" String="include_once\s+"/>
+        <RegExpr attribute="ExtSymbol" context="LazyInclude" String="linclude\s+"/>
         <RegExpr attribute="ExtSymbol" context="Module" String="module\s+"/>
         <RegExpr attribute="ExtSymbol" context="Connect" String="connect\s+"/>
         <RegExpr attribute="ExtSymbol" context="Connect" String="disconnect\s+"/>
@@ -109,6 +110,11 @@
 
       <context attribute="Normal Text" lineEndContext="#pop" name="Include">
         <DetectSpaces />
+        <DetectChar attribute="Symbol" context="FilePath" char="&quot;"/>
+      </context>
+      <context attribute="Normal Text" lineEndContext="#pop" name="LazyInclude">
+        <DetectSpaces />
+        <RegExpr attribute="Identifier" context="#stay" String="[a-zA-Z_][a-zA-Z0-9_]*"/>
         <DetectChar attribute="Symbol" context="FilePath" char="&quot;"/>
       </context>
       <context attribute="FilePath" lineEndContext="#pop" name="FilePath">

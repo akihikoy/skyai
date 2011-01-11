@@ -28,12 +28,25 @@
 #include <boost/bind.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/regex.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 using namespace std;
 // using namespace boost;
 
+
+/*!\brief low-level access to param_box_config_ (first_access_check is not executed) */
+inline var_space::TVariable& ll_param_box_config(TModuleInterface &m)
+{
+  return m.param_box_config_;
+}
+/*!\brief low-level access to param_box_memory_ (first_access_check is not executed) */
+inline var_space::TVariable& ll_param_box_memory(TModuleInterface &m)
+{
+  return m.param_box_memory_;
+}
+//-------------------------------------------------------------------------------------------
 
 template <typename t_port>
 static void show_all_port_names (
@@ -65,6 +78,24 @@ static void show_all_port_names (
 //===========================================================================================
 // class TModuleInterface
 //===========================================================================================
+
+static void add_all_parent_cmodule_id(const TCompositeModule *cmodule, std::string &code)
+{
+  if (cmodule)
+  {
+    code= cmodule->InstanceName()+SKYAI_MODULE_NAME_DELIMITER+code;
+    add_all_parent_cmodule_id (cmodule->ParentCModulePtr(),code);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+std::string TModuleInterface::GlobalUniqueCode() const
+{
+  std::string code= InstanceName();
+  add_all_parent_cmodule_id(parent_cmodule_,code);
+  return code;
+}
+//-------------------------------------------------------------------------------------------
 
 bool TModuleInterface::DecomposePortUniqueCode(const std::string &unique_code, std::string &module_name, std::string &port_name)
 {
@@ -286,7 +317,29 @@ bool TModuleInterface::HasActivePorts() const
 }
 //-------------------------------------------------------------------------------------------
 
-bool TModuleInterface::ExecuteFunction(const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export)
+/*virtual*/void TModuleInterface::SetNeverAccessed (bool na)
+{
+  never_accessed_= na;
+#define X_SCAN_PORT(x_type,x_port)  \
+  for (TPortSet<T##x_type##PortInterface*>::type::iterator itr(x_port.begin()),last(x_port.end()); itr!=last; ++itr)  \
+    itr->second->SetNeverCalled(na);
+  X_SCAN_PORT(Out    , out_ports_   );
+  X_SCAN_PORT(In     , in_ports_    );
+  X_SCAN_PORT(Signal , signal_ports_);
+  X_SCAN_PORT(Slot   , slot_ports_  );
+#undef X_SCAN_PORT
+}
+//-------------------------------------------------------------------------------------------
+
+void TModuleInterface::SetLazyLoadFile (const std::string &file_name)
+{
+  if (file_name!="")  SetNeverAccessed(true);
+
+  lazy_include_filename_= file_name;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TModuleInterface::ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export)
 {
   LASSERT(pagent_);
   LASSERT(parent_cmodule_);
@@ -312,6 +365,8 @@ bool TModuleInterface::ExecuteFunction(const std::string &func_name, const std::
 
 void TModuleInterface::ShowModule (const TModuleInterface::TShowConf &conf, std::ostream &os) const
 {
+  first_access_check();
+
   const string prefix("  ");
   os<<ioscc::blue<<InheritedModuleName();
   if (conf.ShowInstanceName) os<<SKYAI_MODULE_NAME_DELIMITER<<InstanceName();
@@ -421,6 +476,17 @@ void TModuleInterface::clear_ports()
   in_ports_    .clear();
   signal_ports_.clear();
   slot_ports_  .clear();
+}
+//-------------------------------------------------------------------------------------------
+
+/*virtual*/void TModuleInterface::on_first_access()
+{
+  if (lazy_include_filename_!="")
+    if (!parent_cmodule_->LoadFromFile(lazy_include_filename_))
+    {
+      LERROR("failed to read: "<<lazy_include_filename_);
+      lexit(df);
+    }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -665,8 +731,8 @@ bool add_to_remove_list (TPortInterface *first, TPortInterface *second, TRemoveC
       switch (itr->Kind)
       {
       case ekPort   : remove_port(itr->ExportName);  break;
-      case ekConfig : ParamBoxConfig().RemoveMemberVariable(itr->ExportName); break;
-      case ekMemory : ParamBoxMemory().RemoveMemberVariable(itr->ExportName); break;
+      case ekConfig : ll_param_box_config(*this).RemoveMemberVariable(itr->ExportName); break;
+      case ekMemory : ll_param_box_memory(*this).RemoveMemberVariable(itr->ExportName); break;
       default : LERROR("fatal!"); lexit(df);
       }
       itr= export_list_.erase(itr);
@@ -934,8 +1000,8 @@ bool TCompositeModule::ExportPort (const std::string &sub_module_name, const std
   if (TInPortInterface     *p= sub_module.InPortPtr     (port_name))  {add_in_port     (*p,export_name); return true;}
   if (TSignalPortInterface *p= sub_module.SignalPortPtr (port_name))  {add_signal_port (*p,export_name); return true;}
   if (TSlotPortInterface   *p= sub_module.SlotPortPtr   (port_name))  {add_slot_port   (*p,export_name); return true;}
+  LERROR("failed to export "<<sub_module_name<<"."<<port_name<<" as "<<export_name);
   LERROR(sub_module_name<<" does not have a port named "<<port_name);
-  lexit(df);
   return false;
 }
 //-------------------------------------------------------------------------------------------
@@ -946,10 +1012,9 @@ bool TCompositeModule::ExportConfig (const std::string &sub_module_name, const s
   export_list_.push_back (TExportItem(ekConfig, sub_module_name, param_name, export_name));
 
   std::string id(param_name);
-  if (!ParamBoxConfig().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxConfig().GetMember(var_space::TVariable(id))))
+  if (!ll_param_box_config(*this).AddMemberVariable (export_name, ll_param_box_config(SubModule(sub_module_name)).GetMember(var_space::TVariable(id))))
   {
     LERROR("failed to export "<<sub_module_name<<".config."<<param_name<<" as "<<export_name);
-    lexit(df);
     return false;
   }
   return true;
@@ -962,10 +1027,9 @@ bool TCompositeModule::ExportMemory (const std::string &sub_module_name, const s
   export_list_.push_back (TExportItem(ekMemory, sub_module_name, param_name, export_name));
 
   std::string id(param_name);
-  if (!ParamBoxMemory().AddMemberVariable (export_name, SubModule(sub_module_name).ParamBoxMemory().GetMember(var_space::TVariable(id))))
+  if (!ll_param_box_memory(*this).AddMemberVariable (export_name, ll_param_box_memory(SubModule(sub_module_name)).GetMember(var_space::TVariable(id))))
   {
     LERROR("failed to export "<<sub_module_name<<".memory."<<param_name<<" as "<<export_name);
-    lexit(df);
     return false;
   }
   return true;
@@ -973,8 +1037,18 @@ bool TCompositeModule::ExportMemory (const std::string &sub_module_name, const s
 //-------------------------------------------------------------------------------------------
 
 
-// NOTE: the following member function is defined in parser.cpp
+// NOTE: the following member functions are defined in parser.cpp
 // bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &indent) const;
+// bool TCompositeModule::LoadFromFile(const std::string &file_name, std::list<std::string> *included_list)
+
+
+override void TCompositeModule::SetNeverAccessed (bool na)
+{
+  TModuleInterface::SetNeverAccessed(na);
+  for(TModuleSet::iterator mod_itr(sub_modules_.begin()), miend(sub_modules_.end()); mod_itr!=miend; ++mod_itr)
+    mod_itr->Ptr->SetNeverAccessed(na);
+}
+//-------------------------------------------------------------------------------------------
 
 
 void TCompositeModule::SetAllSubModuleMode (const TModuleInterface::TModuleMode &mm)
@@ -1301,16 +1375,6 @@ void TAgent::AddPathList (const std::list<std::string> &dir_list)
 }
 //-------------------------------------------------------------------------------------------
 
-const std::list<boost::filesystem::path>&  TAgent::PathList()
-{
-  return SetPathList();
-}
-//-------------------------------------------------------------------------------------------
-const std::list<boost::filesystem::path>&  TAgent::PathList() const
-{
-  return *path_list_;
-}
-//-------------------------------------------------------------------------------------------
 std::list<boost::filesystem::path>&  TAgent::SetPathList()
 {
   using namespace boost::filesystem;
@@ -1373,6 +1437,16 @@ std::string TAgent::GetDataFileName (const std::string &filename) const
 
   path  file_path(filename,native), data_dir_path(conf_.DataDir,native);
   return complete(data_dir_path/file_path).file_string();
+}
+//-------------------------------------------------------------------------------------------
+
+
+/*!\brief chech module_name matches with the conf_.LazyLoadModulePattern */
+bool TAgent::IsLazyLoadModule (const std::string &module_name) const
+{
+  boost::regex  re(conf_.LazyLoadModulePattern);  /* maybe this code is time-consuming since regular expression pattern
+                                                     is evaluated in every execution of this function, which should be cached */
+  return boost::regex_match(module_name,re);
 }
 //-------------------------------------------------------------------------------------------
 

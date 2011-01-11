@@ -28,6 +28,7 @@
 #include <lora/small_classes.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -53,7 +54,7 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
       agent.AddPath(tokenizer.ReadNonSeparators());
     }
   }
-  if (ConvertFromStr<bool>(option("odp","false")) && option("outdir")!="")  // add [o]ut[d]ir to [p]ath-list
+  if (ConvertFromStr<bool>(option("odp","true")) && option("outdir")!="")  // add [o]ut[d]ir to [p]ath-list
   {
     agent.AddPath(option("outdir"));
   }
@@ -71,9 +72,13 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
     while(!tokenizer.EOL())
     {
       tokenizer.ReadSeparators();
-      agent_file= agent.SearchFileName(tmp_filename= tokenizer.ReadNonSeparators(), ".agent");
+      agent_file= agent.SearchFileName(tmp_filename= tokenizer.ReadNonSeparators(), "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT);
       if (agent_file=="" || !agent.LoadFromFile(agent_file,&included_list))
-        {LERROR("failed to read "<<tmp_filename); lexit(df);}
+      {
+        LERROR("failed to read "<<tmp_filename);
+        cout<<"exit? (Y: exit now, N: continue to execute)"<<flush;
+        if (AskYesNo())  lexit(df);
+      }
     }
   }
 
@@ -84,15 +89,40 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
 }
 //-------------------------------------------------------------------------------------------
 
+//! move  src  to  src.old##
+static bool rename_to_old (const boost::filesystem::path &src, int max_old_index=100000, bool remove_if_max_old_path_exists=true)
+{
+  using namespace boost::filesystem;
+
+  if (!exists(src))  return true;
+
+  string src_ext= src.extension();
+  path  renamed_path;
+  for (int i(1); i<max_old_index; ++i)
+  {
+    renamed_path= change_extension(src,src_ext+".old"+ConvertToStr(i));
+    if (!exists(renamed_path))  break;
+  }
+  if (exists(renamed_path))
+  {
+    if (remove_if_max_old_path_exists)  remove_all(renamed_path);
+    else  return false;
+  }
+  rename(src,renamed_path);
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, std::list<std::string> &included_list, std::ostream &debug_stream)
 {
   bool overwrite(true);
 
   using namespace boost::filesystem;
   path  included_dir(agent.GetDataFileName("included"),native);
+  path  ext_storage_dir(agent.GetDataFileName(SKYAI_EXT_STORAGE_DIR),native);
 
   if (exists(path(agent.GetDataFileName("cmdline"),native))
-      || exists(included_dir))
+      || exists(included_dir) || exists(ext_storage_dir))
   {
     cerr<<agent.GetDataFileName("")<<" was already used. Will you overwrite?"<<endl;
     cerr<<"  answer Yes    : overwrite"<<endl;
@@ -106,17 +136,10 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
       default : lexit(abort);
     }
 
-    if (overwrite && exists(included_dir))  // move "included" directory to "included.old##"
+    if (overwrite)
     {
-      path  renamed_path(included_dir);
-      for (int i(1); i<1000; ++i)
-      {
-        renamed_path= included_dir.parent_path()/("included.old"+ConvertToStr(i));
-        if (!exists(renamed_path))  break;
-      }
-      if (exists(renamed_path))
-        remove_all(renamed_path);
-      rename(included_dir,renamed_path);
+      rename_to_old(included_dir);  // move "included" directory to "included.old##"
+      rename_to_old(ext_storage_dir);  // ditto
     }
   }
 
@@ -138,6 +161,8 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
         copy_file(from, included_dir/(from.filename()));
       }
     }
+    if (exists(ext_storage_dir.parent_path()))
+      create_directory(ext_storage_dir);
   }
 
   if (ConvertFromStr<bool>(option("show_mods","false")))

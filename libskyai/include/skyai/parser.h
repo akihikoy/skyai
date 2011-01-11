@@ -87,10 +87,10 @@ bool ExecuteScript(const std::string &exec_script,
 bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &in, TAgentParserInfoOut &out);
 
 /*!\brief save modules, connections, configurations to the file [path_list] */
-bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path);
+bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path, const std::string &ext_file_prefix="");
 
 /*!\brief save modules, connections, configurations to the stream [os] */
-bool WriteAgentToStream (const TAgent &agent, std::ostream &os);
+bool WriteAgentToStream (const TAgent &agent, std::ostream &os, bool ext_sto_available=false);
 //-------------------------------------------------------------------------------------------
 
 /*!\brief dump information */

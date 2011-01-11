@@ -41,7 +41,7 @@ LIBSKYAI := ../../libskyai
 LIBS    += -I$(LIBSKYAI)/include
 # LIBOBJS += $(LIBSKYAI)/lib/libskyai.a
 LIBOBJS+= $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
-LDLIBS += -lboost_filesystem
+LDLIBS += -lboost_filesystem -lboost_regex
 ##-------------------------------------------------------------------------------------------
 ## for liblora
 LIBLORA := ../../liblora

@@ -55,6 +55,7 @@ public:
       TActivate aco(*this);
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
         {outer_base_.DebugStream()<<"OUT-PORT: "<<this<<" ))))"<<std::endl;}
+      first_call_check();
       return get_ (FUNC_OBJ_FUNC_ARGS);
     }
 

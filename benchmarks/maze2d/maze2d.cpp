@@ -51,7 +51,7 @@ int main(int argc, char**argv)
   MMazeEnvironment &environment(*p_environment);
 
 
-  agent.SaveToFile (agent.GetDataFileName("maze2d-before.agent"));
+  agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
 
   {
     stringstream optss;
@@ -73,7 +73,7 @@ int main(int argc, char**argv)
 
   /// result:
 
-  agent.SaveToFile (agent.GetDataFileName("maze2d-after.agent"));
+  agent.SaveToFile (agent.GetDataFileName("after.agent"),"after-");
 
   return 0;
 }

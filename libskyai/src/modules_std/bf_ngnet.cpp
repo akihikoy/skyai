@@ -136,7 +136,7 @@ void MBasisFunctionsDCOBNGnet::calc_ext_distance_to_nearest_bf (TRealVector &nei
 
     //!calculate eigen-value
     LinearMapSigma (sitr->Sigma(), ext_sigma,
-          boost::bind(&GET_PORT_TYPE(in_extract_proportional)::GetFirst, in_extract_proportional, _1,_2));
+          boost::bind(&GET_PORT_TYPE(in_extract_proportional)::GetFirst, &in_extract_proportional, _1,_2));
     /*dbg*/LASSERT1op1(ext_diff.length(),==,ext_sigma.rows());
     EIG  eig(ext_sigma);
     TReal eigvmax = get_eigvmax(eig.eigenvalues());

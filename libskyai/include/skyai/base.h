@@ -59,6 +59,12 @@ static const char * const SKYAI_MODULE_NAME_DELIMITER ("-");
 //-------------------------------------------------------------------------------------------
 static const char * const SKYAI_MODULE_PORT_DELIMITER (".");
 //-------------------------------------------------------------------------------------------
+static const char * const SKYAI_EXT_STORAGE_DIR ("ext_sto");
+//-------------------------------------------------------------------------------------------
+/*!\note we define SKYAI_DEFAULT_AGENT_SCRIPT_EXT as a macro rather than a const variable
+    so that "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT can indicate ".agent" */
+#define SKYAI_DEFAULT_AGENT_SCRIPT_EXT  "agent"
+//-------------------------------------------------------------------------------------------
 
 class  TPortInterface;
 class  TModuleInterface;
@@ -104,7 +110,8 @@ public:
     : outer_base_              (v_outer_base),
       name_                    (v_name),
       max_connection_size_     (v_max_connection_size),
-      active_counter_          (0)
+      active_counter_          (0),
+      never_called_            (true)
     {}
 
   virtual ~TPortInterface() {}
@@ -136,6 +143,9 @@ public:
 
   bool IsActive() const {LASSERT1op1(active_counter_,>=,0); return active_counter_>0;}
 
+  bool NeverCalled() const {return never_called_;}
+  void SetNeverCalled (bool nc)  {never_called_= nc;}
+
 protected:
 
   const TModuleInterface &outer_base_;
@@ -151,6 +161,15 @@ protected:
       TActivate(const TPortInterface &o) : Outer(o) {++Outer.active_counter_;}
       ~TActivate()  {--Outer.active_counter_;}
     };
+
+  mutable bool never_called_;  //!< if true, this port has not been executed after generated
+
+  inline void first_call_check() const;
+
+private:
+
+  TPortInterface(const TPortInterface&);
+  const TPortInterface& operator=(const TPortInterface&);
 
 };
 //-------------------------------------------------------------------------------------------
@@ -295,6 +314,8 @@ public:
   std::string ModuleUniqueCode() const
     {return InheritedModuleName() + SKYAI_MODULE_NAME_DELIMITER + instance_name_;}
 
+  std::string GlobalUniqueCode() const;
+
   static std::string PortUniqueCode(const std::string &module_name, const std::string &port_name)
     {return module_name+SKYAI_MODULE_PORT_DELIMITER+port_name;}
   std::string PortUniqueCode(const std::string &port_name) const {return PortUniqueCode(InstanceName(), port_name);}
@@ -304,11 +325,11 @@ public:
 
   static bool DecomposePortUniqueCode(const std::string &unique_code, std::string &module_name, std::string &port_name);
 
-  var_space::TVariable& ParamBoxConfig()  {return param_box_config_;}
-  const var_space::TVariable& ParamBoxConfig() const {return param_box_config_;}
+  var_space::TVariable& ParamBoxConfig()  {first_access_check(); return param_box_config_;}
+  const var_space::TVariable& ParamBoxConfig() const {first_access_check(); return param_box_config_;}
 
-  var_space::TVariable& ParamBoxMemory()  {return param_box_memory_;}
-  const var_space::TVariable& ParamBoxMemory() const {return param_box_memory_;}
+  var_space::TVariable& ParamBoxMemory()  {first_access_check(); return param_box_memory_;}
+  const var_space::TVariable& ParamBoxMemory() const {first_access_check(); return param_box_memory_;}
 
   /*!\brief a constructor of TModuleInterface class.
       \note any subclasses of the TModuleInterface that are registered to TModuleManager
@@ -321,7 +342,8 @@ public:
         param_box_memory_      (var_space::VariableSpace()),
         module_mode_           (mmNormal),
         debug_stream_          (NULL),
-        is_zombie_             (false)
+        is_zombie_             (false),
+        never_accessed_        (true)
     {}
 
   virtual ~TModuleInterface(void);
@@ -387,7 +409,7 @@ public:
   bool HasActivePorts() const;
 
   //!\brief set true: the module should be removed, but impossible because some ports are active
-  void SetZombie(bool z)  {is_zombie_=z;}
+  void SetZombie (bool z)  {is_zombie_=z;}
 
   //!\brief true: the module should be removed, but impossible because some ports are active
   bool IsZombie()  {return is_zombie_;}
@@ -396,16 +418,20 @@ public:
   //!\brief return the reference to the host agent
   TAgent&        Agent()       {LASSERT(pagent_); return *pagent_;}
   const TAgent&  Agent() const {LASSERT(pagent_); return *pagent_;}
-  void  SetAgent(TAgent &agent)  {pagent_= &agent;}
+  void  SetAgent (TAgent &agent)  {pagent_= &agent;}
 
   //!\brief return the pointer to the host composite module
   TCompositeModule&        ParentCModule()       {LASSERT(parent_cmodule_); return *parent_cmodule_;}
   const TCompositeModule&  ParentCModule() const {LASSERT(parent_cmodule_); return *parent_cmodule_;}
   TCompositeModule*        ParentCModulePtr()       {return parent_cmodule_;}
   const TCompositeModule*  ParentCModulePtr() const {return parent_cmodule_;}
-  void SetParentCModule(TCompositeModule *parent)  {parent_cmodule_= parent;}
+  void SetParentCModule (TCompositeModule *parent)  {parent_cmodule_= parent;}
 
-  bool ExecuteFunction(const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export=false);
+
+  virtual void SetNeverAccessed (bool na);
+  void SetLazyLoadFile (const std::string &file_name);
+
+  bool ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export=false);
 
 
   struct TShowConf
@@ -434,11 +460,15 @@ public:
 
 protected:
 
+  std::string lazy_include_filename_;  //!< if not empty, the file is included in on_first_access
+
+
   /*!\brief parameter box which has links to the configuration parameters of this module */
   var_space::TVariableMap&  param_box_config_map ()  {return param_box_config_.SetMemberMap();}
 
   /*!\brief parameter box which has links to the learning parameters of this module */
   var_space::TVariableMap&  param_box_memory_map ()  {return param_box_memory_.SetMemberMap();}
+
 
   void add_out_port    (TOutPortInterface    &v_port, const std::string &v_name);
   void add_in_port     (TInPortInterface     &v_port, const std::string &v_name);
@@ -453,6 +483,10 @@ protected:
   bool remove_port (const std::string &v_name);  //!< remove port v_name. return true if removed
 
   void clear_ports();
+
+  inline void first_access_check() const;
+
+  virtual void on_first_access();
 
 private:
 
@@ -478,6 +512,8 @@ private:
 
   bool  is_zombie_;  //!< true: the module should be removed, but impossible because some ports are active
 
+  mutable bool never_accessed_;  //!< if true, this module have not been accessed after generated or SetLazyLoadFile
+
   /*! the set of out-ports. */
   TPortSet<TOutPortInterface*>::type out_ports_;
 
@@ -489,6 +525,13 @@ private:
 
   /*! the set of slot-ports. */
   TPortSet<TSlotPortInterface*>::type  slot_ports_;
+
+
+  friend class TPortInterface;  // this class is friend to access first_access_check()
+
+  // following functions are friend(s) to directly access param_box_* (not to execute first_access_check)
+  friend inline var_space::TVariable& ll_param_box_config(TModuleInterface &m);
+  friend inline var_space::TVariable& ll_param_box_memory(TModuleInterface &m);
 
 };
 //-------------------------------------------------------------------------------------------
@@ -622,7 +665,13 @@ public:
 
 
   /*!\brief save modules, connections, configurations to a stream */
-  bool WriteToStream (std::ostream &os, const std::string &indent="") const;
+  bool WriteToStream (std::ostream &os, const std::string &indent="", bool ext_sto_available=false) const;
+
+  //! see comments of TAgent::LoadFromFile
+  bool LoadFromFile (const std::string &file_name, std::list<std::string> *included_list=NULL);
+
+
+  override void SetNeverAccessed (bool na);
 
 
   void SetAllSubModuleMode (const TModuleMode &mm);
@@ -817,13 +866,24 @@ private:
 struct TAgentConfigurations
 //===========================================================================================
 {
-  std::string               DataDir;   //!< directoly path to save data (boost::filesystem's portable file-path format)
+  std::string     DataDir;   //!< directoly path to save data (boost::filesystem's portable file-path format)
+
+  std::string     LazyLoadModulePattern;   /*!< regular expression pattern. if a behavior matches with this,
+                                                its parameters are saved into the other file,
+                                                and will loaded when first required */
+
+  std::string     ExtFilePrefix;  //!< used in SaveToFile and dump* command to save data in an external file
 
   TAgentConfigurations(var_space::TVariableMap &mmap)
-      : DataDir ("nonexistent_dir")
+      :
+        DataDir                ("nonexistent_dir"),
+        LazyLoadModulePattern  (""),
+        ExtFilePrefix          ("")
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( DataDir   );
+      ADD( DataDir                );
+      ADD( LazyLoadModulePattern  );
+      ADD( ExtFilePrefix          );
       #undef ADD
     }
 };
@@ -934,7 +994,7 @@ public:
   bool LoadFromFile (const std::string &filename, std::list<std::string> *included_list=NULL);
 
   /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
-  bool SaveToFile (const std::string &filename) const;
+  bool SaveToFile (const std::string &filename, const std::string &ext_file_prefix="") const;
 
 
   /*!\brief add dir_name (native format path) to the path-list */
@@ -943,12 +1003,14 @@ public:
   /*!\brief add dir_list (list of native format path) to the path-list */
   void AddPathList (const std::list<std::string> &dir_list);
 
-  const std::list<boost::filesystem::path>&  PathList();
-  const std::list<boost::filesystem::path>&  PathList() const;
+  std::list<boost::filesystem::path>*  PathListPtr()  {return path_list_;}
+  const std::list<boost::filesystem::path>*  PathListPtr() const {return path_list_;}
   std::list<boost::filesystem::path>&  SetPathList();
 
 
+  TCompositeModuleGenerator& CompositeModuleGenerator()  {return cmp_module_generator_;}
   const TCompositeModuleGenerator& CompositeModuleGenerator() const {return cmp_module_generator_;}
+  TFunctionManager& FunctionManager()  {return function_manager_;}
   const TFunctionManager& FunctionManager() const {return function_manager_;}
 
   bool ExecuteFunction(
@@ -961,10 +1023,14 @@ public:
 
   /*!\brief search filename from the path-list, return the native path
       \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */
-  std::string SearchFileName (const std::string &filename, const std::string &omissible_extension="") const;
+  std::string SearchFileName (const std::string &filename, const std::string &omissible_extension="."SKYAI_DEFAULT_AGENT_SCRIPT_EXT) const;
 
   /*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
   std::string GetDataFileName (const std::string &filename) const;
+
+
+  /*!\brief chech module_name matches with the conf_.LazyLoadModulePattern */
+  bool IsLazyLoadModule (const std::string &module_name) const;
 
 
   /*!\brief write all port information (port kind, port pointer, every outer module name and port name) to os */
@@ -1003,6 +1069,31 @@ protected:
   std::list<boost::filesystem::path>  *path_list_;
 
 };
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// implementation of inline member functions
+//===========================================================================================
+
+inline void TPortInterface::first_call_check() const
+{
+  if (never_called_)
+  {
+    outer_base_.first_access_check();
+    never_called_= false;
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+inline void TModuleInterface::first_access_check() const
+{
+  if (!never_accessed_)  return;
+  never_accessed_= false;
+  if (parent_cmodule_)  parent_cmodule_->first_access_check();
+
+  const_cast<TModuleInterface*>(this)->on_first_access();
+}
 //-------------------------------------------------------------------------------------------
 
 

@@ -98,6 +98,7 @@ public:
       TActivate aco(*this);
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
         {outer_base_.DebugStream()<<"SLOT-PORT: "<<this<<" <<<<"<<std::endl;}
+      first_call_check();
       return exec_switcher<t_return>(*this) (FUNC_OBJ_FUNC_ARGS);
     }
 

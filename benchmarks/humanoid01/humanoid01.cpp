@@ -56,7 +56,7 @@ int main(int argc, char**argv)
   MBasicLearningManager &lmanager(*p_lmanager);
   MHumanoidEnvironment &environment(*p_environment);
 
-  agent.SaveToFile (agent.GetDataFileName("humanoid01-before.agent"));
+  agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
 
   {
     stringstream optss;
@@ -94,7 +94,7 @@ int main(int argc, char**argv)
 
   /// result:
 
-  agent.SaveToFile (agent.GetDataFileName("humanoid01-after.agent"));
+  agent.SaveToFile (agent.GetDataFileName("after.agent"),"after-");
 
   return 0;
 }

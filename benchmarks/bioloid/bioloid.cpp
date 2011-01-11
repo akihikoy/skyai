@@ -132,18 +132,18 @@ void SaveLearningParams ()
 {
   static int params_index(0);
   std::string  suffix (IntToStr(params_index));
-  std::string  filename (PtrAgent->GetDataFileName("bioloid-learning"+suffix+".agent"));
+  std::string  filename (PtrAgent->GetDataFileName("learning"+suffix+".agent"));
   LMESSAGE("writing learned parameters to "<<filename);
-  PtrAgent->SaveToFile (filename);
+  PtrAgent->SaveToFile (filename,"learning"+suffix+"-");
   params_index++;
 }
 //-------------------------------------------------------------------------------------------
 
 void FinishLearningProc ()
 {
-  std::string  filename (PtrAgent->GetDataFileName("bioloid-after.agent"));
+  std::string  filename (PtrAgent->GetDataFileName("after.agent"));
   LMESSAGE("writing learned parameters to "<<filename);
-  PtrAgent->SaveToFile (filename);
+  PtrAgent->SaveToFile (filename,"after-");
 }
 //-------------------------------------------------------------------------------------------
 
@@ -169,7 +169,7 @@ int main (int argc, const char **argv)
   MBioloidEnvironment &environment(*p_environment);
 
 
-  agent.SaveToFile (agent.GetDataFileName("bioloid-before.agent"));
+  agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
 
   // setup the agent --]
 

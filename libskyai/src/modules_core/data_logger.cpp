@@ -164,9 +164,9 @@ override void MUniversalDataLogger::slot_log_exec (void)
 //-------------------------------------------------------------------------------------------
 
 template <typename t_port>
-inline TString observe_data (t_port &port, typename t_port::TConnectedPortIterator itr)
+inline TString observe_data (t_port *pport, typename t_port::TConnectedPortIterator itr)
 {
-  return ConvertToStr(port.GetCurrent(itr));
+  return ConvertToStr(pport->GetCurrent(itr));
 }
 
 void MUniversalDataLogger::make_data_list (void)
@@ -192,7 +192,7 @@ void MUniversalDataLogger::make_data_list (void)
       std::string unique_code= ParentCModule().SearchSubPortUniqueCode((*itr));                       \
       order_itr= conf2_.OrderOfColumns.find(unique_code);                                             \
       TObserver  observer (unique_code,                                                               \
-                            boost::bind (observe_data<GET_PORT_TYPE(x_in_data)>, x_in_data, itr));    \
+                            boost::bind (observe_data<GET_PORT_TYPE(x_in_data)>, &x_in_data, itr));   \
       if (order_itr != conf2_.OrderOfColumns.end() && order_itr->second>0)                            \
       {                                                                                               \
         data_map_[order_itr->second]= observer;                                                       \
