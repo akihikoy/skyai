@@ -76,8 +76,8 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
       if (agent_file=="" || !agent.LoadFromFile(agent_file,&included_list))
       {
         LERROR("failed to read "<<tmp_filename);
-        cout<<"exit? (Y: exit now, N: continue to execute)"<<flush;
-        if (AskYesNo())  lexit(df);
+        cout<<"Continue? (Y: continue to execute, N: exit now)"<<endl;
+        if (!AskYesNo())  lexit(df);
       }
     }
   }

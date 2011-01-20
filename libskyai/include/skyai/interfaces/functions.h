@@ -245,6 +245,94 @@ protected:
 
 
 //===========================================================================================
+//!\brief multiple input, single output
+template <typename t_input, typename t_output>
+class MFunctionMISOInterface
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface         TParent;
+  typedef MFunctionMISOInterface   TThis;
+  typedef t_input                  TInput;
+  typedef t_output                 TOutput;
+  typedef typename TypeToVector<TInput>::vector_type  TMultipleInput;
+  SKYAI_MODULE_NAMES(MFunctionMISOInterface)
+
+  MFunctionMISOInterface (const std::string &v_instance_name)
+    : TParent          (v_instance_name),
+      slot_initialize  (*this),
+      out_f1           (*this),
+      out_f2           (*this),
+      in_x             (*this),
+      out_y            (*this)
+    {
+      add_slot_port  (slot_initialize );
+      add_out_port   (out_f1          );
+      add_out_port   (out_f2          );
+      add_in_port    (in_x            );
+      add_out_port   (out_y           );
+    }
+
+  virtual ~MFunctionMISOInterface() {}
+
+  void Initialize(void) {slot_initialize_exec();}
+
+  void ExecFunction(const TMultipleInput &x, TOutput &y) const {function(x,y);}
+
+protected:
+
+  mutable TOutput tmp_y_;
+  mutable TMultipleInput tmp_mx_;
+
+  //!\brief if this slot catch a signal, this module is initialized
+  MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
+
+  MAKE_OUT_PORT(out_f1, const TOutput&, (const TMultipleInput &x), (x), TThis);
+  MAKE_OUT_PORT(out_f2, void, (const TMultipleInput &x, TOutput &y), (x,y), TThis);
+
+  MAKE_IN_PORT_SPECIFIC (in_x, const TInput& (void), TThis, SKYAI_CONNECTION_SIZE_MAX);
+
+  //!\brief output y for in_x
+  MAKE_OUT_PORT(out_y, const TOutput&, (void), (), TThis);
+
+
+  //! sometimes this is convenient to use
+  const TOutput& out_f1_get (const TMultipleInput &x) const
+    {
+      // TOutput y;
+      function (x,tmp_y_);
+      return tmp_y_;
+    }
+
+  //! sometimes this is faster
+  void out_f2_get (const TMultipleInput &x, TOutput &y) const
+    {
+      function (x,y);
+    }
+
+  const TOutput& out_y_get (void) const
+    {
+      GenResize(tmp_mx_, in_x.ConnectionSize());
+      typename TypeExt<TMultipleInput>::iterator mx_itr(GenBegin(tmp_mx_));
+      for (typename GET_PORT_TYPE(in_x)::TConnectedPortIterator itr(in_x.ConnectedPortBegin()),last(in_x.ConnectedPortEnd());
+            itr!=last; ++itr,++mx_itr)
+      {
+        *mx_itr= in_x.GetCurrent(itr);
+      }
+      function (tmp_mx_,tmp_y_);
+      return tmp_y_;
+    }
+
+  virtual void slot_initialize_exec (void) {}
+
+  virtual void function (const TMultipleInput &x, TOutput &y) const = 0;
+
+};  // end of MFunctionMISOInterface
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
 //!\brief single input, single output
 template <typename t_input, typename t_feature>
 class MBasisFunctionsInterface

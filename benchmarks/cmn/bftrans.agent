@@ -14,6 +14,8 @@ def export_bftrans_cmn (bftrans_id)
   export   bftrans_id.signal_execute_command  as_is
   export   bftrans_id.signal_end_of_action  as_is
 
+  export   bftrans_id.slot_finish_action_immediately  as_is
+
   /// I/O:
   export   bftrans_id.in_feature  as_is
   export   bftrans_id.in_state  as_is

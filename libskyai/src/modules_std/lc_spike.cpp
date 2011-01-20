@@ -58,6 +58,16 @@ override void XMODULE::slot_finish_time_step_exec (const TContinuousTime &time_s
 }
 //-------------------------------------------------------------------------------------------
 
+TEMPLATE_DEC
+override void XMODULE::slot_finish_action_immediately_exec (void)
+{
+  if (ltime_<=0.0l)  return;
+
+  ltime_= -1.0l;
+  signal_end_of_action.ExecAll();
+}
+//-------------------------------------------------------------------------------------------
+
 
 #undef XMODULE_STR
 #undef XMODULE

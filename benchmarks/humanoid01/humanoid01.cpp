@@ -43,6 +43,7 @@ int main(int argc, char**argv)
   TOptionParser option(argc,argv);
   option["notex"]; option["noshadow"]; option["noshadows"]; option["pause"];  // these options are used by ODE
   bool console_mode= ConvertFromStr<bool>(option("console","false"));
+  string textures_path= option("texture","m/textures");
   int xwindow_width(ConvertFromStr<int>(option("winx","400"))), xwindow_height(ConvertFromStr<int>(option("winy","400")));
 
   TAgent  agent;
@@ -75,8 +76,7 @@ int main(int argc, char**argv)
   fn.step = &ODEDS_StepLoop;
   fn.command = &ODEDS_KeyEvent;
   fn.stop = &ODEDS_Stop;
-  char path_to_textures[] = "m/textures";
-  fn.path_to_textures = path_to_textures;
+  fn.path_to_textures = textures_path.c_str();
 
   lmanager.Initialize();
   lmanager.StartLearning();

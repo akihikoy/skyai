@@ -148,6 +148,15 @@ override void MBFTrans::slot_finish_time_step_exec (const TContinuousTime &time_
 }
 //-------------------------------------------------------------------------------------------
 
+override void MBFTrans::slot_finish_action_immediately_exec (void)
+{
+  if (!in_control_)  return;
+
+  in_control_= false;
+  signal_end_of_action.ExecAll();
+}
+//-------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MBFTrans)

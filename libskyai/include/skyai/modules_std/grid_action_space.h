@@ -101,6 +101,7 @@ protected:
   override void slot_execute_action_exec (const TAction &a);
   override void slot_start_time_step_exec (const TContinuousTime &time_step);
   override void slot_finish_time_step_exec (const TContinuousTime &time_step);
+  override void slot_finish_action_immediately_exec (void);
 
   mutable TInt tmp_assize_;
   override const TInt& out_action_set_size_get (void) const  {return (tmp_assize_= grid_.Size());}

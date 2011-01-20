@@ -37,6 +37,7 @@ def make_cmp_tdfqi_wfdcob_act_sp(mod_id, mod_base)
     export   bftrans.slot_start_time_step  as_is
     export   bftrans.slot_finish_time_step  as_is
     export   bftrans.signal_execute_command  as_is
+    export   bftrans.slot_finish_action_immediately  as_is
     export   bftrans.in_state  as_is
     export   avf_wire_fitting.in_center_state_set  as_is
     export   bftrans.out_extract_proportional  as_is

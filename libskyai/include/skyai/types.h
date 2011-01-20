@@ -109,6 +109,21 @@ struct TypeExtS<TRealMatrix> : TypeExt<TRealMatrix>
 };
 
 //-------------------------------------------------------------------------------------------
+
+/*!\brief get a vector type of t_type in SkyAI context */
+template <typename t_type>
+struct TypeToVector
+{
+  typedef std::vector<t_type>  vector_type;
+};
+
+template <>
+struct TypeToVector <TReal>
+{
+  typedef TRealVector  vector_type;
+};
+
+//-------------------------------------------------------------------------------------------
 }  // end of namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
 #endif // skyai_types_h

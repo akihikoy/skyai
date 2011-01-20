@@ -52,6 +52,7 @@ public:
       slot_execute_action     (*this),
       slot_start_time_step    (*this),
       slot_finish_time_step   (*this),
+      slot_finish_action_immediately (*this),
       signal_end_of_action    (*this),
       signal_execute_command  (*this)
     {
@@ -60,6 +61,7 @@ public:
       add_slot_port   (slot_execute_action     );
       add_slot_port   (slot_start_time_step    );
       add_slot_port   (slot_finish_time_step   );
+      add_slot_port   (slot_finish_action_immediately);
       add_signal_port (signal_end_of_action    );
       add_signal_port (signal_execute_command  );
     }
@@ -83,6 +85,10 @@ protected:
   //!\brief if this slot catch a signal, current control command should be terminated
   MAKE_SLOT_PORT(slot_finish_time_step, void, (const TContinuousTime &time_step), (time_step), TThis);
 
+  /*!\brief if this slot catch a signal, current action should be terminated immediately,
+      and signal_end_of_action should be emitted */
+  MAKE_SLOT_PORT(slot_finish_action_immediately, void, (void), (), TThis);
+
 
   //!\brief this signal is emitted when the current action is finished
   MAKE_SIGNAL_PORT(signal_end_of_action, void(void), TThis);
@@ -96,6 +102,7 @@ protected:
   virtual void slot_execute_action_exec (const TAction &a) = 0;
   virtual void slot_start_time_step_exec (const TContinuousTime &time_step) = 0;
   virtual void slot_finish_time_step_exec (const TContinuousTime &time_step) = 0;
+  virtual void slot_finish_action_immediately_exec (void) = 0;
 
 };  // end of MActionSpaceInterface
 //-------------------------------------------------------------------------------------------

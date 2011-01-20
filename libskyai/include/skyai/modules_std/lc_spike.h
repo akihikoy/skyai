@@ -90,6 +90,7 @@ protected:
   override void slot_execute_action_exec (const TAction &a);
   override void slot_start_time_step_exec (const TContinuousTime &time_step) {}
   override void slot_finish_time_step_exec (const TContinuousTime &time_step);
+  override void slot_finish_action_immediately_exec (void);
 
   using TParent::signal_end_of_action;
   using TParent::signal_execute_command;

@@ -80,6 +80,16 @@ DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a c
 }
 //-------------------------------------------------------------------------------------------
 
+override void MGridActionSpace::slot_finish_action_immediately_exec (void)
+{
+DEPRECATED_MSG("MGridActionSpace", "MDiscretizer, MLCHolder_TRealVector, and a continuous action space");
+  if (ltime_<=0.0l)  return;
+
+  ltime_= -1.0l;
+  signal_end_of_action.ExecAll();
+}
+//-------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MGridActionSpace)

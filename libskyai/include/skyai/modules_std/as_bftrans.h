@@ -171,6 +171,7 @@ protected:
   override void slot_execute_action_exec (const TAction &a);
   override void slot_start_time_step_exec (const TContinuousTime &time_step);
   override void slot_finish_time_step_exec (const TContinuousTime &time_step);
+  override void slot_finish_action_immediately_exec (void);
 
   #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
     x_return_type  get_##x_in x_arg_list const                                                  \

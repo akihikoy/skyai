@@ -1683,9 +1683,9 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
 
   if (!exists(file_path.parent_path()))
   {
-    cerr<<"Cannot save data into the file: "<<file_path.file_string();
-    cerr<<" because the parent path: "<<file_path.parent_path().file_string();
-    cerr<<" does not exist."<<endl;
+    LERROR("Cannot save data into the file: "<<file_path.file_string()
+            <<" because the parent path: "<<file_path.parent_path().file_string()
+            <<" does not exist.");
     return false;
   }
   if (!CanOpenFile(file_path.file_string(),fopAsk))  return false;
@@ -1738,6 +1738,11 @@ bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
     std::string file_path= cmodule.Agent().GetDataFileName(filename);
     if (!CanOpenFile(file_path,fopAsk))  return false;
     ofs.open(file_path.c_str());
+    if (!ofs)
+    {
+      LERROR("Cannot save data into the file: "<<file_path);
+      return false;
+    }
     p_os= &ofs;
     ext_sto_available= true;
   }

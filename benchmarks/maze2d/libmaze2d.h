@@ -314,6 +314,13 @@ protected:
         signal_end_of_action.ExecAll();
       }
     }
+  override void slot_finish_action_immediately_exec (void)
+    {
+      if (ltime_<=0.0l)  return;
+
+      ltime_= -1.0l;
+      signal_end_of_action.ExecAll();
+    }
 
   override const TInt& out_action_set_size_get (void) const  {return conf_.NumOfDirs;}
 
@@ -383,6 +390,13 @@ protected:
       {
         signal_end_of_action.ExecAll();
       }
+    }
+  override void slot_finish_action_immediately_exec (void)
+    {
+      if (ltime_<=0.0l)  return;
+
+      ltime_= -1.0l;
+      signal_end_of_action.ExecAll();
     }
 
 };  // end of MRadialActionSpace2
@@ -474,6 +488,13 @@ protected:
       {
         signal_end_of_action.ExecAll();
       }
+    }
+  override void slot_finish_action_immediately_exec (void)
+    {
+      if (ltime_<=0.0l)  return;
+
+      ltime_= -1.0l;
+      signal_end_of_action.ExecAll();
     }
 
 };  // end of MConstActionSpace

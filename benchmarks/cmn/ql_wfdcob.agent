@@ -57,6 +57,8 @@ def make_cmp_td_wfdcob_act_sp(mod_id,mod_bftrans)
     export   bftrans.signal_execute_command  as_is
     connect  bftrans.signal_end_of_action            , behavior.slot_finish_action
 
+    export   bftrans.slot_finish_action_immediately  as_is
+
     /// I/O:
     connect  rl_in_feature.out_1                     , bftrans.in_feature
     export   bftrans.in_state  as_is
