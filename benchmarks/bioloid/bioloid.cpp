@@ -65,10 +65,11 @@ void sig_handler(int signo)
       "  X:  quit with returning a success code"<<std::endl<<
       "  l/L:  save the learned valuetable"<<std::endl<<
       "  r/R:  reset the simulation (including connection setup) and start a new episode"<<std::endl<<
-      "  g/G:  emit a penalty signal, reset the simulation, and start a new episode"<<std::endl;
+      "  g/G:  emit a penalty signal, reset the simulation, and start a new episode"<<std::endl<<
+      "  a/A:  set a success flag on the episode"<<std::endl;
     while(true)
     {
-      std::cerr<<"  Q|X|l|r|g > "<<std::flush;
+      std::cerr<<"  Q|X|l|r|g|a > "<<std::flush;
       int res= WaitKBHit();
       if(res=='Q')
       {
@@ -93,18 +94,24 @@ void sig_handler(int signo)
       }
       else if(res=='r'||res=='R')
       {
-        std::cerr<<"reset the simulation..."<<std::endl;
+        std::cerr<<"r: reset the simulation..."<<std::endl;
         PtrEnvironment->Setup();
         PtrEnvironment->ForceFinishEpisode();
         break;
       }
       else if(res=='g'||res=='G')
       {
-        std::cerr<<"emit penalty..."<<std::endl;
+        std::cerr<<"g: emit penalty..."<<std::endl;
         PtrEnvironment->ForcePenalty();
         std::cerr<<"reset the simulation..."<<std::endl;
         PtrEnvironment->Setup();
         PtrEnvironment->ForceFinishEpisode();
+        break;
+      }
+      else if(res=='a'||res=='A')
+      {
+        std::cerr<<"a: episode success..."<<std::endl;
+        PtrEnvironment->SetMissionSuccess(true);
         break;
       }
       else {std::cerr<<"unknown action."<<std::endl;}

@@ -108,7 +108,8 @@ public:
       signal_end_of_episode       (*this),
       out_sensor_angles           (*this),
       out_sensor_distance_c       (*this),
-      out_sensor_distance_diff_c  (*this)
+      out_sensor_distance_diff_c  (*this),
+      out_is_successful           (*this)
     {
       add_slot_port   (slot_initialize            );
       add_slot_port   (slot_start_episode         );
@@ -122,6 +123,7 @@ public:
       add_out_port    (out_sensor_angles          );
       add_out_port    (out_sensor_distance_c      );
       add_out_port    (out_sensor_distance_diff_c );
+      add_out_port    (out_is_successful          );
     }
 
   void StartTimeStep ()
@@ -145,6 +147,11 @@ public:
   void ForcePenalty ()
     {
       signal_system_reward.ExecAll(conf_.UserPenalty);
+    }
+
+  void SetMissionSuccess (bool ms)
+    {
+      is_successful_= ms;
     }
 
   void Setup ()
@@ -171,6 +178,8 @@ protected:
   mutable TLHBPFilters<TRealVector>  distance_lpf_;
   mutable TLHBPFilters<TRealVector>  distance_diff_lpf_;
 
+  mutable TBool   is_successful_;
+
   // bool   executing_;
 
 
@@ -196,6 +205,9 @@ protected:
   MAKE_OUT_PORT(out_sensor_distance_c, const TRealVector&, (void), (), TThis);
   MAKE_OUT_PORT(out_sensor_distance_diff_c, const TRealVector&, (void), (), TThis);
 
+  //! whether an episode is success or not, given by an operator
+  MAKE_OUT_PORT(out_is_successful, const TBool&, (void), (), TThis);
+
 
   virtual void slot_initialize_exec (void)
     {
@@ -210,6 +222,7 @@ protected:
       tmp_distance_c_.resize(3);
       tmp_old_distance_c_.resize(3);
       tmp_distance_diff_c_.resize(3);
+      is_successful_= false;
       LMESSAGE("resetting robot..");
       TRealVector  target_angle(conf_.ActuatorIndexes.size(),0.0), observed_angle(conf_.ActuatorIndexes.size());
       double time_offset(GetCurrentTime()), time(GetCurrentTime());
@@ -307,6 +320,10 @@ std::cout<<distance_lpf_()(0)<<"\t"<<distance_lpf_()(1)<<"\t"<<distance_lpf_()(2
     {
       return distance_diff_lpf_();
     }
+  virtual const TBool& out_is_successful_get () const
+    {
+      return is_successful_;
+    }
 
   void constrain_angles (TRealVector &target_angle)
     {
@@ -352,22 +369,29 @@ public:
   TSingleReward            SumOfRmin;  //!< if sum of reward in an episode is less than this value, episode is terminated
   TContinuousTime          MaxTime;
 
+  TReal                    TimeRewardGain;  //!< reward given for episode success; max(0, TimeRewardGain * (1.0l-time_/TimeRewardParam))
+  TReal                    TimeRewardParam; //!< reward given for episode success; max(0, TimeRewardGain * (1.0l-time_/TimeRewardParam))
+
   TMotionLearningTaskConfigurations (var_space::TVariableMap &mmap)
     :
       TaskKind             (mltkMove),
       RewardGain           (1.0l),
       SumOfRmin            (-40.0l),
-      MaxTime              (50.0l)
+      MaxTime              (50.0l),
+      TimeRewardGain       (3.0l),
+      TimeRewardParam      (20.0l)
     {
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( TaskKind       );
-      ADD( RewardGain     );
-      ADD( SumOfRmin      );
-      ADD( MaxTime        );
+      ADD( TaskKind        );
+      ADD( RewardGain      );
+      ADD( SumOfRmin       );
+      ADD( MaxTime         );
+      ADD( TimeRewardGain  );
+      ADD( TimeRewardParam );
       #undef ADD
     }
 };
@@ -395,7 +419,8 @@ public:
       signal_task_reward     (*this),
       signal_damage_reward   (*this),
       in_speed               (*this),
-      in_sum_of_reward       (*this)
+      in_sum_of_reward       (*this),
+      in_is_successful       (*this)
     {
       add_slot_port   (slot_initialize       );
       add_slot_port   (slot_start_episode    );
@@ -405,6 +430,7 @@ public:
       add_signal_port (signal_damage_reward  );
       add_in_port     (in_speed              );
       add_in_port     (in_sum_of_reward      );
+      add_in_port     (in_is_successful      );
     }
 
 protected:
@@ -412,6 +438,8 @@ protected:
   TMotionLearningTaskConfigurations  conf_;
 
   TContinuousTime  time_;
+
+  bool  time_reward_emitted_;
 
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
@@ -428,6 +456,9 @@ protected:
 
   MAKE_IN_PORT(in_sum_of_reward, const TSingleReward& (void), TThis);
 
+  //!\brief input whether an episode is success or not, given by an operator
+  MAKE_IN_PORT(in_is_successful, const TBool& (void), TThis);
+
   #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
     x_return_type  get_##x_in x_arg_list const                                                  \
       {                                                                                         \
@@ -442,6 +473,12 @@ protected:
 
   #undef GET_FROM_IN_PORT
 
+  bool get_is_successful() const
+    {
+      if (in_is_successful.ConnectionSize()==0)  return false;
+      return in_is_successful.GetFirst();
+    }
+
   virtual void slot_initialize_exec (void)
     {
     }
@@ -449,11 +486,13 @@ protected:
   virtual void slot_start_episode_exec (void)
     {
       time_= 0.0l;
+      time_reward_emitted_= false;
     }
 
   virtual void slot_finish_time_step_exec (const TContinuousTime &dt)
     {
       time_+=dt;
+      bool is_successful(get_is_successful());
 
       // calculate task reward
       {
@@ -465,6 +504,13 @@ protected:
             // task_reward= body[BASELINK_INDEX].getLinearVel()[0];
             // task_reward= 0.01l*task_reward - 0.1l*Square(body[BASELINK_INDEX].getPosition()[1]);
             task_reward= conf_.RewardGain * get_speed();
+            if (is_successful && !time_reward_emitted_ && time_ < conf_.TimeRewardParam)
+            {
+              TSingleReward time_reward(conf_.TimeRewardGain * (1.0l-time_/conf_.TimeRewardParam));
+              task_reward+= time_reward;
+              LMESSAGE("episode success: time reward ("<<time_reward<<") is added to reward");
+              time_reward_emitted_= true;
+            }
             break;
           default :
             LERROR("invalid TaskKind= "<<conf_.TaskKind);
@@ -503,7 +549,7 @@ protected:
         {
           is_end_of_episode= true;
         }
-        if (is_end_of_episode)
+        if (is_end_of_episode || is_successful)
         {
           signal_end_of_episode.ExecAll();
         }

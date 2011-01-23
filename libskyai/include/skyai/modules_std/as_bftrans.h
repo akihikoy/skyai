@@ -137,6 +137,9 @@ public:
 
   virtual ~MBFTrans() {clear_trj_gen();}
 
+  TBFTransConfigurations&       Config()       {return conf_;}
+  const TBFTransConfigurations& Config() const {return conf_;}
+
 protected:
 
   TBFTransConfigurations  conf_;

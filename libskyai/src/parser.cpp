@@ -1439,6 +1439,12 @@ bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &i
   using namespace boost::spirit::classic;
   typedef file_iterator<char> TIterator;
   file_path= boost::filesystem::complete(file_path);
+  if (boost::filesystem::exists(file_path) && boost::filesystem::is_empty(file_path))  // if file is empty...
+  {
+    out.IsLast= true;
+    out.LastLineNum= 0;
+    return true;
+  }
   TIterator  first(file_path.file_string());
   if (!first)
   {
