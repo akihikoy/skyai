@@ -65,7 +65,11 @@ override void MTDDyna_TDiscreteAction::slot_initialize_exec (void)
 {
   TParent::slot_initialize_exec();
 
-  if (dconf_.DynaInitAVFByRewardModel && in_settable_avtable.ConnectionSize()!=0 && in_rwdm_trans_reward.ConnectionSize()!=0)
+  if (dconf_.UsingDyna
+      && mem_.EpisodeNumber==0
+      && dconf_.DynaInitAVFByRewardModel
+      && in_settable_avtable.ConnectionSize()!=0
+      && in_rwdm_trans_reward.ConnectionSize()!=0)
   {
     TRealVectorSet &avtable(get_settable_avtable());
     const TInt NA(GenSize(avtable));    LASSERT1op1(NA,>,0);

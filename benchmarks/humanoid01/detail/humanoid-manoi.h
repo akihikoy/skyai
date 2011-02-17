@@ -176,7 +176,7 @@ static bool DRAW_SEQUENCE_MODE (false);
 float _CURRENT_COLOR[4];
 inline void _dsSetColorAlpha (const float &red, const float &green, const float &blue, const float &Alpha)
 {
-  const float alpha_red(0.5f);
+  const float alpha_red(1.0f);
   if (DRAW_SEQUENCE_MODE)
   {
     _CURRENT_COLOR[0] = red;

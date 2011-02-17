@@ -3,11 +3,12 @@ usage="./exp.sh OPTIONS COND_ID1 AGENT_FILE1 COND_ID2 AGENT_FILE2 COND_ID3 AGENT
 Execute experiments from START_INDEX to END_INDEX for each AGENT_FILE
 OPTIONS:
   `basename $0`
-      -o RESULT_DIR()
-      -x|-exec EXEC_COMMAND()
-      [-opt  options for EXEC_COMMAND()]
-      [-s START_INDEX(0)]
-      [-e END_INDEX(9)]
+      -o DIR        : result directory()
+      -x|-exec STR  : main command()
+      [-opt STR     : options for main command()]
+      [-s INT       : START_INDEX(0)]
+      [-e INT       : END_INDEX(9)]
+      [-prex STR    : command evaluated before the main command()]
       [-help]"
 #--------------------------------------------------
 
@@ -15,6 +16,7 @@ cond_num=0
 result_dir=
 exec_command=
 exec_options=
+pre_exec=
 startindex=0
 endindex=9
 
@@ -31,6 +33,7 @@ while true; do
     -e) endindex="$2"; shift 2 ;;
     -x|-exec) exec_command="$2"; shift 2 ;;
     -opt) exec_options="$exec_options $2"; shift 2 ;;
+    -prex)  pre_exec="$pre_exec $2"; shift 2 ;;
     -help|--help) echo "usage: $usage"; exit 0 ;;
     '') shift; break ;;
     *)
@@ -77,14 +80,15 @@ function ask-yes-no()
 # confirm
 
 echo '--------------------------------------------------'
-echo "cond_num       = $cond_num    "
+echo "cond_num       = $cond_num"
 echo "cond_id        = ${cond_id[@]}"
 echo "agent_file     = ${agent_file[@]}"
-echo "result_dir     = $result_dir  "
+echo "result_dir     = $result_dir"
 echo "exec_command   = $exec_command"
 echo "exec_options   = $exec_options"
-echo "startindex     = $startindex  "
-echo "endindex       = $endindex    "
+echo "pre_exec       = $pre_exec"
+echo "startindex     = $startindex"
+echo "endindex       = $endindex"
 echo '--------------------------------------------------'
 
 echo "start with this setup?"
@@ -102,7 +106,8 @@ function rlexp
 {
   # in: resdir, cond_idx, trial_idx
   mkdir $resdir
-  exec_cmdline="$exec_command $exec_options -agent ${agent_file[$cond_idx]} -outdir $resdir"
+  eval "$pre_exec"
+  exec_cmdline="$exec_command $(eval "echo \"$exec_options\"") -agent ${agent_file[$cond_idx]} -outdir $resdir"
   echo '--------------------------------------------------'
   echo "start experiment ${cond_id[$cond_idx]} #$trial_idx"
   echo "  in $resdir"
