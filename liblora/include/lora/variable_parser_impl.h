@@ -254,7 +254,7 @@ protected:
   void print_error (const std::string &str)
     {
       error_= true;
-      std::cout<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
+      std::cerr<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
     }
   void lora_error (message_system::TMessageType type, int linenum, const char *filename, const char *functionname, std::stringstream &ss)
     {
@@ -710,7 +710,7 @@ TEMPLATE_DEC
 void XCLASS::SyntaxError (t_iterator first, t_iterator last)
 {
   PRINT_ERROR("syntax error:");
-  std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
+  std::cerr<<"  > "<<join_iterators(first,last)<<std::endl;
 }
 
 TEMPLATE_DEC

@@ -78,6 +78,7 @@ int main(int argc, char**argv)
   TReal sigma_ratio(0.6l);
   TReal margin_ratio(0.2l);
   TReal time_step(0.1l);
+  TReal stop_acc_ratio(0.0002l);
 
   vector<int> grid_levels;
   if (option("N")!="")
@@ -103,6 +104,9 @@ int main(int argc, char**argv)
     margin_ratio= ConvertFromStr<TReal>(option("mratio"));
   if (option("step")!="")
     time_step= ConvertFromStr<TReal>(option("step"));
+
+  if (option("stop_ratio")!="")
+    stop_acc_ratio= ConvertFromStr<TReal>(option("stop_ratio"));
 
   //---------
   stringstream optss;
@@ -132,12 +136,12 @@ int main(int argc, char**argv)
   do
   {
     cout<<(acc_avr(bubbles.Step(time_step)))<<" \t "<<bubbles.Radius()<<endl;
-    ofstream ofs("hoge.dat");
+    ofstream ofs("curr-rad-center.dat");
     // ofstream ofs(("bbl/frame"+IntToStr(ni++,4)+".dat").c_str());
     bubbles.PrintRadiusCenters(ofs);
     // for(int i(0);i<bubbles.Size();++i){ofs<<GenPrint(bubbles.Center(i))<<endl;}
     usleep(10000);
-  } while (acc_avr()>0.0002l*first_acc);
+  } while (acc_avr()>stop_acc_ratio*first_acc);
 
 
   //---------
