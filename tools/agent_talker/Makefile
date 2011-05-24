@@ -20,19 +20,16 @@ TARGET_FLAG :=
 
 all     : mz hm bio
 
-debug	: TARGET_FLAG :=debug
-debug	: all
-
 clean	: TARGET_FLAG :=clean
 clean	: all
 
 mz :
-	@(set -e; make -f Makefile_maze2d $(TARGET_FLAG))
+	@(set -e; make -f Makefile_mz $(TARGET_FLAG))
 
 hm :
-	@(set -e; make -f Makefile_humanoid01 $(TARGET_FLAG))
+	@(set -e; make -f Makefile_hm $(TARGET_FLAG))
 
 bio :
-	@(set -e; make -f Makefile_bioloid $(TARGET_FLAG))
+	@(set -e; make -f Makefile_bio $(TARGET_FLAG))
 
 ##------------------------------------------------------------------

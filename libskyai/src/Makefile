@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,98 +16,35 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-# EXEC = GENERATING_PROGRAM_NAME
-ARC = ../lib/libskyai.a
-LIBOBJS =
-CXX = g++
-AR = ar
-ifeq ($(DEBUG),true)
-  CXXFLAGS := -g -Wall -rdynamic
-else
-  CXXFLAGS := -g -Wall -rdynamic -O2 -march=i686
-endif
-LDFLAGS  := $(CXXFLAGS)
-RMFLAGS  :=  -vf
+include ../../Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-BASEPREFIX := $(wildcard ~/prg)
-LIBLORA := ../../liblora
-LIBSKYAI := ..
+ARC := ../lib/libskyai.a
 ##-------------------------------------------------------------------------------------------
-## make  *.o  from  *.c and *.cpp
-OBJS    = \
+OBJS    := \
       $(patsubst %.c,%.o,$(wildcard *.c)) \
       $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-MOBJS    = \
+MOBJS    := \
       $(patsubst %.c,%.o,$(wildcard */*.c)) \
       $(patsubst %.cpp,%.o,$(wildcard */*.cpp)) #
 ##-------------------------------------------------------------------------------------------
-LIBS    = -I/usr/include -I/usr/local/include -I$(LIBSKYAI)/include
-LDLIBS  = -lm -L/usr/local/lib
+EXTRA_CLEAN+= $(MOBJS) ../lib/*.o
 ##-------------------------------------------------------------------------------------------
-## for liblora
-LIBS    += -I$(LIBLORA)/include
-LIBOBJS += $(LIBLORA)/lib/liblora.a
+USING_LORA_OCT:=true
+USING_SKYAI:=true
+include ../../Makefile_postconf
 ##-------------------------------------------------------------------------------------------
-## for Octave
-# LIBS   += -I/usr/include/octave-`octave-config -v`
-# LDLIBS += -L/usr/lib/octave-`octave-config -v` -loctave -lcruft  -Wl,-rpath /usr/lib/octave-`octave-config -v`
-# LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
-##-------------------------------------------------------------------------------------------
-## for ODE
-# include $(LIBLORA)/src/Makefile_odeflags
-# LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
-##-------------------------------------------------------------------------------------------
-# all : libobjs $(EXEC)
-all : libobjs $(ARC) $(MOBJS)
-##-------------------------------------------------------------------------------------------
-## additional make
-libobjs :
-	@(set -e; make -C $(LIBLORA)/src std oct)
-# 	@(set -e; make -C $(LIBNGNET))
-##-------------------------------------------------------------------------------------------
-## generic make rules
-
-clean   :
-	@rm $(RMFLAGS) *.o *.a *.il $(OBJS) $(MOBJS) $(EXEC) $(ARC) ../lib/*.o $(EXTRA_CLEAN)
-	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
-
-# $(EXEC) : $(OBJS) $(LIBOBJS)
-# 	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-# 	@(echo "$(EXEC) is generated")
-
-$(ARC) : $(OBJS)
-	@(mkdir -p ../lib)
-	$(AR) r $(ARC) $(OBJS)
-	@(echo "$(ARC) is generated")
-
-# $(ARC) : $(OBJS) $(LIBOBJS)
-# 	$(AR) r $(ARC) $(OBJS) $(LIBOBJS)
-# 	@(echo "$(ARC) is generated")
+# modify the rules:
+all : $(MOBJS)
 
 %.o : %.cpp
 	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c $<
 	@(if [ -z "`echo '$@' | sed 's/[^/]*\\/[^/]*//g'`" ];then \
-	cp -a $@ ../lib/; \
+	ln -sfv ../src/$@ ../lib/; \
+	echo "*************************************************";\
 	echo "../lib/`basename $@` is generated"; \
+	echo "*************************************************";\
 	fi; \
 	)
-
-# 	(fn="`echo '$@'|sed 's/[/._]/\\\\\0/g'`"; \
-# 	if [ -z "`echo '$(MOBJS)' | sed 's/.*\b\${fn}\b.*//g'`" ];then \
-# 	echo "$@ is generated"; \
-# 	echo "copy $@ to ../lib/`basename $@`"; \
-# 	fi; \
-# 	)
-
-DEPOPT  ?= -MM
-
-%.d: %.cpp
-	@(rm -f $@; \
-	$(CXX) $(DEPOPT) $(LIBS) $(CXXFLAGS) $< > $@.$$$$; \
-	sed "s,\(`basename $*`\)\.o[ :]*,$*.o $@ : ,g" < $@.$$$$ > $@; \
-	[ -s $@ ] || rm -f $@; \
-	rm -f $@.$$$$; \
-	)
 ##-------------------------------------------------------------------------------------------
-include $(OBJ:.o=.d) $(OBJS:.o=.d) $(MOBJS:.o=.d) $(objects:.o=.d) $(addsuffix .d, $(BINARY))
+include $(MOBJS:.o=.d)
 ##-------------------------------------------------------------------------------------------

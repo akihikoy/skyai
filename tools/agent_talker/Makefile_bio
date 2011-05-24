@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,13 +16,21 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-EXEC:=agent_talker_hm.out
-USING_ODE:=true
-##------------------------------------------------------------------
-## for humanoid01
-LIBHUMANOID := $(wildcard ~/proj/skyai)/benchmarks/humanoid01
-LIBOBJS := $(LIBHUMANOID)/libhumanoid01.o
-MOD_MAKE_PATH := $(LIBHUMANOID)
+include ../../Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-include Makefile_cmn
+EXEC:=agent_talker_bio.out
+OBJS:=agent_talker.o
+##------------------------------------------------------------------
+## for bioloid
+LIBBIOLOID := $(SKYAI_BASE)/benchmarks/bioloid
+LIBOBJS := $(LIBBIOLOID)/libbioloid.o
+##-------------------------------------------------------------------------------------------
+USING_SKYAI:=true
+MAKING_SKYAI:=true
+include ../../Makefile_postconf
+##------------------------------------------------------------------
+extra_make : lib
+
+lib :
+	@(set -e; make -C $(LIBBIOLOID) lib)
 ##------------------------------------------------------------------

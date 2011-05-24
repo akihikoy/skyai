@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,13 +16,21 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-EXEC:=agent_talker_bio.out
-USING_ODE:=false
+include ../../Makefile_preconf
+##-------------------------------------------------------------------------------------------
+EXEC:=agent_talker_mz.out
+OBJS:=agent_talker.o
 ##------------------------------------------------------------------
 ## for bioloid
-LIBBIOLOID := $(wildcard ~/proj/skyai)/benchmarks/bioloid
-LIBOBJS := $(LIBBIOLOID)/libbioloid.o
-MOD_MAKE_PATH := $(LIBBIOLOID)
+LIBMAZE2D := $(SKYAI_BASE)/benchmarks/maze2d
+LIBOBJS := $(LIBMAZE2D)/libmaze2d.o
 ##-------------------------------------------------------------------------------------------
-include Makefile_cmn
+USING_SKYAI:=true
+MAKING_SKYAI:=true
+include ../../Makefile_postconf
+##------------------------------------------------------------------
+extra_make : lib
+
+lib :
+	@(set -e; make -C $(LIBMAZE2D) lib)
 ##------------------------------------------------------------------

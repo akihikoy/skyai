@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,91 +16,18 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
+include ../../Makefile_preconf
+##-------------------------------------------------------------------------------------------
 EXEC := humanoid01.out
-LIBOBJS :=
-CXX = g++
-AR = ar
-ifeq ($(DEBUG),true)
-  CXXFLAGS := -g -Wall -rdynamic
-else
-  CXXFLAGS := -g -Wall -rdynamic -O2 -march=i686
-endif
-LDFLAGS  := $(CXXFLAGS)
-RMFLAGS  :=  -vf
 ##-------------------------------------------------------------------------------------------
 ## make  *.out  from  *.c and *.cpp
 OBJS := \
       $(patsubst %.c,%.o,$(wildcard *.c)) \
       $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
 ##-------------------------------------------------------------------------------------------
-LIBS    = -I/usr/include -I/usr/local/include
-LDLIBS  = -lm -L/usr/local/lib
+USING_SKYAI_ODE:=true
+MAKING_SKYAI:=true
+include ../../Makefile_postconf
 ##-------------------------------------------------------------------------------------------
-## for libskyai
-LIBSKYAI := ../../libskyai
-LIBS    += -I$(LIBSKYAI)/include
-# LIBOBJS += $(LIBSKYAI)/lib/libskyai.a
-LIBOBJS+= $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
-LDLIBS += -lboost_filesystem -lboost_regex
-##-------------------------------------------------------------------------------------------
-## for liblora
-LIBLORA := ../../liblora
-LIBS    += -I$(LIBLORA)/include
-LIBOBJS += $(LIBLORA)/lib/liblora_oct.a $(LIBLORA)/lib/liblora_ode.a $(LIBLORA)/lib/liblora.a
-##-------------------------------------------------------------------------------------------
-## for Octave
-LIBS   += -I/usr/include/octave-`octave-config -v`
-LDLIBS += -L/usr/lib/octave-`octave-config -v` -loctave -lcruft -Wl,-rpath /usr/lib/octave-`octave-config -v`
-LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
-##-------------------------------------------------------------------------------------------
-## for ODE
-include $(LIBLORA)/src/Makefile_odeflags
-LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
-##-------------------------------------------------------------------------------------------
-all : lib $(EXEC)
-
-lib : adlib libhumanoid01.o
-##-------------------------------------------------------------------------------------------
-## additional make
-adlib :
-	@(set -e; make -C $(LIBLORA)/src std oct ode)
-	@(set -e; make -C $(LIBSKYAI)/src)
-##-------------------------------------------------------------------------------------------
-## generic make rules
-
-clean   :
-	@rm $(RMFLAGS) *.o *.a *.il $(EXEC) $(ARC) $(EXTRA_CLEAN)
-	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
-
-# %.out : %.cpp $(LIBOBJS)
-# 	$(CXX) -o $@ $< $(LIBS) $(CXXFLAGS) $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-# 	@(echo "$@ is generated")
-
-# %.out : %.o $(LIBOBJS)
-# 	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-# 	@(echo "$@ is generated")
-
-$(EXEC) : $(OBJS) $(LIBOBJS)
-	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-	@(echo "$(EXEC) is generated")
-
-# $(ARC) : $(OBJS) $(LIBOBJS)
-# 	$(AR) r $(ARC) $(OBJS) $(LIBOBJS)
-# 	@(echo "$(ARC) is generated")
-
-%.o : %.cpp
-	$(CXX) $(LIBS) $(CXXFLAGS) -o $@ -c $<
-
-DEPOPT  ?= -M
-# DEPOPT  ?= -MM
-
-%.d: %.cpp
-	@(rm -f $@; \
-	$(CXX) $(DEPOPT) $(LIBS) $(CXXFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	[ -s $@ ] || rm -f $@; \
-	rm -f $@.$$$$; \
-	)
-##-------------------------------------------------------------------------------------------
-include $(OBJ:.o=.d) $(OBJS:.o=.d) $(objects:.o=.d) $(addsuffix .d, $(BINARY))
+lib : libhumanoid01.o
 ##-------------------------------------------------------------------------------------------

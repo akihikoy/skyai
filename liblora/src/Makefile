@@ -20,7 +20,7 @@ TARGET_FLAG :=
 
 all     : std oct ode
 
-clean	: TARGET_FLAG =clean
+clean	: TARGET_FLAG :=clean
 clean	: all
 
 std :

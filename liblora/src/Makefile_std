@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,27 +16,30 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-ARC = ../lib/liblora.a
-OBJS= common.o              \
-      bioloid.o             \
-      cast.o                \
-      file.o                \
-      math.o                \
-      rand.o                \
-      serial.o              \
-      setting_file.o        \
-      small_classes.o       \
-      stl_ext.o             \
-      stl_math.o            \
-      stl_rand.o            \
-      string.o              \
-      string_list.o         \
-      string_list_ext.o     \
-      sys.o                 \
-      type_gen.o            \
-      variable_any.o        \
-      variable_parser.o     \
-      variable_space.o
+include ../../Makefile_preconf
+##-------------------------------------------------------------------------------------------
+ARC := ../lib/liblora.a
+OBJS:= common.o              \
+       bioloid.o             \
+       cast.o                \
+       file.o                \
+       math.o                \
+       rand.o                \
+       serial.o              \
+       setting_file.o        \
+       small_classes.o       \
+       stl_ext.o             \
+       stl_math.o            \
+       stl_rand.o            \
+       string.o              \
+       string_list.o         \
+       string_list_ext.o     \
+       sys.o                 \
+       type_gen.o            \
+       variable_any.o        \
+       variable_parser.o     \
+       variable_space.o
 ##------------------------------------------------------------------
-include Makefile_cmn
+USING_LORA:=true
+include ../../Makefile_postconf
 ##------------------------------------------------------------------

@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,13 +16,24 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-EXEC:=agent_talker_mz.out
-USING_ODE:=false
-##------------------------------------------------------------------
-## for maze2d
-LIBMAZE2D := $(wildcard ~/proj/skyai)/benchmarks/maze2d
-LIBOBJS := $(LIBMAZE2D)/libmaze2d.o
-MOD_MAKE_PATH := $(LIBMAZE2D)
+EXEC :=
+ARC :=
+LIBOBJS :=
+CXX := g++
+AR := ar
+ifeq ($(DEBUG),true)
+  CXXFLAGS := -g -Wall -rdynamic
+else
+  CXXFLAGS := -g -Wall -rdynamic -O3 -march=i686
+endif
+LDFLAGS  := $(CXXFLAGS)
+RMFLAGS  :=  -vf
+EXTRA_CLEAN :=
 ##-------------------------------------------------------------------------------------------
-include Makefile_cmn
-##------------------------------------------------------------------
+SKYAI_BASE := $(wildcard ~/proj/skyai)
+##-------------------------------------------------------------------------------------------
+OBJS :=
+##-------------------------------------------------------------------------------------------
+LIBS    := -I/usr/include -I/usr/local/include
+LDLIBS  := -lm -L/usr/local/lib
+##-------------------------------------------------------------------------------------------

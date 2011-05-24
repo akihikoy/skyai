@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010  Akihiko Yamaguchi
+#     Copyright (C) 2010,2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,13 +16,12 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-ARC = ../lib/liblora_ode.a
-OBJS= ode.o                 \
-      ode_ds.o
+include ../../Makefile_preconf
+##-------------------------------------------------------------------------------------------
+ARC := ../lib/liblora_ode.a
+OBJS:= ode.o                 \
+       ode_ds.o
 ##------------------------------------------------------------------
-# for ODE
-LIBS=
-include Makefile_odeflags
-##------------------------------------------------------------------
-include Makefile_cmn
+USING_LORA_ODE:=true
+include ../../Makefile_postconf
 ##------------------------------------------------------------------
