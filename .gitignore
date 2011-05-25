@@ -1,15 +1,20 @@
 *~
 *.d
 *.o
+*.lo
 *.a
+*.so
+*.so.*
 *.out
 core
 core.[0-9]*
 
 trash
 frame
-
-liblora/src/Makefile_odeflags
+test
+tst
+Makefile_libconf
+Makefile_preconf
 
 liblora/docs/error-log.dat
 liblora/docs/html

@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010,2011  Akihiko Yamaguchi
+#     Copyright (C) 2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,35 +16,20 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-include ../../Makefile_preconf
-##-------------------------------------------------------------------------------------------
-ARC := ../lib/libskyai.a
-##-------------------------------------------------------------------------------------------
-OBJS    := \
-      $(patsubst %.c,%.o,$(wildcard *.c)) \
-      $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-MOBJS    := \
-      $(patsubst %.c,%.o,$(wildcard */*.c)) \
-      $(patsubst %.cpp,%.o,$(wildcard */*.cpp)) #
-##-------------------------------------------------------------------------------------------
-EXTRA_CLEAN+= $(MOBJS) ../lib/*.o
-##-------------------------------------------------------------------------------------------
-USING_LORA_OCT:=true
-USING_SKYAI:=true
-include ../../Makefile_postconf
-##-------------------------------------------------------------------------------------------
-# modify the rules:
-all : $(MOBJS)
+TARGET_FLAG :=
 
-%.o : %.cpp
-	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c $<
-	@(if [ -z "`echo '$@' | sed 's/[^/]*\\/[^/]*//g'`" ];then \
-	ln -sfv ../src/$@ ../lib/; \
-	echo "*************************************************";\
-	echo "../lib/`basename $@` is generated"; \
-	echo "*************************************************";\
-	fi; \
-	)
-##-------------------------------------------------------------------------------------------
-include $(MOBJS:.o=.d)
-##-------------------------------------------------------------------------------------------
+all     : base mcore mstd
+
+clean	: TARGET_FLAG :=clean
+clean	: all
+
+base :
+	@(set -e; make -f Makefile_base $(TARGET_FLAG))
+
+mcore :
+	@(set -e; make -f Makefile_mcore $(TARGET_FLAG))
+
+mstd :
+	@(set -e; make -f Makefile_mstd $(TARGET_FLAG))
+
+##------------------------------------------------------------------

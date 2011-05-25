@@ -16,9 +16,27 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
+#     TODO:
+#       1. generate a blank file:  touch Makefile_preconf
+#       2. edit Makefile_preconf as follows (specify SKYAI_DIRECTORY):
+#
+#         include $(BASE_REL_DIR)Makefile_preconf.sample
+#         SKYAI_BASE := SKYAI_DIRECTORY
+#
+##-------------------------------------------------------------------------------------------
+SKYAI_BASE := $(wildcard ~/proj/skyai)
+##-------------------------------------------------------------------------------------------
 EXEC :=
 ARC :=
+SO :=
+OBJS :=
+LOBJS :=
 LIBOBJS :=
+EXTRA_CLEAN :=
+##-------------------------------------------------------------------------------------------
+USING_SO:=true
+SKYAI_SOVER:=0.1
+##-------------------------------------------------------------------------------------------
 CXX := g++
 AR := ar
 ifeq ($(DEBUG),true)
@@ -28,11 +46,6 @@ else
 endif
 LDFLAGS  := $(CXXFLAGS)
 RMFLAGS  :=  -vf
-EXTRA_CLEAN :=
-##-------------------------------------------------------------------------------------------
-SKYAI_BASE := $(wildcard ~/proj/skyai)
-##-------------------------------------------------------------------------------------------
-OBJS :=
 ##-------------------------------------------------------------------------------------------
 LIBS    := -I/usr/include -I/usr/local/include
 LDLIBS  := -lm -L/usr/local/lib

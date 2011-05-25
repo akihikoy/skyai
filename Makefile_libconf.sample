@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010,2011  Akihiko Yamaguchi
+#     Copyright (C) 2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,26 +16,24 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-BASE_REL_DIR:=../..
-include $(BASE_REL_DIR)/Makefile_preconf
+#     TODO:
+#       1. copy this file:  cp Makefile_libconf.sample Makefile_libconf
+#       2. edit Makefile_libconf
 ##-------------------------------------------------------------------------------------------
-## make  *.out  from  *.c and *.cpp
-OBJS := \
-      $(patsubst %.c,%.o,$(wildcard *.c)) \
-      $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-EXECS := $(OBJS:.o=.out)
+## for Octave
+ifeq ($(USING_OCTAVE),true)
+  LIBS += -I/usr/include/octave-`octave-config -v`
+  LDLIBS += -L/usr/lib/octave-`octave-config -v` -loctave -lcruft -Wl,-rpath /usr/lib/octave-`octave-config -v`
+  LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
+endif
 ##-------------------------------------------------------------------------------------------
-EXTRA_CLEAN+= $(EXECS)
-##-------------------------------------------------------------------------------------------
-USING_LORA_OCT:=true
-MAKING_LORA:=true
-include $(BASE_REL_DIR)/Makefile_body
-##-------------------------------------------------------------------------------------------
-all : $(EXECS)
-##-------------------------------------------------------------------------------------------
-%.out : %.o $(LIBOBJS)
-	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
-	@(echo "*************************************************")
-	@(echo "$@ is generated")
-	@(echo "*************************************************")
+## for ODE
+ifeq ($(USING_ODE),true)
+  LIBODE := $(wildcard ~/prg)/libode/ode-0.10.1
+  LIBS += -I$(LIBODE)/include
+  LIBS += -DODE_MINOR_VERSION=10 -DdDOUBLE
+  LDLIBS += $(LIBODE)/ode/src/.libs/libode.a
+  LDLIBS += $(LIBODE)/drawstuff/src/.libs/libdrawstuff.a
+  LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
+endif
 ##-------------------------------------------------------------------------------------------

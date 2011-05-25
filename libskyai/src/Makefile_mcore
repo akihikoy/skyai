@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2010,2011  Akihiko Yamaguchi
+#     Copyright (C) 2011  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -19,23 +19,28 @@
 BASE_REL_DIR:=../..
 include $(BASE_REL_DIR)/Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-## make  *.out  from  *.c and *.cpp
-OBJS := \
-      $(patsubst %.c,%.o,$(wildcard *.c)) \
-      $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
-EXECS := $(OBJS:.o=.out)
+OTARGETS=$(OBJS)
+ifeq ($(USING_SO),true)
+  SO := ../lib/libskyai_mcore.so.$(SKYAI_SOVER)
+  OTARGETS=
+endif
 ##-------------------------------------------------------------------------------------------
-EXTRA_CLEAN+= $(EXECS)
+OBJS := $(patsubst %.cpp,%.o,$(wildcard modules_core/*.cpp))#
+LOBJS:=$(OBJS:.o=.lo)
+##-------------------------------------------------------------------------------------------
+EXTRA_CLEAN+= ../lib/*.o
 ##-------------------------------------------------------------------------------------------
 USING_LORA_OCT:=true
-MAKING_LORA:=true
+USING_SKYAI:=true
 include $(BASE_REL_DIR)/Makefile_body
 ##-------------------------------------------------------------------------------------------
-all : $(EXECS)
-##-------------------------------------------------------------------------------------------
-%.out : %.o $(LIBOBJS)
-	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+# modify the rules:
+all : $(OTARGETS)
+
+%.o : %.cpp
+	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c $<
+	@(ln -sfv ../src/$@ ../lib/)
 	@(echo "*************************************************")
-	@(echo "$@ is generated")
+	@(echo "../lib/`basename $@` is generated")
 	@(echo "*************************************************")
 ##-------------------------------------------------------------------------------------------

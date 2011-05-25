@@ -25,7 +25,14 @@ endif
 ifeq ($(USING_SKYAI),true)
   USING_LORA_OCT:=true
   LIBS    += -I$(LIBSKYAI)/include
-  LIBOBJS += $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
+  ifeq ($(USING_SO),true)
+    LIBOBJS += $(LIBSKYAI)/lib/libskyai_mcore.so.$(SKYAI_SOVER)
+    LIBOBJS += $(LIBSKYAI)/lib/libskyai_mstd.so.$(SKYAI_SOVER)
+    LIBOBJS += $(LIBSKYAI)/lib/libskyai.so.$(SKYAI_SOVER)
+    LDLIBS  += -Wl,-rpath $(LIBSKYAI)/lib
+  else
+    LIBOBJS += $(LIBSKYAI)/lib/*.o $(LIBSKYAI)/lib/libskyai.a
+  endif
   LDLIBS  += -lboost_filesystem -lboost_regex
 endif
 ifeq ($(MAKING_SKYAI),true)
@@ -39,42 +46,40 @@ MAKE_LORA_SUB:=std
 ifeq ($(USING_LORA_OCT),true)
   USING_LORA:=true
   USING_OCTAVE:=true
-  LIBOBJS += $(LIBLORA)/lib/liblora_oct.a
+  ifeq ($(USING_SO),true)
+    LIBOBJS += $(LIBLORA)/lib/liblora_oct.so.$(SKYAI_SOVER)
+  else
+    LIBOBJS += $(LIBLORA)/lib/liblora_oct.a
+  endif
   MAKE_LORA_SUB+= oct
 endif
 ifeq ($(USING_LORA_ODE),true)
   USING_LORA:=true
   USING_ODE:=true
-  LIBOBJS += $(LIBLORA)/lib/liblora_ode.a
+  ifeq ($(USING_SO),true)
+    LIBOBJS += $(LIBLORA)/lib/liblora_ode.so.$(SKYAI_SOVER)
+  else
+    LIBOBJS += $(LIBLORA)/lib/liblora_ode.a
+  endif
   MAKE_LORA_SUB+= ode
 endif
 ifeq ($(USING_LORA),true)
   USING_OCTAVE:=true
   LIBS   += -I$(LIBLORA)/include
-  LIBOBJS += $(LIBLORA)/lib/liblora.a
+  ifeq ($(USING_SO),true)
+    LIBOBJS += $(LIBLORA)/lib/liblora.so.$(SKYAI_SOVER)
+    LDLIBS  += -Wl,-rpath $(LIBLORA)/lib
+  else
+    LIBOBJS += $(LIBLORA)/lib/liblora.a
+  endif
 endif
 ifeq ($(MAKING_LORA),true)
   MAKE_CMD_LORA:=make -C $(LIBLORA)/src $(MAKE_LORA_SUB)
 endif
 ##-------------------------------------------------------------------------------------------
-## for Octave
-ifeq ($(USING_OCTAVE),true)
-  LIBS += -I/usr/include/octave-`octave-config -v`
-  LDLIBS += -L/usr/lib/octave-`octave-config -v` -loctave -lcruft -Wl,-rpath /usr/lib/octave-`octave-config -v`
-  LDLIBS += -ldl -lfftw3 -L/usr/lib/atlas -latlas -llapack -lblas
-endif
+include $(SKYAI_BASE)/Makefile_libconf
 ##-------------------------------------------------------------------------------------------
-## for ODE
-ifeq ($(USING_ODE),true)
-  LIBODE := $(wildcard ~/prg)/libode/ode-0.10.1
-  LIBS += -I$(LIBODE)/include
-  LIBS += -DODE_MINOR_VERSION=10 -DdDOUBLE
-  LDLIBS += $(LIBODE)/ode/src/.libs/libode.a
-  LDLIBS += $(LIBODE)/drawstuff/src/.libs/libdrawstuff.a
-  LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
-endif
-##-------------------------------------------------------------------------------------------
-all : extra_make $(ARC) $(EXEC)
+all : extra_make $(ARC) $(EXEC) $(SO)
 ##-------------------------------------------------------------------------------------------
 ## extra make
 extra_make :
@@ -84,23 +89,32 @@ extra_make :
 ## generic make rules
 
 clean   :
-	@rm $(RMFLAGS) *.o *.a *.il $(OBJS) $(EXEC) $(ARC) $(EXTRA_CLEAN)
+	@rm $(RMFLAGS) *.o *.lo *.a *.so *.so.$(SKYAI_SOVER) *.il $(OBJS) $(LOBJS) $(EXEC) $(ARC) $(SO) $(EXTRA_CLEAN)
 	@find -name '*.d' -type f | xargs rm $(RMFLAGS)
 
 $(EXEC) : $(OBJS) $(LIBOBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
 	@(echo "*************************************************")
-	@(echo "$(EXEC) is generated")
+	@(echo "$@ is generated")
 	@(echo "*************************************************")
 
 $(ARC) : $(OBJS)
 	$(AR) r $(ARC) $(OBJS)
 	@(echo "*************************************************")
-	@(echo "$(ARC) is generated")
+	@(echo "$@ is generated")
+	@(echo "*************************************************")
+
+$(SO) : $(LOBJS)
+	$(CXX) -shared -Wl,-soname,`basename $@` $(LOBJS) -o $@
+	@(echo "*************************************************")
+	@(echo "$@ is generated")
 	@(echo "*************************************************")
 
 %.o : %.cpp
 	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c $<
+
+%.lo : %.cpp
+	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) -c -fPIC $<
 
 DEPOPT  ?= -MM
 
@@ -112,5 +126,5 @@ DEPOPT  ?= -MM
 	rm -f $@.$$$$; \
 	)
 ##-------------------------------------------------------------------------------------------
-include $(OBJS:.o=.d)
+include $(OBJS:.o=.d) $(LOBJS:.lo=.d)
 ##-------------------------------------------------------------------------------------------

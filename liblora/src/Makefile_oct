@@ -16,16 +16,22 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-include ../../Makefile_preconf
+BASE_REL_DIR:=../..
+include $(BASE_REL_DIR)/Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-ARC := ../lib/liblora_oct.a
+ifeq ($(USING_SO),true)
+  SO := ../lib/liblora_oct.so.$(SKYAI_SOVER)
+else
+  ARC := ../lib/liblora_oct.a
+endif
 OBJS:= octave.o              \
        octave_str.o          \
        ctrl_tools.o          \
        oldngnet.o            \
        type_gen_oct.o        \
        variable_space_oct.o
+LOBJS:=$(OBJS:.o=.lo)
 ##------------------------------------------------------------------
 USING_LORA_OCT:=true
-include ../../Makefile_postconf
+include $(BASE_REL_DIR)/Makefile_body
 ##------------------------------------------------------------------

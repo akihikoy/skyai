@@ -16,9 +16,14 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-include ../../Makefile_preconf
+BASE_REL_DIR:=../..
+include $(BASE_REL_DIR)/Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-ARC := ../lib/liblora.a
+ifeq ($(USING_SO),true)
+  SO := ../lib/liblora.so.$(SKYAI_SOVER)
+else
+  ARC := ../lib/liblora.a
+endif
 OBJS:= common.o              \
        bioloid.o             \
        cast.o                \
@@ -39,7 +44,8 @@ OBJS:= common.o              \
        variable_any.o        \
        variable_parser.o     \
        variable_space.o
+LOBJS:=$(OBJS:.o=.lo)
 ##------------------------------------------------------------------
 USING_LORA:=true
-include ../../Makefile_postconf
+include $(BASE_REL_DIR)/Makefile_body
 ##------------------------------------------------------------------

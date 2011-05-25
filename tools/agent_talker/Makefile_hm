@@ -16,7 +16,8 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-include ../../Makefile_preconf
+BASE_REL_DIR:=../..
+include $(BASE_REL_DIR)/Makefile_preconf
 ##-------------------------------------------------------------------------------------------
 EXEC:=agent_talker_hm.out
 OBJS:=agent_talker.o
@@ -27,7 +28,7 @@ LIBOBJS := $(LIBHUMANOID)/libhumanoid01.o
 ##-------------------------------------------------------------------------------------------
 USING_SKYAI_ODE:=true
 MAKING_SKYAI:=true
-include ../../Makefile_postconf
+include $(BASE_REL_DIR)/Makefile_body
 ##------------------------------------------------------------------
 extra_make : lib
 
