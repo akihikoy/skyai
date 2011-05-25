@@ -20,7 +20,7 @@
 #       1. generate a blank file:  touch Makefile_preconf
 #       2. edit Makefile_preconf as follows (specify SKYAI_DIRECTORY):
 #
-#         include $(BASE_REL_DIR)Makefile_preconf.sample
+#         include $(BASE_REL_DIR)/Makefile_preconf.sample
 #         SKYAI_BASE := SKYAI_DIRECTORY
 #
 ##-------------------------------------------------------------------------------------------
