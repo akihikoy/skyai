@@ -154,7 +154,7 @@ static TPortInterface* through (TPortInterface &v_port, const TPortInterface &)
 
 /*!\brief Management class of port connections
     \note If a port using this class is out-port or slot-port, let t_connectable_port==TPortInterface.
-        Because, their role is just providing Get, Exec to in-port, out-port, respectively.
+        Because their role is just providing Get, Exec to in-port, out-port, respectively.
         That is, they do not call the functions. */
 template <typename t_connectable_port>
 struct TPortConnector

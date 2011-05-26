@@ -60,7 +60,7 @@
           outer      (v_outer)                                          \
         {}                                                              \
     protected:                                                          \
-      override x_return_type get_ x_arg_list const                      \
+      override x_return_type get_ x_arg_list                            \
         {                                                               \
           return outer.x_port_name##_get x_param_list;                  \
         }                                                               \
