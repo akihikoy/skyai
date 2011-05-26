@@ -1,42 +1,5 @@
-Usage:
+Simple demonstrations of a maze task.
 
-1. Build:
-  $ make
+For the detail usage, please visit:
 
-2. Execute as follows:
-  $ ./maze2d.sh -agent materials/maze2d-gfada.agent -outdir result/rl1/
-Some log files are created in result/rl1.
-NOTE: result/rl1 should be created by user before execution.
-
-3. Examples:
-
-* Q(lambda)-learning, linear action value function (NGnet):
-./maze2d.sh -agent materials/maze2d-gfada.agent -outdir result/rl1/
-
-* Fitted Q iteration (updated in every 10 episode), linear action value function (NGnet):
-./maze2d.sh -agent materials/maze2d-fqi.agent -outdir result/rl1/
-
-* LSPI (updated in every 5 episode), linear action value function (NGnet):
-./maze2d.sh -agent materials/maze2d-lspi.agent -outdir result/rl1/
-
-* Cohen's hierarchical RL:
-./maze2d.sh -agent materials/maze2d-hrl.agent -outdir result/rl1/
-
-* Wire-fitting updated by Q(lambda)-learning:
-./maze2d.sh -agent materials/maze2d-wf.agent -outdir result/rl1/
-
-
-* Q(lambda)-learning + Fitted Q iteration (updated in every 10 episode), linear action value function (NGnet):
-./maze2d.sh -agent materials/maze2d-qlfqida.agent -outdir result/rl1/
-
-* Q(lambda)-learning + Fitted Q iteration (updated in every 10 episode) for Wire-fitting:
-./maze2d.sh -agent materials/maze2d-qlfqiwf.agent -outdir result/rl1/
-
-
-* some tests:
-
-./maze2d.sh -agent materials/maze2d-chacts.agent -outdir result/rl1/
-./maze2d.sh -agent materials/maze2d-composit-fqi.agent -outdir result/rl1/
-./maze2d.sh -agent materials/maze2d-composit.agent -outdir result/rl1/
-
-
+  http://skyai.org/wiki/?Documentation%2FRunning%20Demos

@@ -1,13 +1,14 @@
 /*! \mainpage
-SkyAI -- Highly modularized Reinforcement Learning library for real/simulation robots to learn behaviors.
+SkyAI -- Highly modularized Reinforcement Learning library
+for real and simulation robots to learn behaviors.
 
-Copyright (C) 2009, 2010  Akihiko Yamaguchi
+Copyright (C) 2009, 2010, 2011  Akihiko Yamaguchi
 
 \section Overview
 --------
 
 SkyAI (pronounced /skaI aI/) is a highly modularized Reinforcement
-Learning library for real/simulation robots to learn behaviors.
+Learning library for real and simulation robots to learn behaviors.
 Our ultimate goal is to develop an artificial intelligence (AI)
 program with which the robots can learn to behave as their users wish.
 
@@ -22,14 +23,14 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
 COPYING for more details.
 
 
-\section Installation
+\section Installation and Usage
 --------
 
-Please see http://skyai.sourceforge.net/
+Please visit http://skyai.org/
 
 --
 Akihiko Yamaguchi
 ay@akiyam.sakura.ne.jp
 
-Last updated: Mon Jun 14 01:36:01 JST 2010
+Last updated: Thu May 26 01:30:11 JST 2011
 */
