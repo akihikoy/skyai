@@ -40,10 +40,6 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 
-//===========================================================================================
-// class MSimpleDynamicsModel
-//===========================================================================================
-
 //!\brief constrain a state transition probability matrix
 static void constrain_transition_prob_matrix (TRealMatrix &Fa)
 {
@@ -71,8 +67,32 @@ static void constrain_transition_prob_matrix (TRealMatrix &Fa)
 // class MSimpleDynamicsModel
 //===========================================================================================
 
+void MSimpleDynamicsModel::setup_param() const
+{
+  TInt  action_size(get_action_set_size());
+  TInt  feature_size(GenSize(get_feature()));
+  if (action_size*feature_size==0)
+  {
+    LWARNING(InstanceName()<<"::setup_param: size of mem_.Param is zero;"
+              <<" action_size="<<action_size<<", feature_size="<<feature_size);
+    mem_.Param.clear();
+    return;
+  }
+  if (static_cast<TInt>(mem_.Param.size())!=action_size)
+  {
+    mem_.Param.resize(action_size, TSimpleDMParamAct(feature_size));
+  }
+  if (mem_.Param[0].Fa.cols()!=feature_size)
+  {
+    for (std::vector<TSimpleDMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
+      p_itr->Fa.resize(feature_size,feature_size,0.0l);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 override const TReal& MSimpleDynamicsModel::out_trans_probability_get (const TInt &curr_s, const TInt &next_s, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   tmp_trans_prob_= mem_.Param[curr_a].Fa(next_s,curr_s);
   return tmp_trans_prob_;
 }
@@ -80,6 +100,7 @@ override const TReal& MSimpleDynamicsModel::out_trans_probability_get (const TIn
 
 override const TRealVector& MSimpleDynamicsModel::out_next_feature_get (const TRealVector &curr_phi, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   tmp_next_phi_= mem_.Param[curr_a].Fa * curr_phi;
   return tmp_next_phi_;
 }
@@ -87,6 +108,7 @@ override const TRealVector& MSimpleDynamicsModel::out_next_feature_get (const TR
 
 override const TDiscreteAction& MSimpleDynamicsModel::out_most_probable_action_get (const TInt &curr_s, const TInt &next_s, TReal &trans_prob) const
 {
+  setup_param();
   trans_prob= 0.0l;
   tmp_trans_a_= -1;
   for (TDiscreteAction a(0),end_a(mem_.Param.size()); a<end_a; ++a)
@@ -103,28 +125,13 @@ override const TDiscreteAction& MSimpleDynamicsModel::out_most_probable_action_g
 
 override void MSimpleDynamicsModel::slot_initialize_exec (void)
 {
-  TInt  action_size(get_action_set_size());
-  TInt  feature_size(GenSize(get_feature()));
-  if (action_size*feature_size==0)
-  {
-    mem_.Param.clear();
-    return;
-  }
-  if (static_cast<TInt>(mem_.Param.size())!=action_size)
-  {
-    mem_.Param.resize(action_size, TSimpleDMParamAct(feature_size));
-  }
-  if (mem_.Param[0].Fa.cols()!=feature_size)
-  {
-    for (std::vector<TSimpleDMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
-      p_itr->Fa.resize(feature_size,feature_size,0.0l);
-  }
+  setup_param();
 }
 //-------------------------------------------------------------------------------------------
 
 override void MSimpleDynamicsModel::slot_start_action_exec (const TDiscreteAction &curr_a)
 {
-  slot_initialize_exec();
+  setup_param();
   tmp_old_phi_ = get_feature();
   tmp_old_a_   = curr_a;
 }
@@ -132,7 +139,7 @@ override void MSimpleDynamicsModel::slot_start_action_exec (const TDiscreteActio
 
 override void MSimpleDynamicsModel::slot_finish_action_exec (void)
 {
-  slot_initialize_exec();
+  setup_param();
   const TRealVector &next_phi(get_feature()), &phi(tmp_old_phi_);
   TRealMatrix  &Fa(mem_.Param[tmp_old_a_].Fa);
   Fa+= get_alpha()*(next_phi-Fa*phi)*phi.transpose();
@@ -152,6 +159,30 @@ inline TReal MSimpleDynamicsModel::get_alpha (void) const
 //===========================================================================================
 // class MMixFS2DynamicsModel
 //===========================================================================================
+
+void MMixFS2DynamicsModel::setup_param() const
+{
+  TInt  action_size(get_action_set_size());
+  TInt  feature_size(GenSize(get_feature()));
+  TInt  state_dim(GenSize(get_state()));
+  if (action_size*feature_size*state_dim==0)
+  {
+    LWARNING(InstanceName()<<"::setup_param: size of mem_.Param is zero;"
+              <<" action_size="<<action_size<<", feature_size="<<feature_size<<", state_dim="<<state_dim);
+    mem_.Param.clear();
+    return;
+  }
+  if (static_cast<TInt>(mem_.Param.size())!=action_size)
+  {
+    mem_.Param.resize(action_size, TMixFS2DMParamAct(feature_size,state_dim));
+  }
+  if (mem_.Param[0].Fa.cols()!=feature_size || GenSize(mem_.Param[0].Dxa)!=state_dim)
+  {
+    for (std::vector<TMixFS2DMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
+      p_itr->Resize(feature_size,state_dim);
+  }
+}
+//-------------------------------------------------------------------------------------------
 
 void MMixFS2DynamicsModel::update_cache (const TDiscreteAction &a) const
 {
@@ -177,6 +208,7 @@ void MMixFS2DynamicsModel::update_cache (const TDiscreteAction &a) const
 
 override const TReal& MMixFS2DynamicsModel::out_trans_probability_get (const TInt &curr_s, const TInt &next_s, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   if (!mem_.Param[curr_a].IsCached)  update_cache(curr_a);
   tmp_trans_prob_= mem_.Param[curr_a].CachedFa(next_s,curr_s);
   return tmp_trans_prob_;
@@ -185,6 +217,7 @@ override const TReal& MMixFS2DynamicsModel::out_trans_probability_get (const TIn
 
 override const TRealVector& MMixFS2DynamicsModel::out_next_feature_get (const TRealVector &curr_phi, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   if (!mem_.Param[curr_a].IsCached)  update_cache(curr_a);
   tmp_next_phi_= mem_.Param[curr_a].CachedFa * curr_phi;
   return tmp_next_phi_;
@@ -193,6 +226,7 @@ override const TRealVector& MMixFS2DynamicsModel::out_next_feature_get (const TR
 
 override const TDiscreteAction& MMixFS2DynamicsModel::out_most_probable_action_get (const TInt &curr_s, const TInt &next_s, TReal &trans_prob) const
 {
+  setup_param();
   trans_prob= 0.0l;
   tmp_trans_a_= -1;
   for (TDiscreteAction a(0),end_a(mem_.Param.size()); a<end_a; ++a)
@@ -210,29 +244,13 @@ override const TDiscreteAction& MMixFS2DynamicsModel::out_most_probable_action_g
 
 override void MMixFS2DynamicsModel::slot_initialize_exec (void)
 {
-  TInt  action_size(get_action_set_size());
-  TInt  feature_size(GenSize(get_feature()));
-  TInt  state_dim(GenSize(get_state()));
-  if (action_size*feature_size*state_dim==0)
-  {
-    mem_.Param.clear();
-    return;
-  }
-  if (static_cast<TInt>(mem_.Param.size())!=action_size)
-  {
-    mem_.Param.resize(action_size, TMixFS2DMParamAct(feature_size,state_dim));
-  }
-  if (mem_.Param[0].Fa.cols()!=feature_size || GenSize(mem_.Param[0].Dxa)!=state_dim)
-  {
-    for (std::vector<TMixFS2DMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
-      p_itr->Resize(feature_size,state_dim);
-  }
+  setup_param();
 }
 //-------------------------------------------------------------------------------------------
 
 override void MMixFS2DynamicsModel::slot_start_action_exec (const TDiscreteAction &curr_a)
 {
-  slot_initialize_exec();
+  setup_param();
   tmp_old_phi_ = get_feature();
   tmp_old_x_   = get_state();
   tmp_old_a_   = curr_a;
@@ -241,7 +259,7 @@ override void MMixFS2DynamicsModel::slot_start_action_exec (const TDiscreteActio
 
 override void MMixFS2DynamicsModel::slot_finish_action_exec (void)
 {
-  slot_initialize_exec();
+  setup_param();
   mem_.Param[tmp_old_a_].IsCached= false;
   const TReal alpha(get_alpha());
   const TRealVector &next_phi(get_feature()), &phi(tmp_old_phi_);
@@ -285,6 +303,30 @@ inline TReal MMixFS2DynamicsModel::get_alpha (void) const
 // class MMixFS3DynamicsModel
 //===========================================================================================
 
+void MMixFS3DynamicsModel::setup_param() const
+{
+  TInt  action_size(get_action_set_size());
+  TInt  feature_size(GenSize(get_feature()));
+  TInt  state_dim(GenSize(get_state()));
+  if (action_size*feature_size*state_dim==0)
+  {
+    LWARNING(InstanceName()<<"::setup_param: size of mem_.Param is zero;"
+              <<" action_size="<<action_size<<", feature_size="<<feature_size<<", state_dim="<<state_dim);
+    mem_.Param.clear();
+    return;
+  }
+  if (static_cast<TInt>(mem_.Param.size())!=action_size)
+  {
+    mem_.Param.resize(action_size, TMixFS3DMParamAct(feature_size,state_dim));
+  }
+  if (mem_.Param[0].Fa.cols()!=feature_size || GenSize(mem_.Param[0].Dxa)!=state_dim)
+  {
+    for (std::vector<TMixFS3DMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
+      p_itr->Resize(feature_size,state_dim);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 void MMixFS3DynamicsModel::update_cache (const TDiscreteAction &a) const
 {
   TRealMatrix        &CachedFa(mem_.Param[a].CachedFa);
@@ -310,6 +352,7 @@ void MMixFS3DynamicsModel::update_cache (const TDiscreteAction &a) const
 
 override const TReal& MMixFS3DynamicsModel::out_trans_probability_get (const TInt &curr_s, const TInt &next_s, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   if (!mem_.Param[curr_a].IsCached)  update_cache(curr_a);
   tmp_trans_prob_= mem_.Param[curr_a].CachedFa(next_s,curr_s);
   return tmp_trans_prob_;
@@ -318,6 +361,7 @@ override const TReal& MMixFS3DynamicsModel::out_trans_probability_get (const TIn
 
 override const TRealVector& MMixFS3DynamicsModel::out_next_feature_get (const TRealVector &curr_phi, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   if (!mem_.Param[curr_a].IsCached)  update_cache(curr_a);
   tmp_next_phi_= mem_.Param[curr_a].CachedFa * curr_phi;
   return tmp_next_phi_;
@@ -326,6 +370,7 @@ override const TRealVector& MMixFS3DynamicsModel::out_next_feature_get (const TR
 
 override const TDiscreteAction& MMixFS3DynamicsModel::out_most_probable_action_get (const TInt &curr_s, const TInt &next_s, TReal &trans_prob) const
 {
+  setup_param();
   trans_prob= 0.0l;
   tmp_trans_a_= -1;
   for (TDiscreteAction a(0),end_a(mem_.Param.size()); a<end_a; ++a)
@@ -343,29 +388,13 @@ override const TDiscreteAction& MMixFS3DynamicsModel::out_most_probable_action_g
 
 override void MMixFS3DynamicsModel::slot_initialize_exec (void)
 {
-  TInt  action_size(get_action_set_size());
-  TInt  feature_size(GenSize(get_feature()));
-  TInt  state_dim(GenSize(get_state()));
-  if (action_size*feature_size*state_dim==0)
-  {
-    mem_.Param.clear();
-    return;
-  }
-  if (static_cast<TInt>(mem_.Param.size())!=action_size)
-  {
-    mem_.Param.resize(action_size, TMixFS3DMParamAct(feature_size,state_dim));
-  }
-  if (mem_.Param[0].Fa.cols()!=feature_size || GenSize(mem_.Param[0].Dxa)!=state_dim)
-  {
-    for (std::vector<TMixFS3DMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
-      p_itr->Resize(feature_size,state_dim);
-  }
+  setup_param();
 }
 //-------------------------------------------------------------------------------------------
 
 override void MMixFS3DynamicsModel::slot_start_action_exec (const TDiscreteAction &curr_a)
 {
-  slot_initialize_exec();
+  setup_param();
   tmp_old_phi_ = get_feature();
   tmp_old_x_   = get_state();
   tmp_old_a_   = curr_a;
@@ -374,7 +403,7 @@ override void MMixFS3DynamicsModel::slot_start_action_exec (const TDiscreteActio
 
 override void MMixFS3DynamicsModel::slot_finish_action_exec (void)
 {
-  slot_initialize_exec();
+  setup_param();
   mem_.Param[tmp_old_a_].IsCached= false;
   const TReal alpha(get_alpha());
   const TRealVector &next_phi(get_feature()), &phi(tmp_old_phi_);
@@ -405,12 +434,35 @@ inline TReal MMixFS3DynamicsModel::get_alpha (void) const
 // class MSimpleRewardModel
 //===========================================================================================
 
+void MSimpleRewardModel::setup_param() const
+{
+  TInt  action_size(get_action_set_size());
+  TInt  feature_size(GenSize(get_feature()));
+  if (action_size*feature_size==0)
+  {
+    LWARNING(InstanceName()<<"::setup_param: size of mem_.Param is zero;"
+              <<" action_size="<<action_size<<", feature_size="<<feature_size);
+    mem_.Param.clear();
+    return;
+  }
+  if (static_cast<TInt>(mem_.Param.size())!=action_size)
+  {
+    mem_.Param.resize(action_size, TSimpleRMParamAct(feature_size));
+  }
+  if (GenSize(mem_.Param[0].Ba)!=feature_size)
+  {
+    for (std::vector<TSimpleRMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
+      p_itr->Resize(feature_size);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 /*!\brief embed a prior knowledge to model; set reward source */
 override void MSimpleRewardModel::SetRewardSource (const std::list<TRealVector> &features, const std::list<TReal> &rewards)
 {
   LASSERT1op1(features.size(),==,rewards.size());
 
-  slot_initialize_exec();
+  setup_param();
   if (mem_.Param.size()==0 || GenSize(mem_.Param[0].Ba)==0)  return;
 
   //FIXME: lazy code (large comp. cost)
@@ -437,6 +489,7 @@ override void MSimpleRewardModel::SetRewardSource (const std::list<TRealVector> 
 
 override const TReal& MSimpleRewardModel::out_trans_reward_get (const TInt &curr_s, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   tmp_r_= mem_.Param[curr_a].Ba(curr_s);
   return tmp_r_;
 }
@@ -444,6 +497,7 @@ override const TReal& MSimpleRewardModel::out_trans_reward_get (const TInt &curr
 
 override const TReal& MSimpleRewardModel::out_trans_reward_at_feature_get (const TRealVector &curr_phi, const TDiscreteAction &curr_a) const
 {
+  setup_param();
   LASSERT1op1(GenSize(curr_phi),==,GenSize(mem_.Param[curr_a].Ba));
   tmp_r_=  InnerProd(GenBegin(curr_phi),GenEnd(curr_phi),GenBegin(mem_.Param[curr_a].Ba));
   return tmp_r_;
@@ -452,28 +506,13 @@ override const TReal& MSimpleRewardModel::out_trans_reward_at_feature_get (const
 
 override void MSimpleRewardModel::slot_initialize_exec (void)
 {
-  TInt  action_size(get_action_set_size());
-  TInt  feature_size(GenSize(get_feature()));
-  if (action_size*feature_size==0)
-  {
-    mem_.Param.clear();
-    return;
-  }
-  if (static_cast<TInt>(mem_.Param.size())!=action_size)
-  {
-    mem_.Param.resize(action_size, TSimpleRMParamAct(feature_size));
-  }
-  if (GenSize(mem_.Param[0].Ba)!=feature_size)
-  {
-    for (std::vector<TSimpleRMParamAct>::iterator p_itr(mem_.Param.begin()),p_last(mem_.Param.end()); p_itr!=p_last; ++p_itr)
-      p_itr->Resize(feature_size);
-  }
+  setup_param();
 }
 //-------------------------------------------------------------------------------------------
 
 override void MSimpleRewardModel::slot_start_action_exec (const TDiscreteAction &curr_a)
 {
-  slot_initialize_exec();
+  setup_param();
   tmp_old_phi_ = get_feature();
   tmp_old_a_   = curr_a;
 }
@@ -481,7 +520,7 @@ override void MSimpleRewardModel::slot_start_action_exec (const TDiscreteAction 
 
 override void MSimpleRewardModel::slot_finish_action_exec (void)
 {
-  slot_initialize_exec();
+  setup_param();
   const TSingleReward curr_r(get_reward());
 
   const TRealVector &phi(tmp_old_phi_);

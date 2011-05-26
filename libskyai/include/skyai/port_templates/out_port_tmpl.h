@@ -50,7 +50,7 @@ public:
       TParent (v_outer_base, v_name, v_max_connection_size)
     {}
 
-  t_return Get (FUNC_OBJ_FUNC_PARAMS) const
+  t_return Get (FUNC_OBJ_FUNC_PARAMS)
     {
       TActivate aco(*this);
       if (outer_base_.ModuleMode()==TModuleInterface::mmDebug)
@@ -100,7 +100,7 @@ public:
 
 protected:
 
-  virtual t_return get_ (FUNC_OBJ_TEMPLATE_ARGS) const = 0;
+  virtual t_return get_ (FUNC_OBJ_TEMPLATE_ARGS) = 0;
 
   skyai_detail::TPortConnector<TPortInterface>  port_connector_;
 

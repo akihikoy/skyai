@@ -138,8 +138,8 @@ public:
 
 protected:
 
-  TCommonModelConfigurations               conf_;
-  TCommonModelMemories<TSimpleDMParamAct>  mem_;
+  TCommonModelConfigurations                       conf_;
+  mutable TCommonModelMemories<TSimpleDMParamAct>  mem_;
 
   mutable TReal            tmp_trans_prob_;
   mutable TRealVector      tmp_next_phi_, tmp_old_phi_;
@@ -157,6 +157,8 @@ protected:
   override void slot_finish_action_exec (void);
 
   virtual void slot_start_episode_exec (void)  {++mem_.EpisodeNumber;}
+
+  void setup_param() const;
 
   inline TReal get_alpha (void) const;
 
@@ -240,8 +242,8 @@ public:
 
 protected:
 
-  TCommonModelConfigurations               conf_;
-  TCommonModelMemories<TMixFS2DMParamAct>  mem_;
+  TCommonModelConfigurations                       conf_;
+  mutable TCommonModelMemories<TMixFS2DMParamAct>  mem_;
 
   mutable TReal            tmp_trans_prob_;
   mutable TRealVector      tmp_next_phi_, tmp_old_phi_;
@@ -286,6 +288,8 @@ protected:
   override void slot_finish_action_exec (void);
 
   virtual void slot_start_episode_exec (void)  {++mem_.EpisodeNumber;}
+
+  void setup_param() const;
 
   void  update_cache (const TDiscreteAction &a) const;
 
@@ -401,8 +405,8 @@ public:
 protected:
 
   TCommonModelConfigurations               conf_;
-  TMixFS3DMConfigurations                  mconf_;
-  TCommonModelMemories<TMixFS3DMParamAct>  mem_;
+  TMixFS3DMConfigurations                          mconf_;
+  mutable TCommonModelMemories<TMixFS3DMParamAct>  mem_;
 
   mutable TReal            tmp_trans_prob_;
   mutable TRealVector      tmp_next_phi_, tmp_old_phi_;
@@ -447,6 +451,8 @@ protected:
   override void slot_finish_action_exec (void);
 
   virtual void slot_start_episode_exec (void)  {++mem_.EpisodeNumber;}
+
+  void setup_param() const;
 
   void  update_cache (const TDiscreteAction &a) const;
 
@@ -511,8 +517,8 @@ public:
 
 protected:
 
-  TCommonModelConfigurations               conf_;
-  TCommonModelMemories<TSimpleRMParamAct>  mem_;
+  TCommonModelConfigurations                       conf_;
+  mutable TCommonModelMemories<TSimpleRMParamAct>  mem_;
 
   mutable TReal            tmp_r_;
   mutable TRealVector      tmp_old_phi_;
@@ -528,6 +534,8 @@ protected:
   override void slot_finish_action_exec (void);
 
   virtual void slot_start_episode_exec (void)  {++mem_.EpisodeNumber;}
+
+  void setup_param() const;
 
   inline TReal get_alpha (void) const;
 
