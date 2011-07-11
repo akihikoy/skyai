@@ -209,8 +209,8 @@ void SaveToStringList (const ColumnVector &x, TStringListEx &str_list, const std
   #define tostr(_s) ConvertToStr(_s)
   const std::string indent("  ");
   const std::string blank(" ");
-  str_list.Add (prefix+indent+"dim1"+blank+tostr(x.dim1()));
-  for (int c(0); c<x.dim1(); ++c)
+  str_list.Add (prefix+indent+"dim1"+blank+tostr(x.length()));
+  for (int c(0); c<x.length(); ++c)
   {
     std::stringstream ss;
     ss<<prefix<<indent<<"val"<<blank<<tostr(c)<<blank<<tostr(x(c));
@@ -225,7 +225,7 @@ template <>
 void LoadFromStringList (ColumnVector &x, const TStringListEx &str_list)
 {
   bool first_data (true);
-  int dim1(1);
+  int length(1);
   std::list<std::string> token;
   while(1)
   {
@@ -237,23 +237,23 @@ void LoadFromStringList (ColumnVector &x, const TStringListEx &str_list)
     else if (*itr == "dim1")
     {
       ++itr;
-      dim1=boost::lexical_cast<int>(*itr);
+      length=boost::lexical_cast<int>(*itr);
     }
     else if (*itr == "val")
     {
       if (first_data)
       {
-        if (dim1<=0)
-          {std::cerr<<"invalid vector size dim1="<<dim1<<std::endl;return;}
-        x.resize (dim1,0.0);
+        if (length<=0)
+          {std::cerr<<"invalid vector size dim1="<<length<<std::endl;return;}
+        x.resize (length,0.0);
         first_data = false;
       }
       int c(0);
       ++itr;
       c = boost::lexical_cast<int>(*itr);
       ++itr;
-      if (c>=dim1)
-        std::cerr<<"in load vector, c="<<c<<" is greater than dim1="<<dim1<<std::endl;
+      if (c>=length)
+        std::cerr<<"in load vector, c="<<c<<" is greater than dim1="<<length<<std::endl;
       else
         x(c) = boost::lexical_cast<double>(*itr);
     }

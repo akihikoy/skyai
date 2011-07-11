@@ -131,7 +131,7 @@ inline Matrix OctErrorInverse(const Matrix &mat, int line_num, const char* file_
 template<>  // specialization of the template
 inline void SetZero (ColumnVector &val)
 {
-  // // for(int i(val.dim1()-1);i>=0;--i)   // this code is slow
+  // // for(int i(val.length()-1);i>=0;--i)   // this code is slow
   // //   val(i) = 0.0;
   std::fill(OctBegin(val),OctEnd(val),0.0l);  // fast
   // val=ColumnVector(val.length(),0.0l);  // for huge dimensional val, this is faster
@@ -343,7 +343,7 @@ public:
   const Matrix& GetChol (void) const {return L;};
   ColumnVector operator() (void) const
     {
-      ColumnVector r(L.dim1(), 0.0);
+      ColumnVector r(L.length(), 0.0);
       for (double *ptr(OctBegin(r)); ptr!=OctEnd(r); ++ptr)  *ptr= NDRand();
       return L*r;
     };

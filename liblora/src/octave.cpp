@@ -122,7 +122,7 @@ template Matrix  OctGen2<Matrix> (int rows, int cols, ...);
 Matrix EigInverse (const Matrix &m, const double &mineigv, const double &maxeigv, int &info)
 {
   EIG eig(m);
-  int dim(eig.eigenvalues().dim1());
+  int dim(eig.eigenvalues().length());
   DiagMatrix ev(dim,dim,0.0);
   for(int r(0);r<dim;++r)
   {
@@ -138,7 +138,7 @@ Matrix EigInverse (const Matrix &m, const double &mineigv, const double &maxeigv
 Matrix EigRevision (const Matrix &m, const double &mineigv, const double &maxeigv, int &info)
 {
   EIG eig(m);
-  int dim(eig.eigenvalues().dim1());
+  int dim(eig.eigenvalues().length());
   DiagMatrix ev(dim,dim,0.0);
   for(int r(0);r<dim;++r)
   {

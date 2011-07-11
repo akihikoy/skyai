@@ -295,9 +295,9 @@ public:
       //static const ColumnVector one(1,1.0);
       _x=__x;
       _y=__y;
-      _xt.resize(getXtDim(_x.dim1()));
+      _xt.resize(getXtDim(_x.length()));
       _xt.insert(_x,0);
-      _xt(_x.dim1())=1.0;
+      _xt(_x.length())=1.0;
       //_xt=_x.stack(one);
     };
   /*override*/const TNGnetModelIO& operator=(const TNGnetModelIO& rhs)
@@ -305,9 +305,9 @@ public:
 
   static ColumnVector getXt(const ColumnVector &__x)
     {
-      ColumnVector __xt(getXtDim(__x.dim1()));
+      ColumnVector __xt(getXtDim(__x.length()));
       __xt.insert(__x,0);
-      __xt(__x.dim1())=1.0;
+      __xt(__x.length())=1.0;
       return __xt;
     };
   static int getXtDim(int _xdim)
@@ -316,9 +316,9 @@ public:
   /*override*/void setX(const ColumnVector &__x)
     {
       _x=__x;
-      _xt.resize(getXtDim(_x.dim1()));
+      _xt.resize(getXtDim(_x.length()));
       _xt.insert(_x,0);
-      _xt(_x.dim1())=1.0;
+      _xt(_x.length())=1.0;
     };
 
   // clear(void) {TNGnetModelBase::clear();};
@@ -349,10 +349,10 @@ public:
       _x=__x;
       _u=__u;
       _y=__y;
-      _xt.resize(getXtDim(_x.dim1(),_u.dim1()));
+      _xt.resize(getXtDim(_x.length(),_u.length()));
       _xt.insert(_x,0);
-      _xt.insert(_u,_x.dim1());
-      _xt(_x.dim1()+_u.dim1())=1.0;
+      _xt.insert(_u,_x.length());
+      _xt(_x.length()+_u.length())=1.0;
       //_xt=_x.stack(_u.stack(one));
     };
   /*override*/const TNGnetModelDyn& operator=(const TNGnetModelDyn& rhs)
@@ -362,10 +362,10 @@ public:
 
   static ColumnVector getXt(const ColumnVector &__x, const ColumnVector &__u)
     {
-      ColumnVector __xt(getXtDim(__x.dim1(),__u.dim1()));
+      ColumnVector __xt(getXtDim(__x.length(),__u.length()));
       __xt.insert(__x,0);
-      __xt.insert(__u,__x.dim1());
-      __xt(__x.dim1()+__u.dim1())=1.0;
+      __xt.insert(__u,__x.length());
+      __xt(__x.length()+__u.length())=1.0;
       return __xt;
     };
   static int getXtDim(int _xdim, int _udim)
@@ -374,16 +374,16 @@ public:
   /*override*/void setX(const ColumnVector &__x)
     {
       _x=__x;
-      _xt.resize(getXtDim(_x.dim1(),_u.dim1()));
+      _xt.resize(getXtDim(_x.length(),_u.length()));
       _xt.insert(_x,0);
-      _xt(_x.dim1()+_u.dim1())=1.0;
+      _xt(_x.length()+_u.length())=1.0;
     };
   virtual void setU(const ColumnVector &__u)
     {
       _u=__u;
-      _xt.resize(getXtDim(_x.dim1(),_u.dim1()));
-      _xt.insert(_u,_x.dim1());
-      _xt(_x.dim1()+_u.dim1())=1.0;
+      _xt.resize(getXtDim(_x.length(),_u.length()));
+      _xt.insert(_u,_x.length());
+      _xt(_x.length()+_u.length())=1.0;
     };
 
   /*override*/void clear(void) {TNGnetModelBase::clear(); _u=_xt;};
@@ -460,16 +460,7 @@ protected:
   void updatemu       (void)
     {
     };
-  void updateinvSigma (void)
-    {
-      int info;
-      EnsureSymmetry (_invSigma);
-      _logDetInvSigma=LogDeterminant(_invSigma,info);
-      if(info!=0) LERROR("in TGaussianUnit::update(): LogDeterminant(invSigma)="<<_logDetInvSigma);
-      _detInvSigma=_invSigma.determinant().value();
-      _Sigma=OCT_INVERSE(_invSigma);
-      EnsureSymmetry (_Sigma);
-    };
+  void updateinvSigma (void);
   void updatesig2     (void)
     {
       if(_sig2 < Square(cnf.SIG_COMPONENT_MIN))  _sig2=Square(cnf.SIG_COMPONENT_MIN);
@@ -665,7 +656,7 @@ protected:
         return;
       };
       if (cindex<=0)
-        reset(cache->Pi.dim1());
+        reset(cache->Pi.length());
       else
       {
         if (cache->index != cindex-1)

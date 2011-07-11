@@ -88,9 +88,9 @@ void TTrajectoryGeneratorBase::SetTargetIF (const ColumnVector &target_jstate, c
 //! \param [in] interval        Tf=interval (0 is possible, but set by SetTrjInterval)
 void TTrajectoryGeneratorBase::SetTargetTf (const ColumnVector &target_jstate, const TReal &interval)
 {
-  const int tjdim(target_jstate.dim1());
+  const int tjdim(target_jstate.length());
   if(tjdim<dim)
-    {LERROR("fatal! target_jstate.dim1()("<<tjdim<<") is less than dim("<<dim<<")");}
+    {LERROR("fatal! target_jstate.length()("<<tjdim<<") is less than dim("<<dim<<")");}
   IntervalFactor = 0.0l;
   ltime = 0.0l;
   Tf  = interval;
@@ -112,7 +112,7 @@ const ColumnVector& TTrajectoryGeneratorBase::Step (const ColumnVector &jstate, 
       \param [in] jstate  current joint-state(angle,angvel,angaccl) ColumnVector (dim~dim*3)
       \param [in] dt      time step of simulation  */
 {
-  const int jsdim(jstate.dim1());
+  const int jsdim(jstate.length());
   // NOTE if dimenstion of jstate is not enough: internal state is used (e.g. ddq0).
   for (int j(0); j<dim; ++j)  // WARNING is this part not needed for cnd->DynamicParamUpdate==false?
   {

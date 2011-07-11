@@ -30,7 +30,7 @@
 #include <lora/string_list.h>
 #include <boost/random.hpp>
 #include <boost/lexical_cast.hpp>
-#include <octave/EIG.h>
+#include <octave/Matrix.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -125,6 +125,17 @@ TNGnetResult::~TNGnetResult (void)
 // class TGaussianUnit
 //===========================================================================================
 
+void TGaussianUnit::updateinvSigma (void)
+{
+  int info;
+  EnsureSymmetry (_invSigma);
+  _logDetInvSigma=LogDeterminant(_invSigma,info);
+  if(info!=0) LERROR("in TGaussianUnit::update(): LogDeterminant(invSigma)="<<_logDetInvSigma);
+  _detInvSigma=_invSigma.determinant().value();
+  _Sigma=OCT_INVERSE(_invSigma);
+  EnsureSymmetry (_Sigma);
+}
+//-------------------------------------------------------------------------------------------
 
 void TGaussianUnit::CalculateParam (const TNGnetDataSetBase &data)  //!< calculate params from data
 {
@@ -157,7 +168,7 @@ void TGaussianUnit::calcInvSigma (const TNGnetDataSetBase &data)
   _invSigma = _invSigma / static_cast<TReal>(T-1);
   {
     EIG eig(_invSigma);
-    int dim(eig.eigenvalues().dim1());
+    int dim(eig.eigenvalues().length());
     DiagMatrix ev(dim,dim,0.0);
     for(int r(0);r<dim;++r)
     {
@@ -527,7 +538,7 @@ bool TNGnet::erase_small_posterior (void)
   ColumnVector sum_posterior (posterior()*ColumnVector(data->size(),1.0l));
   //*dbg*/ngnetresult.dbg << "sum_posterior=  " << sum_posterior.transpose() << endl;
   iterator itr (begin());
-  for (int i(0); i<sum_posterior.dim1(); ++i)
+  for (int i(0); i<sum_posterior.length(); ++i)
     if (sum_posterior(i) < cnf->ERASE_UNIT_THRESHOLD)
     {
       ngnetresult.dbg << "TNGnet::erase_small_posterior: erased unit " << i << ", sum_posterior= " << sum_posterior(i) << endl;
@@ -553,7 +564,7 @@ bool TNGnet::divide_unit (void)
       EIG eig (itr->Sigma());
       #define eigvec(i)  (real(eig.eigenvectors().column(i)))
       #define eigval(i)  (real(eig.eigenvalues()(i)))
-      // int dim (eig.eigenvectors().dim1());
+      // int dim (eig.eigenvectors().length());
       int maxdim (0);
       double eigvmax (eigval(0));
       for (int n(1);n<cnf->XDIM();++n)  if(eigval(n)>eigvmax) {eigvmax=eigval(n); maxdim=n;}
@@ -711,8 +722,8 @@ void TNGnet::calc_mu_trans (void) const
     }
   EIG eig (Cov);
   mu_trans.resize (2,cnf->XDIM());
-  mu_trans.insert (real(eig.eigenvectors().column(eig.eigenvalues().dim1()-1)).transpose(),0,0);
-  mu_trans.insert (real(eig.eigenvectors().column(eig.eigenvalues().dim1()-2)).transpose(),1,0);
+  mu_trans.insert (real(eig.eigenvectors().column(eig.eigenvalues().length()-1)).transpose(),0,0);
+  mu_trans.insert (real(eig.eigenvectors().column(eig.eigenvalues().length()-2)).transpose(),1,0);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -823,7 +834,7 @@ void TNGnet::singleMstep (const Matrix &Pit, const iterator &itr, int i)
     //*dbg*/ngnetresult.dbg<<tmp_Sigma<<val_1<<endl<<itr->mu * itr->mu.transpose();
     //*dbg*/ngnetresult.dbg<<"EIG..."<<endl<< tmp_Sigma / val_1 - itr->mu * itr->mu.transpose() << endl;
     EIG eig(tmp_Sigma / val_1 - itr->mu() * itr->mu().transpose());
-    int dim(eig.eigenvalues().dim1());
+    int dim(eig.eigenvalues().length());
     DiagMatrix ev(dim,dim,0.0);
     for(int r(0);r<dim;++r)
     {
