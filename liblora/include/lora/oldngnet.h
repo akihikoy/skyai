@@ -32,7 +32,6 @@
 #include <lora/octave.h>
 #include <lora/octave_str.h>
 #include <lora/setting_file.h> // for TNGnetConfiguration
-#include <octave/dbleDET.h>
 #include <fstream>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
