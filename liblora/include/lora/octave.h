@@ -343,7 +343,7 @@ public:
   const Matrix& GetChol (void) const {return L;};
   ColumnVector operator() (void) const
     {
-      ColumnVector r(L.length(), 0.0);
+      ColumnVector r(L.rows(), 0.0);
       for (double *ptr(OctBegin(r)); ptr!=OctEnd(r); ++ptr)  *ptr= NDRand();
       return L*r;
     };
