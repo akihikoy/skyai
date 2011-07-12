@@ -1,0 +1,40 @@
+// Handstand task's agent file
+include_once "cmn_task"
+
+composite MHandstandTask
+{
+  taskb_make_interface()
+
+  taskb_add_step_cost()
+
+  // reward from height (z-position of the body link)
+  taskb_add_base_pose_reward_if_contact_and(reward_z,2,HandstandRewardGain,0.01,(1,4,7))  // reward only when the hands and the head contact with the ground
+  taskb_add_base_pose_reward_if_contact_or(reward_z_sub,2,HandstandRewardGainSub,-0.01,(0, 8,9,10,11,12, 13,14,15,16,17))  // if the body or the legs touch the ground, subtract the reward
+
+  // penalty for xy-movement
+  taskb_add_base_vel_norm_reward(penalty_vxy,(0,1),ForwardPenaltyGain,-0.0001)
+
+  // penalty for falling down (base link and head link)
+  // taskb_add_falling_down_penalty_and_endeps(penalty_fall_head,(0,1),FallingDownPenaltyHead,-2.0)
+  // penalty for falling down (hand links)
+  // taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-1.0)
+
+  // end of episode: sum of reward is less than a const value
+  // taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
+
+  // end of episode: time is greater than a const value
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,10.0)
+}
+
+def make_task_handstand(task_id,env_id)
+{
+  module  MHandstandTask task_id
+
+  connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  connect env_id.signal_reward                   , task_id.slot_step_cost
+
+  connect env_id.out_base_pose                   , task_id.in_base_pose
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_base_rot                    , task_id.in_base_rot
+  connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
+}

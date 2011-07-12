@@ -434,12 +434,16 @@ ELEM_INEQ_CALCULATOR_GEN(MElemLessEqual, <=)
 FUNCTION_SISO_GEN (MBoolVectorAnd, TBoolVector, TBool)
 /*!\brief MBoolVectorOr: y = x[0] or x[1] or ... or x[N-1]; x: input (bool vector), y: output (bool)  */
 FUNCTION_SISO_GEN (MBoolVectorOr, TBoolVector, TBool)
+/*!\brief MBoolVectorNot: y = (!x[0], !x[1], ..., !x[N-1]); x: input (bool vector), y: output (bool vector)  */
+FUNCTION_SISO_GEN (MBoolVectorNot, TBoolVector, TBoolVector)
 //-------------------------------------------------------------------------------------------
 
 /*!\brief MBoolsAnd: y = and({x}); {x}: multiple input (x: bool), y: output (bool)  */
 FUNCTION_MISO_GEN (MBoolsAnd, TBool, TBool)
 /*!\brief MBoolsOr: y = or({x}); {x}: multiple input (x: bool), y: output (bool)  */
 FUNCTION_MISO_GEN (MBoolsOr, TBool, TBool)
+/*!\brief MBoolNot: y = !x; x: input (bool), y: output (bool)  */
+FUNCTION_SISO_GEN (MBoolNot, TBool, TBool)
 //-------------------------------------------------------------------------------------------
 
 

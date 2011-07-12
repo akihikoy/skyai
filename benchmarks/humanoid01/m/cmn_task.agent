@@ -42,7 +42,96 @@ def taskb_add_step_cost()
   connect slot_step_cost.signal_out ,   signal_reward.slot_in
 }
 
-// reward for base velocity (vel_index: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wz,wy,wz))
+// reward for base pose (pose_index: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+def taskb_add_base_pose_reward(block_id,pose_index,param_gain_export,param_gain_init)
+{
+  module MTsRewardForVectorElem  block_id
+  block_id.config={Index=pose_index;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_pose.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,  block_id.slot_finish_time_step
+  connect block_id.signal_reward ,  signal_reward.slot_in
+}
+
+// reward for base pose (pose_index: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+// offset is added to the pose_index element
+def taskb_add_base_pose_reward_with_offset(block_id,pose_index,param_gain_export,param_gain_init,param_offset_export,param_offset_init)
+{
+  module MTsRewardForVectorElemWithOffset  block_id
+  block_id.config={Index=pose_index;}
+  block_id.config={Factor=param_gain_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  block_id.config={Offset=param_offset_init;}
+  export  block_id.config.Offset  as  param_offset_export
+  connect in_base_pose.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,  block_id.slot_finish_time_step
+  connect block_id.signal_reward ,  signal_reward.slot_in
+}
+
+
+def taskb_add_base_pose_reward_if_contact_common(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+{
+  block_id.config={VecIndex=pose_index;}
+  block_id.config={Factor=param_gain_init;}
+  block_id.config={BoolVecIndexes=body_indexes;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_pose.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,  block_id.slot_finish_time_step
+  connect in_contact_with_ground.out_1 ,  block_id.in_boolvec
+  connect block_id.signal_reward ,  signal_reward.slot_in
+}
+
+// reward for base pose (pose_index: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+// reward is emitted only when one of {link[i] | i in body_indexes} contacts with the ground
+def taskb_add_base_pose_reward_if_contact_or(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+{
+  module MTsRewardForVectorElemIfBoolVectorOr  block_id
+  taskb_add_base_pose_reward_if_contact_common(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+}
+
+// reward for base pose (pose_index: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+// reward is emitted only when every link[i] (i in body_indexes) contacts with the ground
+def taskb_add_base_pose_reward_if_contact_and(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+{
+  module MTsRewardForVectorElemIfBoolVectorAnd  block_id
+  taskb_add_base_pose_reward_if_contact_common(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+}
+
+
+// reward for base pose (pose_index: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+// reward is emitted only when every link[i] (i in body_indexes) does NOT contact with the ground
+def taskb_add_base_pose_reward_if_noncontact(block_id,pose_index,param_gain_export,param_gain_init,body_indexes)
+{
+  module MTsRewardForVectorElemIfBoolVectorAnd  block_id
+  block_id.config={VecIndex=pose_index;}
+  block_id.config={Factor=param_gain_init;}
+  block_id.config={BoolVecIndexes=body_indexes;}
+  export  block_id.config.Factor  as  param_gain_export
+  connect in_base_pose.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,  block_id.slot_finish_time_step
+  module MBoolVectorNot  block_id##_noncontact
+  connect in_contact_with_ground.out_1 ,  block_id##_noncontact.in_x
+  connect block_id##_noncontact.out_y ,  block_id.in_boolvec
+  connect block_id.signal_reward ,  signal_reward.slot_in
+}
+
+// reward for base pose norm (pose_indexes: select from 0,..,6; (0,1,..,6)=(x,y,z,qw,qx,qy,qz)); qw,qx,qy,qz: quaternion
+// norm is calculated for the diff between the current pose and the param_basepoint
+def taskb_add_base_pose_norm_reward(block_id,pose_indexes,param_gain_export,param_gain_init,param_basepoint_export,param_basepoint_init)
+{
+  module MTsRewardForVectorNormFrom  block_id
+  block_id.config={Indexes=pose_indexes;}
+  block_id.config={Factor=param_gain_init;}
+  block_id.config={BasePoint=param_basepoint_init;}
+  export  block_id.config.Factor  as  param_gain_export
+  export  block_id.config.BasePoint  as  param_basepoint_export
+  connect in_base_pose.out_1 ,   block_id.in_vec
+  connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
+  connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// reward for base velocity (vel_index: select from 0,..,5; (0,1,..,5)=(vx,vy,vz,wx,wy,wz))
 def taskb_add_base_vel_reward(block_id,vel_index,param_gain_export,param_gain_init)
 {
   module MTsRewardForVectorElem  block_id
@@ -105,6 +194,13 @@ def taskb_add_falling_down_penalty(block_id,body_indexes,param_gain_export,param
   connect slot_finish_time_step.signal_out ,   block_id.slot_finish_time_step
   connect slot_start_of_action.signal_out ,  block_id.slot_start_of_action
   connect block_id.signal_reward ,   signal_reward.slot_in
+}
+
+// penalty for falling down and end the episode
+def taskb_add_falling_down_penalty_and_endeps(block_id,body_indexes,param_gain_export,param_gain_init)
+{
+  taskb_add_falling_down_penalty(block_id,body_indexes,param_gain_export,param_gain_init)
+  connect block_id.signal_event ,   signal_end_of_episode.slot_in
 }
 
 // penalty for wall collision

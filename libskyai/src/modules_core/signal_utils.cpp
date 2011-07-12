@@ -44,6 +44,7 @@ SKYAI_ADD_MODULE(MForwarder1_TIntVector)
 SKYAI_ADD_MODULE(MForwarder1_TRealVector)
 SKYAI_ADD_MODULE(MForwarder1_TComposite1)
 //-------------------------------------------------------------------------------------------
+SKYAI_ADD_MODULE(MEmitOnce0)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TInt)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TReal)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MEmitOnce,TIntVector)

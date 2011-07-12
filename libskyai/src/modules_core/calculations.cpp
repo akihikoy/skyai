@@ -83,6 +83,15 @@ void MBoolVectorOr::function (const TInput &x, TOutput &y) const
 }
 //-------------------------------------------------------------------------------------------
 
+void MBoolVectorNot::function (const TInput &x, TOutput &y) const
+{
+  GenResize(y, GenSize(x));
+  TypeExtS<TOutput>::iterator y_itr(GenBegin(y));
+  for (TypeExtS<TInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr,++y_itr)
+    *y_itr= !(*x_itr);
+}
+//-------------------------------------------------------------------------------------------
+
 //===========================================================================================
 // MBools{And,Or}
 //===========================================================================================
@@ -100,6 +109,12 @@ void MBoolsOr::function (const TMultipleInput &x, TOutput &y) const
   for (TypeExtS<TMultipleInput>::const_iterator x_itr(GenBegin(x)),x_last(GenEnd(x)); x_itr!=x_last; ++x_itr)
     if (*x_itr)  {y=true; return;}
   y= false;
+}
+//-------------------------------------------------------------------------------------------
+
+void MBoolNot::function (const TInput &x, TOutput &y) const
+{
+  y= !x;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -281,9 +296,11 @@ SKYAI_ADD_MODULE(MElemLessEqual_TRealVector)
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MBoolVectorAnd)
 SKYAI_ADD_MODULE(MBoolVectorOr)
+SKYAI_ADD_MODULE(MBoolVectorNot)
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MBoolsAnd)
 SKYAI_ADD_MODULE(MBoolsOr)
+SKYAI_ADD_MODULE(MBoolNot)
 //-------------------------------------------------------------------------------------------
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMinElementValue,TIntVector)
 SKYAI_INSTANTIATE_TEMPLATE_MODULE_1(MMaxElementValue,TRealVector)

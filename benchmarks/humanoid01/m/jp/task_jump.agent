@@ -1,0 +1,47 @@
+// Jumping task's agent file
+include_once "cmn_task"
+
+// objective is to jump as high as possible
+composite MJumpingTask
+{
+  taskb_make_interface()
+
+  taskb_add_step_cost()
+
+  // reward from height (z-position)
+  // taskb_add_base_pose_reward(reward_z,2,JumpRewardGain,0.01)
+  //NotGood: taskb_add_base_pose_reward_with_offset(reward_z,2,JumpRewardGain,0.01,ZOffset,-0.25)
+  //NotGood: taskb_add_base_pose_reward_with_offset(reward_z,2,JumpRewardGain,0.01,ZOffset,-0.15)
+  taskb_add_base_pose_reward_if_noncontact(reward_z,2,JumpRewardGain,0.01,(1,4,7,12,17))
+
+  // penalty for y-movement
+  // taskb_add_base_vel_sqsum_reward(penalty_vy,(1),SidewardPenaltyGain,-0.1)
+
+  // penalty for falling down (base link, head link, and hand links)
+  // taskb_add_falling_down_penalty(penalty_fall,(0,1,4,7),FallingDownPenalty,-4.0)
+
+  // penalty for falling down (base link and head link)
+  taskb_add_falling_down_penalty_and_endeps(penalty_fall_head,(0,1),FallingDownPenaltyHead,-2.0)
+  // penalty for falling down (hand links)
+  taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-1.0)
+  // taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-0.0)  // no penalty; only exit the episode
+
+  // end of episode: sum of reward is less than a const value
+  // taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
+
+  // end of episode: time is greater than a const value
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,5.0)
+}
+
+def make_task_jumping(task_id,env_id)
+{
+  module  MJumpingTask task_id
+
+  connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  connect env_id.signal_reward                   , task_id.slot_step_cost
+
+  connect env_id.out_base_pose                   , task_id.in_base_pose
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_base_rot                    , task_id.in_base_rot
+  connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
+}

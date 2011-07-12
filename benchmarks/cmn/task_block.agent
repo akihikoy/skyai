@@ -1,5 +1,41 @@
 // task blocks that are modules to define reward and end-of-episode
 
+def create_ts_emit_real_if_boolvector(bool_vec_op)
+{
+  module  MVectorShuffler_TBoolVector  in
+  export  in.in_x  as  in_boolvec
+  export  in.config.Order  as  Indexes
+  module  bool_vec_op  in0
+  connect in.out_y ,  in0.in_x
+  module  MReplaceSignalArguments_TReal_TBool  in0_signal
+  export  in0_signal.slot_in  as  slot_time_step
+  connect in0.out_y ,   in0_signal.in_replace
+  module  MEmitIf  in0_signal_t
+  connect in0_signal.signal_out ,   in0_signal_t.slot_in
+  module  MReplaceSignalArguments_TVoid_TReal  in0_signal_r
+  connect in0_signal_t.signal_out ,   in0_signal_r.slot_in
+  export  in0_signal_r.in_replace  as  in_real
+  export  in0_signal_t.signal_out  as  signal_true  // emit: void(void)
+  export  in0_signal_r.signal_out  as  signal_real  // emit: void(real)
+}
+
+// in each time_step, emit void(real) or void(void)
+// if one of the subset (specified by Indexes) of in_boolvec's elements is true
+// where 'real' is decided by in_real
+composite MTsEmitRealIfBoolVectorOr
+{
+  create_ts_emit_real_if_boolvector(MBoolVectorOr)
+}
+
+// in each time_step, emit void(real) or void(void)
+// if every subset (specified by Indexes) of in_boolvec's elements is true
+// where 'real' is decided by in_real
+composite MTsEmitRealIfBoolVectorAnd
+{
+  create_ts_emit_real_if_boolvector(MBoolVectorAnd)
+}
+
+
 // emit  f * v[i]  in each time step where f: real value, v: real vector, i: index
 composite MTsRewardForVectorElem
 {
@@ -17,7 +53,65 @@ composite MTsRewardForVectorElem
   export  elem_w_signal.signal_out  as  signal_reward
 }
 
-// emit  f * |(v[i1],v[i2],..)|  in each time step where f: real value, v: real vector, i1,12,..: indexes
+// emit  f * (v[i]+o)  in each time step where f: real value, v: real vector, i: index, o: offset
+composite MTsRewardForVectorElemWithOffset
+{
+  module  MVectorToScalar_TRealVector  in
+  export  in.config.Index  as_is
+  export  in.in_x  as  in_vec
+  module  MAdd_TReal  in_offset
+  module  MConstant_TReal  in_offset_factor
+  export  in_offset_factor.config.Constant  as  Offset
+  connect in_offset_factor.out_const ,   in_offset.in_x1
+  connect in.out_y ,   in_offset.in_x2
+  module  MMultiply_TReal_TReal  elem_w
+  module  MConstant_TReal  elem_w_factor
+  export  elem_w_factor.config.Constant  as  Factor
+  connect elem_w_factor.out_const ,   elem_w.in_x1
+  connect in_offset.out_y ,   elem_w.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  elem_w_signal
+  export  elem_w_signal.slot_in  as  slot_finish_time_step
+  connect elem_w.out_y ,   elem_w_signal.in_replace
+  export  elem_w_signal.signal_out  as  signal_reward
+}
+
+
+def create_ts_reward_for_vector_elem_if_boolvector(m_bool_vec_op)
+{
+  module  MVectorToScalar_TRealVector  in
+  export  in.config.Index  as  VecIndex
+  export  in.in_x  as  in_vec
+  module  MMultiply_TReal_TReal  elem_w
+  module  MConstant_TReal  elem_w_factor
+  export  elem_w_factor.config.Constant  as  Factor
+  connect elem_w_factor.out_const ,   elem_w.in_x1
+  connect in.out_y ,   elem_w.in_x2
+
+  module  m_bool_vec_op  emit_boolvec_op
+  export  emit_boolvec_op.config.Indexes  as  BoolVecIndexes
+  export  emit_boolvec_op.slot_time_step  as  slot_finish_time_step
+  export  emit_boolvec_op.in_boolvec  as  in_boolvec
+  connect elem_w.out_y ,  emit_boolvec_op.in_real
+  export  emit_boolvec_op.signal_real  as  signal_reward
+}
+
+// emit  f * v[i]  in each time step if one of {b[j] | j} is true
+// where f: real value, v: real vector, i: index, b: bool vector, {j}: indexes of bool vector's elements
+composite MTsRewardForVectorElemIfBoolVectorOr
+{
+  create_ts_reward_for_vector_elem_if_boolvector(MTsEmitRealIfBoolVectorOr)
+}
+
+// emit  f * v[i]  in each time step if every {b[j] | j} is true
+// where f: real value, v: real vector, i: index, b: bool vector, {j}: indexes of bool vector's elements
+composite MTsRewardForVectorElemIfBoolVectorAnd
+{
+  create_ts_reward_for_vector_elem_if_boolvector(MTsEmitRealIfBoolVectorAnd)
+}
+
+
+// emit  f * |(v[i1],v[i2],..)|  in each time step
+// where f: real value, v: real vector, i1,12,..: indexes
 composite MTsRewardForVectorNorm
 {
   module  MVectorShuffler_TRealVector  in
@@ -25,6 +119,31 @@ composite MTsRewardForVectorNorm
   export  in.config.Order  as  Indexes
   module  MNorm_TRealVector  norm
   connect in.out_y ,   norm.in_x
+  module  MMultiply_TReal_TReal  normw
+  module  MConstant_TReal  normw_factor
+  export  normw_factor.config.Constant  as  Factor
+  connect normw_factor.out_const ,   normw.in_x1
+  connect norm.out_y ,   normw.in_x2
+  module  MReplaceSignalArguments_TReal_TReal  normw_signal
+  export  normw_signal.slot_in  as  slot_finish_time_step
+  connect normw.out_y ,   normw_signal.in_replace
+  export  normw_signal.signal_out  as  signal_reward
+}
+
+// emit  f * |(v[i1]-b1,v[i2]-b2,..)|  in each time step
+// where f: real value, v: real vector, i1,12,..: indexes, (b1,b2,..): base point (real)
+composite MTsRewardForVectorNormFrom
+{
+  module  MVectorShuffler_TRealVector  in
+  export  in.in_x  as  in_vec
+  export  in.config.Order  as  Indexes
+  module  MSubtract_TRealVector  in_b
+  module  MConstant_TRealVector  base
+  export  base.config.Constant  as  BasePoint
+  connect in.out_y ,   in_b.in_x1
+  connect base.out_const ,   in_b.in_x2
+  module  MNorm_TRealVector  norm
+  connect in_b.out_y ,   norm.in_x
   module  MMultiply_TReal_TReal  normw
   module  MConstant_TReal  normw_factor
   export  normw_factor.config.Constant  as  Factor
@@ -84,30 +203,41 @@ composite MTsRewardForInnerProdVecMat
   export  inner_prodw_signal.signal_out  as  signal_reward
 }
 
-// at each time step, compute  (v[i1] or v[i2] or ..)  and emit  r  once in an action if it's true
+
+def create_oa_ts_reward_for_boolvector(m_bool_vec_op)
+{
+  module  m_bool_vec_op  emit_boolvec_op
+  export  emit_boolvec_op.config.Indexes  as_is
+  export  emit_boolvec_op.slot_time_step  as  slot_finish_time_step
+  export  emit_boolvec_op.in_boolvec  as  in_vec
+  module  MConstant_TReal  penalty_const
+  export  penalty_const.config.Constant  as  Reward
+  connect penalty_const.out_const ,  emit_boolvec_op.in_real
+
+  module  MEmitOnce_TReal  in0_signal_r_once
+  export  in0_signal_r_once.slot_reset  as  slot_start_of_action
+  connect emit_boolvec_op.signal_real ,   in0_signal_r_once.slot_in
+  export  in0_signal_r_once.signal_out  as  signal_reward
+  module  MEmitOnce0  in0_signal_t_once
+  connect in0_signal_r_once.slot_reset_finished ,   in0_signal_t_once.slot_reset
+  connect emit_boolvec_op.signal_true ,   in0_signal_t_once.slot_in
+  export  in0_signal_t_once.signal_out  as  signal_event
+}
+
+// at each time step, compute  (v[i1] or v[i2] or ..)  , and if it's true, emit  r  once in an action
 // where r: reward, v: bool vector, i1,12,..: indexes
 composite MOaTsRewardForBoolVectorOr
 {
-  module  MVectorShuffler_TBoolVector  in
-  export  in.in_x  as  in_vec
-  export  in.config.Order  as  Indexes
-  module  MBoolVectorOr  in0
-  connect in.out_y ,  in0.in_x
-  module  MReplaceSignalArguments_TReal_TBool  in0_signal
-  export  in0_signal.slot_in  as  slot_finish_time_step
-  connect in0.out_y ,   in0_signal.in_replace
-  module  MEmitIf  in0_signal_t
-  connect in0_signal.signal_out ,   in0_signal_t.slot_in
-  module  MConstant_TReal  penalty_const
-  export  penalty_const.config.Constant  as  Reward
-  module  MReplaceSignalArguments_TVoid_TReal  in0_signal_r
-  connect in0_signal_t.signal_out ,   in0_signal_r.slot_in
-  connect penalty_const.out_const ,  in0_signal_r.in_replace
-  module  MEmitOnce_TReal  in0_signal_r_once
-  export  in0_signal_r_once.slot_reset  as  slot_start_of_action
-  connect in0_signal_r.signal_out ,   in0_signal_r_once.slot_in
-  export  in0_signal_r_once.signal_out  as  signal_reward
+  create_oa_ts_reward_for_boolvector(MTsEmitRealIfBoolVectorOr)
 }
+
+// at each time step, compute  (v[i1] and v[i2] and ..)  , and if it's true, emit  r  once in an action
+// where r: reward, v: bool vector, i1,12,..: indexes
+composite MOaTsRewardForBoolVectorAnd
+{
+  create_oa_ts_reward_for_boolvector(MTsEmitRealIfBoolVectorAnd)
+}
+
 
 // end of episode: if sum of value emitted by a signal port is less than threshold
 composite  MTsEndOfEpsIfSumValueIsLessThan

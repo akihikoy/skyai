@@ -1,0 +1,55 @@
+// Roll task's agent file
+include_once "cmn_task"
+
+composite MRollTask
+{
+  taskb_make_interface()
+
+  taskb_add_step_cost()
+
+  // reward from rolling movement (angular vel around y-axis)
+  taskb_add_base_vel_reward(reward_wy,4,RewardGain,0.0005)
+
+  // penalty for z-rotation
+  // taskb_add_base_pose_norm_reward(penalty_z,(6),ZRotPenaltyGain,-0.01,ZRotBasePoint,(0.0))
+  // // taskb_add_base_vel_norm_reward(penalty_wz,5,ZRotPenaltyGain,-0.01)
+
+  // end of episode: sum of reward is less than a const value
+  // taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
+
+  // end of episode: time is greater than a const value
+  taskb_endofeps_time_max(end_of_eps2,MaxTime,10.0)
+}
+
+def make_task_roll_base(task_id,env_id)
+{
+  module MRollTask task_id
+
+  /// initialization process:
+
+  /// start of episode process:
+
+  /// start of time step process:
+
+  /// end of time step process:
+  connect  env_id.signal_end_of_system_timestep  , task_id.slot_finish_time_step
+
+  /// learning signals:
+  connect  env_id.signal_reward                  , task_id.slot_step_cost
+
+  /// I/O:
+  connect env_id.out_base_pose                   , task_id.in_base_pose
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
+}
+def make_task_roll_f(task_id,env_id)
+{
+  make_task_roll_base(task_id,env_id)
+  task_id.config={RewardGain=0.0005;}
+}
+def make_task_roll_b(task_id,env_id)
+{
+  make_task_roll_base(task_id,env_id)
+  task_id.config={RewardGain=-0.0005;}
+}
+

@@ -1,0 +1,27 @@
+// logger of state of the robot
+
+module  MRemoveSignalArguments_TReal   lgs_start_of_ctrl_timestep
+connect  env.signal_start_of_ctrl_timestep    , lgs_start_of_ctrl_timestep.slot_in
+
+module  MUniversalDataLogger           logger_state
+connect  env.signal_initialization            , logger_state.slot_initialize
+connect  lgs_start_of_ctrl_timestep.signal_out, logger_state.slot_log
+connect  behavior.signal_end_of_episode       , logger_state.slot_newline
+connect  env.out_episode_number               , logger_state.in_data_int
+connect  env.out_cont_time                    , logger_state.in_data_real
+connect  env.out_base_pose                    , logger_state.in_data_real_vector
+connect  env.out_base_vel                     , logger_state.in_data_real_vector
+connect  env.out_joint_angle                  , logger_state.in_data_real_vector
+connect  env.out_joint_vel                    , logger_state.in_data_real_vector
+logger_state.config ={
+    FileName = "log-state.dat"
+    OrderOfColumns ={
+        ["env.out_episode_number"]= 1
+        ["env.out_cont_time"]= 2
+        ["env.out_base_pose"]= 4
+        ["env.out_base_vel"]= 6
+        ["env.out_joint_angle"]= 8
+        ["env.out_joint_vel"]= 10
+      }
+    PutBlankData = true
+  }

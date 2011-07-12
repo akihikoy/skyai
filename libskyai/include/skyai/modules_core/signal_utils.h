@@ -101,6 +101,54 @@ protected:
 
 
 //===========================================================================================
+/*!\brief emit the first signal caught at slot_in since reset (for void(void) typed signal) */
+class MEmitOnce0
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface    TParent;
+  typedef MEmitOnce0          TThis;
+  SKYAI_MODULE_NAMES(MEmitOnce0)
+
+  MEmitOnce0 (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      emitted_       (false),
+      slot_reset     (*this),
+      slot_in        (*this),
+      signal_out     (*this)
+    {
+      add_slot_port   (slot_reset );
+      add_slot_port   (slot_in    );
+      add_signal_port (signal_out );
+    }
+
+protected:
+
+  bool emitted_;
+
+  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_in, void, (void), (), TThis);
+  MAKE_SIGNAL_PORT(signal_out, void (void), TThis);
+
+  virtual void slot_reset_exec (void)
+    {
+      emitted_= false;
+    }
+
+  virtual void slot_in_exec (void)
+    {
+      if (!emitted_)
+      {
+        signal_out.ExecAll();
+        emitted_= true;
+      }
+    }
+
+};  // end of MEmitOnce0
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
 /*!\brief emit the first signal caught at slot_in since reset
     \todo implement a "signature style" rather than \p t_arg1 */
 template <typename t_arg1>

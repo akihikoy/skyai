@@ -1,9 +1,9 @@
 // constraint def for 6-DoF (using DCOB)
 
-task.config ={
-    SidewardPenaltyGain = 0.0
-    // FallingDownPenalty = -8.0
-  }
+// task.config ={
+    // SidewardPenaltyGain = 0.0
+    // // FallingDownPenalty = -8.0
+  // }
 
 env.config ={
     NGnetFileName = "m/ngnet_bq6dof01.dat"
