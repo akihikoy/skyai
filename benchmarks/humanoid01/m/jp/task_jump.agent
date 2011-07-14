@@ -12,7 +12,7 @@ composite MJumpingTask
   // taskb_add_base_pose_reward(reward_z,2,JumpRewardGain,0.01)
   //NotGood: taskb_add_base_pose_reward_with_offset(reward_z,2,JumpRewardGain,0.01,ZOffset,-0.25)
   //NotGood: taskb_add_base_pose_reward_with_offset(reward_z,2,JumpRewardGain,0.01,ZOffset,-0.15)
-  taskb_add_base_pose_reward_if_noncontact(reward_z,2,JumpRewardGain,0.01,(1,4,7,12,17))
+  taskb_add_base_pose_reward_if_noncontact(reward_z,2,JumpRewardGain,0.01,(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17))
 
   // penalty for y-movement
   // taskb_add_base_vel_sqsum_reward(penalty_vy,(1),SidewardPenaltyGain,-0.1)
