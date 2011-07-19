@@ -23,8 +23,10 @@ composite MJumpingTask
   // penalty for falling down (base link and head link)
   taskb_add_falling_down_penalty_and_endeps(penalty_fall_head,(0,1),FallingDownPenaltyHead,-2.0)
   // penalty for falling down (hand links)
-  taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-1.0)
+  // taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-1.0)
   // taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(4,7),FallingDownPenaltyHand,-0.0)  // no penalty; only exit the episode
+  // penalty for falling down (other than the base and the head link)
+  taskb_add_falling_down_penalty_and_endeps(penalty_fall_hand,(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17),FallingDownPenaltyHand,-1.0)
 
   // end of episode: sum of reward is less than a const value
   // taskb_endofeps_sum_reward_min(end_of_eps1,SumOfRmin,-40.0)
