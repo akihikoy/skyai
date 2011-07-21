@@ -24,8 +24,8 @@ behavior.config={
   }
 
 behavior.config={
-    // Tau = 1
-    // TauDecreasingFactor = 0.001
+    Tau = 1
+    TauDecreasingFactor = 0.01
   }
 env.config={
     // NGnetFileName = "m/ngnet.dat"
