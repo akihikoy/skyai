@@ -9,6 +9,7 @@ OPTIONS:
       [-s INT       : START_INDEX(0)]
       [-e INT       : END_INDEX(9)]
       [-prex STR    : command evaluated before the main command()]
+      [-force       : answer YES in every question(0)]
       [-help]"
 #--------------------------------------------------
 
@@ -17,6 +18,7 @@ result_dir=
 exec_command=
 exec_options=
 pre_exec=
+force_mode=0
 startindex=0
 endindex=9
 
@@ -34,6 +36,7 @@ while true; do
     -x|-exec) exec_command="$2"; shift 2 ;;
     -opt) exec_options="$exec_options $2"; shift 2 ;;
     -prex)  pre_exec="$pre_exec $2"; shift 2 ;;
+    -force) force_mode=1; shift 1 ;;
     -help|--help) echo "usage: $usage"; exit 0 ;;
     '') shift; break ;;
     *)
@@ -66,10 +69,11 @@ fi
 #--------------------------------------------------
 # ask user
 
-function ask-yes-no()
+function ask_yes_no()
 {
   while true; do
     echo -n '  (y|n) > '
+    if [ $force_mode -eq 1 ];then echo 'y'; return 0; fi
     read s
     if [ "$s" == "y" ];then return 0; fi
     if [ "$s" == "n" ];then return 1; fi
@@ -92,7 +96,7 @@ echo "endindex       = $endindex"
 echo '--------------------------------------------------'
 
 echo "start with this setup?"
-if ask-yes-no; then
+if ask_yes_no; then
   echo "start..."
 else
   echo "exit."
@@ -130,7 +134,7 @@ function rlexp
 if [ -d $result_dir ]; then
   echo "directory $result_dir already exists."
   echo "continue?"
-  if ask-yes-no; then
+  if ask_yes_no; then
     echo "continue."
   else
     echo "exit."
