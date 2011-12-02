@@ -161,9 +161,13 @@ SPECIALIZER(long double     )
 template <typename t_elem>
 void vector_direct_assign_generator (std::vector<t_elem> *x, TVariableMap &, const TVariable &value)
 {
-  if (value.IsPrimitive())  // if value is primitive, try to get as a string
+  if (value.IsPrimitive())  // if value is primitive:
   {
-    TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    // try to get as a string (convert string to array):
+    // TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    // return;
+    x->resize(1);
+    TVariable(x->back()).DirectAssign(value);
     return;
   }
   // otherwise, try to "scan" (GetBegin..GetEnd)
@@ -438,9 +442,13 @@ void TVariable::generator<std::vector<t_elem> >::operator() (std::vector<t_elem>
 template <typename t_elem>
 void list_direct_assign_generator (std::list<t_elem> *x, TVariableMap &, const TVariable &value)
 {
-  if (value.IsPrimitive())  // if value is primitive, try to get as a string
+  if (value.IsPrimitive())  // if value is primitive:
   {
-    TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    // try to get as a string (convert string to array):
+    // TVariable(*x).PrimitiveSetBy(value.PrimitiveGetAs<pt_string>());
+    // return;
+    x->resize(1);
+    TVariable(x->back()).DirectAssign(value);
     return;
   }
   // otherwise, try to "scan" (GetBegin..GetEnd)

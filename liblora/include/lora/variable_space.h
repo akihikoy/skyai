@@ -171,16 +171,14 @@ public:
   TVariableMap::iterator MemberMapFind(TVariableMap::key_type &key)  {return members_.find(key);}
 
   template <typename t_var>
-  inline void PrimitiveGetAs (t_var &x) const;
+  inline t_var PrimitiveGetAs () const;
   template <typename t_var>
   inline void PrimitiveSetBy (const t_var &x);
 
   template <typename t_var>
-  inline t_var PrimitiveGetAs () const
+  inline void PrimitiveGetAs (t_var &x) const
     {
-      t_var x;
-      PrimitiveGetAs<t_var>(x);
-      return x;
+      x= PrimitiveGetAs<t_var>();
     }
 
   inline void DirectAssign (const TVariable &value);
@@ -490,23 +488,32 @@ inline void TVariable::WriteToStream (std::ostream &os, bool bare, const pt_stri
 
 //!\brief specialization of PrimitiveGetAs and PrimitiveSetBy
 //!\todo FIXME: error-message is unclear
-#define SPECIALIZER(x_ptype)                                      \
-  template<> inline void TVariable::PrimitiveGetAs (pt_##x_ptype &x) const   \
+#define SPECIALIZER(x_ptype,x_target_type)                        \
+  template<> inline x_target_type TVariable::PrimitiveGetAs () const   \
     {                                                             \
       if(!f_primitive_get_as_##x_ptype##_)                        \
         {VAR_SPACE_ERR_EXIT("cannot convert to pt_"#x_ptype);}    \
-      f_primitive_get_as_##x_ptype##_(x);                         \
+      pt_##x_ptype tmp;                                           \
+      f_primitive_get_as_##x_ptype##_(tmp);                       \
+      return tmp;                                                 \
     }                                                             \
-  template<> inline void TVariable::PrimitiveSetBy (const pt_##x_ptype &x)   \
+  template<> inline void TVariable::PrimitiveSetBy (const x_target_type &x)   \
     {                                                             \
       if(!f_primitive_set_by_##x_ptype##_)                        \
         {VAR_SPACE_ERR_EXIT("cannot convert from pt_"#x_ptype);}  \
-      f_primitive_set_by_##x_ptype##_(x);                         \
+      f_primitive_set_by_##x_ptype##_(static_cast<pt_##x_ptype>(x));  \
     }
-SPECIALIZER(int      )
-SPECIALIZER(real     )
-SPECIALIZER(bool     )
-SPECIALIZER(string   )
+SPECIALIZER(int      ,unsigned short  )
+SPECIALIZER(int      ,unsigned int    )
+SPECIALIZER(int      ,unsigned long   )
+SPECIALIZER(int      ,signed short    )
+SPECIALIZER(int      ,signed int      )
+SPECIALIZER(int      ,signed long     )
+SPECIALIZER(real     ,float           )
+SPECIALIZER(real     ,double          )
+SPECIALIZER(real     ,long double     )
+SPECIALIZER(bool     ,bool            )
+SPECIALIZER(string   ,pt_string       )
 #undef SPECIALIZER
 
 

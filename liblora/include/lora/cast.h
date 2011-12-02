@@ -46,6 +46,16 @@ struct TLocoRabbitsCastPolicy
 };
 //-------------------------------------------------------------------------------------------
 
+template <typename t_from>
+struct TLocoRabbitsCastPolicy <t_from, t_from>
+{
+  static inline t_from F (const t_from &from)
+  {
+    return from;  // return as-is
+  }
+};
+//-------------------------------------------------------------------------------------------
+
 template<> struct TLocoRabbitsCastPolicy <float       , bool>
   {static inline float       F (const bool &from)  {return from? 1.0f : 0.0f;}};
 template<> struct TLocoRabbitsCastPolicy <double      , bool>

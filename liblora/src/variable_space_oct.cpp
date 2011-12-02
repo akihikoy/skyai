@@ -27,6 +27,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/octave.h>
 #include <lora/string.h>
+#include <lora/type_gen_oct.h>
 #include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -110,6 +111,13 @@ void oct_get_end_generator (t_oct *x, const TVariableMap &, TForwardIterator &re
 template <typename t_oct_vec>
 void oct_vec_direct_assign_generator (t_oct_vec *x, TVariableMap &, const TVariable &value)
 {
+  if (value.IsPrimitive())  // if value is primitive:
+  {
+    x->resize(1);
+    (*x)(0)=value.PrimitiveGetAs<typename TypeExt<t_oct_vec>::value_type>();
+    return;
+  }
+  // otherwise, try to "scan" (GetBegin..GetEnd)
   TConstForwardIterator  value_itr, value_last;
   value.GetEnd (value_last);
   int size(0);
@@ -304,6 +312,15 @@ private:
 
 void oct_rom_direct_assign_generator (TRowOfMatrix x, TVariableMap &, const TVariable &value)
 {
+  if (value.IsPrimitive())  // if value is primitive:
+  {
+    if(x.Size()!=1)
+      {LERROR("in assignment of row vector of matrix: size mismatch: "
+          "lhs.size()="<<x.Size()<<", rhs.size()="<<1); lexit(df);}
+    x(0)=value.PrimitiveGetAs<TypeExt<Matrix>::value_type>();
+    return;
+  }
+  // otherwise, try to "scan" (GetBegin..GetEnd)
   TConstForwardIterator  value_itr, value_last;
   value.GetEnd (value_last);
   int size(0);
@@ -413,6 +430,13 @@ void TVariable::generator<TRowOfMatrix>::operator() (TRowOfMatrix &x)
 
 void oct_mat_direct_assign_generator (Matrix *x, TVariableMap &, const TVariable &value)
 {
+  if (value.IsPrimitive())  // if value is primitive:
+  {
+    x->resize(1,1);
+    (*x)(0,0)=value.PrimitiveGetAs<TypeExt<Matrix>::value_type>();
+    return;
+  }
+  // otherwise, try to "scan" (GetBegin..GetEnd)
   pt_int rows,cols;
   TVariableList argv;
   argv.push_back(TVariable(rows));

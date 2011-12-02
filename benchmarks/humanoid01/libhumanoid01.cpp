@@ -183,12 +183,25 @@ void MHumanoidEnvironment::ODEDS_KeyEvent (int cmd)
     if(DRAW_SEQUENCE_MODE)  LMESSAGE("DRAW_SEQUENCE_MODE is \"on\".");
     else                    LMESSAGE("DRAW_SEQUENCE_MODE is \"off\".");
   }
-  else if (cmd=='v')
+  else if (cmd=='a')
   {
     AUTO_VIEWPOINT_MODE=(AUTO_VIEWPOINT_MODE==GetAutoViewpointModeCount())?0:AUTO_VIEWPOINT_MODE+1;
     LMESSAGE("AUTO_VIEWPOINT_MODE= "<<AUTO_VIEWPOINT_MODE<<".");
   }
-  else if (cmd=='V')
+  else if (cmd=='A')
+  {
+    cout<<"setting viewpoint mode..."<<endl;
+    cout<<"  0: manual view"<<endl;
+    cout<<"  1: following x-position of robot"<<endl;
+    cout<<"  2: following y-position of robot"<<endl;
+    cout<<"  3: tracking robot from static camera position"<<endl;
+    cout<<"  4: following x,y-position of robot (camera is just above the robot)"<<endl;
+    cout<<"input number: ";
+    cin>>AUTO_VIEWPOINT_MODE;
+    AUTO_VIEWPOINT_MODE=ApplyRange(AUTO_VIEWPOINT_MODE,0,GetAutoViewpointModeCount());
+    LMESSAGE("AUTO_VIEWPOINT_MODE= "<<AUTO_VIEWPOINT_MODE<<".");
+  }
+  else if (cmd=='v' || cmd=='V')
   {
     static float xyz[3], hpr[3];
     cout<<"input XYZHPR: ";
