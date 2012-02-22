@@ -26,6 +26,7 @@
 #define loco_rabbits_variable_space_impl_h
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space.h>
+#include <lora/variable_bindef.h>
 //-------------------------------------------------------------------------------------------
 #include <lora/cast.h>
 #include <lora/string.h>
@@ -65,6 +66,7 @@ namespace var_space
                                                                                                          \
         o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<x_type, pt_string>,&x,_1,_2); \
         o.f_write_to_stream_ = boost::bind(enum_write_to_stream_generator<x_type>,&x,_1,_2,_3,_4);       \
+        o.f_write_to_binary_ = boost::bind(enum_write_to_binary_generator<x_type>,&x,_1,_2);             \
       }                                                                                                  \
     };                                                                                                   \
   }
@@ -112,6 +114,13 @@ void primitive_write_to_stream_generator (t_var *x, const TVariableMap &members,
 }
 //-------------------------------------------------------------------------------------------
 
+template <typename t_var>
+void primitive_write_to_binary_generator (t_var *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushLiteral(bstack,*x);
+}
+//-------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------
 // generators for enum types
@@ -121,6 +130,13 @@ template <typename t_var>
 void enum_write_to_stream_generator (t_var *x, const TVariableMap &members, std::ostream &os, bool bare, const pt_string &indent)
 {
   os<<ConvertToStr(ConvertToStr(*x));
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_var>
+void enum_write_to_binary_generator (t_var *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushLiteral(bstack,static_cast<int>(*x));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -409,6 +425,46 @@ SPECIALIZER(double          )
 SPECIALIZER(long double     )
 #undef SPECIALIZER
 
+//! \todo specialize for primitive types to optimize the writing speed
+template <typename t_elem>
+void vector_write_to_binary_generator (std::vector<t_elem> *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushID(bstack,"clear");
+  AddCommand(bstack,bin::cmd::LLISTS);
+  AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+  if (x->size()>0)
+  {
+    AddPushID(bstack,"resize");
+    AddCommand(bstack,bin::cmd::LLISTS);
+    AddPushLiteral(bstack,x->size());
+    AddCommand(bstack,bin::cmd::FUNC_CALL);
+    const TVariable x_var(*x);
+    TConstForwardIterator itr,last;
+    x_var.GetBegin(itr);
+    x_var.GetEnd(last);
+    if(itr->IsPrimitive())
+    {
+      for (int idx(0); itr!=last; ++itr,++idx)
+      {
+        AddPushLiteral(bstack,idx);
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::E_ASGN_P);
+      }
+    }
+    else
+    {
+      for (int idx(0); itr!=last; ++itr,++idx)
+      {
+        AddPushLiteral(bstack,idx);
+        AddCommand(bstack,bin::cmd::E_ASGN_CS);
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::CASGN_END);
+      }
+    }
+  }
+}
+
 //!\brief partial specialization for std::vector
 
 template <typename t_elem>
@@ -430,6 +486,7 @@ void TVariable::generator<std::vector<t_elem> >::operator() (std::vector<t_elem>
   o.f_get_end_   = boost::bind(vector_get_end_generator<t_elem>,&x,_1,_2);
 
   o.f_write_to_stream_ = boost::bind(vector_write_to_stream_generator<t_elem>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(vector_write_to_binary_generator<t_elem>,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -715,6 +772,40 @@ SPECIALIZER(long double     )
 SPECIALIZER(TAnyPrimitive   )
 #undef SPECIALIZER
 
+//! \todo specialize for primitive types to optimize the writing speed
+template <typename t_elem>
+void list_write_to_binary_generator (std::list<t_elem> *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushID(bstack,"clear");
+  AddCommand(bstack,bin::cmd::LLISTS);
+  AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+  if (x->size()>0)
+  {
+    const TVariable x_var(*x);
+    TConstForwardIterator itr,last;
+    x_var.GetBegin(itr);
+    x_var.GetEnd(last);
+    if(itr->IsPrimitive())
+    {
+      for (int idx(0); itr!=last; ++itr,++idx)
+      {
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::P_ASGN_P);
+      }
+    }
+    else
+    {
+      for (int idx(0); itr!=last; ++itr,++idx)
+      {
+        AddCommand(bstack,bin::cmd::P_ASGN_CS);
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::CASGN_END);
+      }
+    }
+  }
+}
+
 //!\brief partial specialization for std::list
 
 template <typename t_elem>
@@ -736,6 +827,7 @@ void TVariable::generator<std::list<t_elem> >::operator() (std::list<t_elem> &x)
   o.f_get_end_   = boost::bind(list_get_end_generator<t_elem>,&x,_1,_2);
 
   o.f_write_to_stream_ = boost::bind(list_write_to_stream_generator<t_elem>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(list_write_to_binary_generator<t_elem>,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -910,6 +1002,41 @@ void map_write_to_stream_generator (std::map<t_key,t_elem> *x, const TVariableMa
     os<< indent << "}";
 }
 
+template <typename t_key, typename t_elem>
+void map_write_to_binary_generator (std::map<t_key,t_elem> *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushID(bstack,"clear");
+  AddCommand(bstack,bin::cmd::LLISTS);
+  AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+  if (x->size()>0)
+  {
+    const TVariable x_var(*x);
+    TConstForwardIterator itr,last;
+    x_var.GetBegin(itr);
+    x_var.GetEnd(last);
+    if(itr->IsPrimitive())
+    {
+      for (typename std::map<t_key,t_elem>::const_iterator xitr(x->begin()); itr!=last; ++itr,++xitr)
+      {
+        AddPushLiteral(bstack,xitr->first);
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::E_ASGN_P);
+      }
+    }
+    else
+    {
+      for (typename std::map<t_key,t_elem>::const_iterator xitr(x->begin()); itr!=last; ++itr,++xitr)
+      {
+        AddPushLiteral(bstack,xitr->first);
+        AddCommand(bstack,bin::cmd::E_ASGN_CS);
+        itr->WriteToBinary(bstack);
+        AddCommand(bstack,bin::cmd::CASGN_END);
+      }
+    }
+  }
+}
+
 //!\brief partial specialization for std::map
 
 template <typename t_key, typename t_elem>
@@ -928,6 +1055,7 @@ void TVariable::generator<std::map<t_key,t_elem> >::operator() (std::map<t_key,t
   o.f_get_end_   = boost::bind(map_get_end_generator<t_key,t_elem>,&x,_1,_2);
 
   o.f_write_to_stream_ = boost::bind(map_write_to_stream_generator<t_key,t_elem>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(map_write_to_binary_generator<t_key,t_elem>,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 

@@ -4,7 +4,7 @@
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    May.17, 2010-
 
-    Copyright (C) 2010  Akihiko Yamaguchi
+    Copyright (C) 2010, 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -23,8 +23,6 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser_impl.h>
-#include <lora/stl_ext.h>
-#include <lora/string_impl.h>  // NumericalContainerToString
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -33,318 +31,42 @@ namespace var_space
 using namespace std;
 using namespace boost::spirit::classic;
 
-// explicit instantiation
-template class TParserAgent <file_iterator<char> >;
-template class TCodeParser <file_iterator<char> >;
 
-//-------------------------------------------------------------------------------------------
-
-std::ostream& operator<<(std::ostream &lhs, const TLiteral &rhs)
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks)
 {
-  switch(rhs.LType)
-  {
-  case TLiteral::ltIdentifier  :  lhs<<rhs.LPrimitive.EString<<"[identifier]";    break;
-  case TLiteral::ltPrimitive   :  lhs<<rhs.LPrimitive<<"[primitive]";  break;
-  case TLiteral::ltList        :  lhs<<"("<<NumericalContainerToString(rhs.LList, ", ")<<")[list]";  break;
-  default : LERROR("fatal!"); LDBGVAR(int(rhs.LType)); lexit(df);
-  }
-  return lhs;
-}
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-// class TLiteralTable
-//===========================================================================================
-
-TLiteralTable::TLiteralTable(void)
-{
-  AddToKeywordSet(keywords_);
-}
-//-------------------------------------------------------------------------------------------
-
-const TLiteral* TLiteralTable::Find(const TIdentifier &id) const
-{
-  TTable::const_iterator itr(table_.find(id));
-  if (itr==table_.end())  return NULL;
-  return &(itr->second);
-}
-//-------------------------------------------------------------------------------------------
-
-TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, const TLiteral &value)
-{
-  if (keywords_.find(id)!=keywords_.end())
-  {
-    LERROR("`"<<id<<"\' is a reserved keyword");
-    return arFailed;
-  }
-  TTable::iterator itr(table_.find(id));
-  if (itr!=table_.end())
-  {
-    itr->second= value;
-    return arOverwritten;
-  }
-  table_.insert(TTable::value_type(id,value));
-  return arInserted;
-}
-//-------------------------------------------------------------------------------------------
-
-TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_table, const TEvaluateLiteralConfig &config, bool &error)
-{
-  if (src.LType==TLiteral::ltIdentifier)
-  {
-    const TIdentifier &src_id(src.LPrimitive.EString);
-    const TLiteral *alt(NULL);
-    if(literal_table && (alt=literal_table->Find(src_id))!=NULL)
-    {
-      TLiteral res;
-      if(alt->LType==TLiteral::ltIdentifier && config.Recursive)
-      {
-        TEvaluateLiteralConfig sub_config(config); sub_config.ExitByError= false;
-        res= EvaluateLiteral(*alt,literal_table,sub_config,error);
-      }
-      else
-        res= *alt;
-      if (!config.AllowId && res.LType==TLiteral::ltIdentifier)
-      {
-        LERROR("failed to evaluate `"<<src_id<<"\'");
-        error= true;
-        if(config.ExitByError) lexit(df);
-      }
-      return res;
-    }
-    else
-    {
-      if (config.AllowId)  return src;
-      LERROR("identifier `"<<src_id<<"\' is not registered in the literal-table");
-      error= true;
-      if(config.ExitByError) lexit(df);
-      TLiteral res;  res.LType=TLiteral::ltIdentifier;  return res;
-    }
-  }
-  else
-  {
-    return src;
-  }
-}
-//-------------------------------------------------------------------------------------------
-
-//===========================================================================================
-
-bool ParseFile (TParserInfoIn &in, TParserInfoOut *out)
-{
+  using namespace boost::spirit::classic;
   typedef file_iterator<char> TIterator;
-  TIterator  first(in.FileName);
+  TIterator  first(file_name);
   if (!first)
   {
-    LERROR("failed to open file: "<<in.FileName);
+    LERROR("failed to open file: "<<file_name);
     return false;
   }
 
-  TParserAgent<TIterator> pagent;
-
   TIterator last= first.make_end();
 
-  parse_info<TIterator> info= pagent.Parse(in, first, last, out);
-  if (out)  out->IsLast= (info.stop==last);
-  return !pagent.Error();
-}
-//-------------------------------------------------------------------------------------------
+  int linenum(1);
+  std::string file_name2(file_name);
+  bool error(false);
+
+  TCodeParser<TIterator> parser;
+  parser.SetBinStack(&bin_stack);
+  parser.SetFileName(&file_name2);
+  parser.SetLineNum(&linenum);
+  parser.SetError(&error);
+  parser.SetCallbacks(callbacks);
+
+  LORA_MESSAGE_FORMAT_FUNCTION tmp_msg_format= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
+  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&TCodeParser<TIterator>::LoraError,&parser,_1,_2,_3,_4,_5)) );
+
+  parse_info<TIterator> info= parse(first, last, parser);
+  message_system::SetFormat(tmp_msg_format);
 
 
-//-------------------------------------------------------------------------------------------
-// class TExtVariable
-//-------------------------------------------------------------------------------------------
+  LMESSAGE("loaded "<<linenum<<" lines,");
+  LMESSAGE("which is "<<(info.stop==last ? "the last" : "not the last"));
 
-TExtVariable::TExtVariable (TExtForwardIterator &first, TExtForwardIterator &last)
-  :
-    kind_(kArray)
-{
-  LASSERT1op1(first.kind_,==,last.kind_);
-  switch(first.kind_)
-  {
-  case TExtForwardIterator::kSingle :
-    for(; first.entity_!=last.entity_; ++first.entity_)
-      array_.push_back(*(first.entity_));
-    break;
-  case TExtForwardIterator::kArray :
-    for(std::list<TForwardIterator>::iterator first_itr(first.array_.begin()),first_last(first.array_.end()),last_itr(last.array_.begin());
-        first_itr!=first_last; ++first_itr,++last_itr)
-    {
-      for(; (*first_itr)!=(*last_itr); ++(*first_itr))
-        array_.push_back(*(*first_itr));
-    }
-    break;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-
-void TExtVariable::DirectAssign (const TVariable &value)
-{
-  switch(kind_)
-  {
-  case kSingle :  return entity_.DirectAssign(value);
-  case kArray :   for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    itr->DirectAssign(value);
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-void TExtVariable::SetMember (const TVariable &id, const TVariable &value)
-{
-  switch(kind_)
-  {
-  case kSingle :  return entity_.SetMember(id, value);
-  case kArray :   for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    itr->SetMember(id, value);
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-
-TExtVariable TExtVariable::GetMember (const TVariable &id)
-{
-  switch(kind_)
-  {
-  case kSingle :  return TExtVariable(entity_.GetMember(id));
-  case kArray :   {TExtVariable res(kArray);
-                  for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    res.array_.push_back(itr->GetMember(id));
-                  return res;}
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-  return TExtVariable();
-}
-void TExtVariable::FunctionCall (const TIdentifier &id, TVariableList &argv)
-{
-  switch(kind_)
-  {
-  case kSingle :  return entity_.FunctionCall(id,argv);
-  case kArray :   for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    itr->FunctionCall(id,argv);
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-void TExtVariable::DirectCall (TVariableList &argv)
-{
-  switch(kind_)
-  {
-  case kSingle :  return entity_.DirectCall(argv);
-  case kArray :   for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    itr->DirectCall(argv);
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-TExtVariable TExtVariable::Push (void)
-{
-  switch(kind_)
-  {
-  case kSingle :  return entity_.Push();
-  case kArray :   {TExtVariable res(kArray);
-                  for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    res.array_.push_back(itr->Push());
-                  return res;}
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-  return TExtVariable();
-}
-void TExtVariable::GetBegin (TExtForwardIterator &res)
-{
-  switch(kind_)
-  {
-  case kSingle :  res.kind_= TExtForwardIterator::kSingle;
-                  entity_.GetBegin(res.entity_);
-                  return;
-  case kArray :   res.kind_= TExtForwardIterator::kArray;
-                  res.array_.clear();
-                  for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    {res.array_.push_back(TForwardIterator()); itr->GetBegin(res.array_.back());}
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-void TExtVariable::GetEnd (TExtForwardIterator &res)
-{
-  switch(kind_)
-  {
-  case kSingle :  res.kind_= TExtForwardIterator::kSingle;
-                  entity_.GetEnd(res.entity_);
-                  return;
-  case kArray :   res.kind_= TExtForwardIterator::kArray;
-                  res.array_.clear();
-                  for (std::list<TVariable>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-                    {res.array_.push_back(TForwardIterator()); itr->GetEnd(res.array_.back());}
-                  return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-}
-//-------------------------------------------------------------------------------------------
-
-
-//-------------------------------------------------------------------------------------------
-// class TExtForwardIterator
-//-------------------------------------------------------------------------------------------
-
-const TExtForwardIterator& TExtForwardIterator::operator++(void)
-{
-  switch(kind_)
-  {
-  case kSingle:  ++entity_; break;
-  case kArray :
-    for (std::list<TForwardIterator>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-      ++(*itr);
-    break;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-  return *this;
-}
-const TExtForwardIterator& TExtForwardIterator::operator--(void)
-{
-  switch(kind_)
-  {
-  case kSingle:  --entity_; break;
-  case kArray :
-    for (std::list<TForwardIterator>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-      --(*itr);
-    break;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-  return *this;
-}
-bool TExtForwardIterator::operator==(const TExtForwardIterator &rhs) const
-{
-  switch(kind_)
-  {
-  case kSingle:  return entity_==rhs.entity_;
-  case kArray :
-    {std::list<TForwardIterator>::const_iterator rhs_itr(rhs.array_.begin());
-    for (std::list<TForwardIterator>::const_iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr,++rhs_itr)
-      if ((*itr)!=(*rhs_itr))  return false;
-    return true;}
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
-  return false;
-}
-//-------------------------------------------------------------------------------------------
-
-void TExtForwardIterator::i_dereference_()
-{
-  switch(kind_)
-  {
-  case kSingle:
-    dereferenced_.kind_= TExtVariable::kSingle;
-    dereferenced_.entity_= *entity_;
-    return;
-  case kArray :
-    dereferenced_.kind_= TExtVariable::kArray;
-    dereferenced_.array_.clear();
-    for (std::list<TForwardIterator>::iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
-      dereferenced_.array_.push_back(*(*itr));
-    return;
-  default: LERROR("fatal! (internal error)"); lexit(df);
-  }
+  return !parser.Error();
 }
 //-------------------------------------------------------------------------------------------
 

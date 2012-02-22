@@ -1,0 +1,67 @@
+config ={
+    DataDir = "nonexistent_dir"
+    ExtFilePrefix = "after-"
+    LazyLoadModulePattern = ""
+  }
+
+
+def  call_func(X)
+{
+cmd::PUSH vtype::ID   "X"
+cmd::LLISTS
+cmd::FUNC_CALL
+cmd::RETURN
+}
+def  test_func()
+{
+cmd::PUSH vtype::INT  10
+cmd::RETURN
+}
+
+module  MMediator0_TReal  in_cont_time
+module  MMediator0_TInt  in_episode_number
+module  MMediator0_TRealVector  in_ngnet
+module  MMediator0_TRealVector  in_state
+module  MUniversalDataLogger  logger_ngnet
+module  MMaxElementIndex_TRealVector  max_elem_index
+module  MMaxElementValue_TRealVector  max_elem_value
+module  MNonzeroElements_TRealVector  ngnet_nonzero
+module  MNonzeroElementsCounter_TRealVector  ngnet_nonzero_cnt
+
+connect  in_cont_time.out_1 ,   logger_ngnet.in_data_real
+connect  in_episode_number.out_1 ,   logger_ngnet.in_data_int
+connect  in_ngnet.out_1 ,   max_elem_value.in_x
+connect  in_ngnet.out_1 ,   max_elem_index.in_x
+connect  in_ngnet.out_1 ,   ngnet_nonzero.in_x
+connect  in_ngnet.out_1 ,   ngnet_nonzero_cnt.in_x
+connect  in_state.out_1 ,   logger_ngnet.in_data_real_vector
+connect  max_elem_index.out_y ,   logger_ngnet.in_data_int
+connect  max_elem_value.out_y ,   logger_ngnet.in_data_real
+connect  ngnet_nonzero.out_y ,   logger_ngnet.in_data_real_vector
+connect  ngnet_nonzero_cnt.out_y ,   logger_ngnet.in_data_int
+
+logger_ngnet.config ={
+    CommentOutMark = "#"
+    Delim = "  "
+    FileName = "log-ngnet.dat"
+    FileOverwritePolicy = "fopAsk"
+    FileSharable = true
+    NoDataMark = "#"
+    OrderOfColumns = {
+        clear()
+        ["in_cont_time.out_1"] = 2
+        ["in_episode_number.out_1"] = 1
+        ["in_state.out_1"] = 7
+        ["max_elem_index.out_y"] = 4
+        ["max_elem_value.out_y"] = 5
+        ["ngnet_nonzero.out_y"] = 11
+        ["ngnet_nonzero_cnt.out_y"] = 9
+      }
+    PutBlankData = true
+  }
+ngnet_nonzero.config ={
+    Threshold = 0.0999999999999999999946
+  }
+ngnet_nonzero_cnt.config ={
+    Threshold = 0
+  }

@@ -3,6 +3,7 @@
     \brief   libskyai - base unit (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Aug.24, 2009-
+\todo FIXME: reduce the dependencies: separate TCompositeModule,TAgent from base.h
 
     Copyright (C) 2009, 2010  Akihiko Yamaguchi
 
@@ -25,25 +26,23 @@
 #ifndef skyai_base_h
 #define skyai_base_h
 //-------------------------------------------------------------------------------------------
+#include <skyai/module_manager.h>
 #include <lora/common.h>
 #include <lora/string.h>
 #include <lora/variable_space.h>
+#include <lora/binary.h>
 #include <climits>
 #include <string>
 #include <list>
 #include <map>
 #include <set>
 #include <boost/function.hpp>
-#include <skyai/module_manager.h>
 //-------------------------------------------------------------------------------------------
 // forward declarations:
 namespace boost {namespace filesystem {
   struct path_traits;
   template<class String, class Traits> class basic_path;
   typedef basic_path< std::string, path_traits > path;
-}}
-namespace loco_rabbits {namespace var_space {
-  struct TLiteral;
 }}
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -431,7 +430,7 @@ public:
   virtual void SetNeverAccessed (bool na);
   void SetLazyLoadFile (const std::string &file_name);
 
-  bool ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export=false);
+  bool ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 
 
   struct TShowConf
@@ -666,9 +665,15 @@ public:
 
   /*!\brief save modules, connections, configurations to a stream */
   bool WriteToStream (std::ostream &os, const std::string &indent="", bool ext_sto_available=false) const;
+    // defined in agent_writer.cpp
+
+  /*!\brief save modules, connections, configurations to binary */
+  bool WriteToBinary (TBinaryStack &bstack, bool ext_sto_available=false) const;
+    // defined in agent_writer.cpp
 
   //! see comments of TAgent::LoadFromFile
   bool LoadFromFile (const std::string &file_name, std::list<std::string> *included_list=NULL);
+    // defined in agent_binexec.cpp
 
 
   override void SetNeverAccessed (bool na);
@@ -788,9 +793,9 @@ public:
 
   struct TGeneratorInfo
     {
-      std::string  Script;
-      std::string  FileName;  //!< filename where Script is defined
-      int          LineNum;   //!< line number where Script is defined
+      TBinaryStack  Binary;
+      std::string   FileName;  //!< filename where Binary is defined
+      int           LineNum;   //!< line number where Binary is defined
     };
 
   //! Added: return true, failed: return false
@@ -804,15 +809,21 @@ public:
   const TGeneratorInfo* Generator(const std::string &cmodule_name) const;
 
   //! Create an instance of cmodule_name; return true for success
-  bool Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export=false) const;
+  bool Create(TCompositeModule &instance, const std::string &cmodule_name, bool ignore_export=false) const;
+    // defined in agent_binexec.cpp
 
   //! Write all composite module definitions to a stream
   bool WriteToStream (std::ostream &os, const std::string &indent="") const;
+    // defined in agent_writer.cpp
+
+  //! Write all composite module definitions to binary
+  bool WriteToBinary (TBinaryStack &bstack) const;
+    // defined in agent_writer.cpp
 
 private:
 
   std::map<std::string, TGeneratorInfo>  generators_;
-  std::list<std::string> cmodule_name_list_;  //!< list of composite module names (used in WriteToStream)
+  std::list<std::string> cmodule_name_list_;  //!< list of composite module names (used in WriteToStream/WriteToBinary)
 
 };
 //-------------------------------------------------------------------------------------------
@@ -827,10 +838,10 @@ public:
 
   struct TFunctionInfo
     {
-      std::string  Script;
+      TBinaryStack Binary;
       std::list<std::string>  ParamList;
-      std::string  FileName;  //!< filename where Script is defined
-      int          LineNum;   //!< line number where Script is defined
+      std::string  FileName;  //!< filename where Binary is defined
+      int          LineNum;   //!< line number where Binary is defined
     };
 
   //! Added: return true, failed: return false
@@ -845,13 +856,16 @@ public:
 
   bool ExecuteFunction(
           const std::string &func_name, const std::list<var_space::TLiteral> &argv,
-          TCompositeModule &context_cmodule,
-          const boost::filesystem::path &current_dir,
-          std::list<boost::filesystem::path> *path_list, std::list<std::string> *included_list,
-          TCompositeModuleGenerator *cmp_module_generator,  bool no_export=false) const;
+          TCompositeModule &context_cmodule, var_space::TLiteral *ret_val=NULL, bool ignore_export=false) const;
+    // defined in agent_binexec.cpp
 
   //! Write all function definitions to a stream
   bool WriteToStream (std::ostream &os, const std::string &indent="") const;
+    // defined in agent_writer.cpp
+
+  //! Write all function definitions to binary
+  bool WriteToBinary (TBinaryStack &bstack) const;
+    // defined in agent_writer.cpp
 
 private:
 
@@ -896,18 +910,13 @@ class TAgent
 {
 public:
 
+  TAgent();
+  virtual ~TAgent();
+
   //! clear all modules and path_list_ (memories are freed)
   void Clear();
 
-  TAgent ()
-      : modules_    ("TAgent","global"),
-        conf_       (modules_.ParamBoxConfig().SetMemberMap()),
-        path_list_  (NULL)
-    {
-      modules_.SetAgent(*this);
-    }
-
-  virtual ~TAgent()  {}
+  const boost::filesystem::path& CurrentDir() const {return *current_dir_;}
 
 
   TCompositeModule&  Modules ()  {return modules_;}
@@ -992,9 +1001,11 @@ public:
       \param [in,out]included_list  :  included full-path (native) list
       \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
   bool LoadFromFile (const std::string &filename, std::list<std::string> *included_list=NULL);
+    // defined in agent_binexec.cpp
 
   /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
   bool SaveToFile (const std::string &filename, const std::string &ext_file_prefix="") const;
+    // defined in agent_writer.cpp
 
 
   /*!\brief add dir_name (native format path) to the path-list */
@@ -1015,11 +1026,12 @@ public:
 
   bool ExecuteFunction(
           const std::string &func_name, const std::list<var_space::TLiteral> &argv,
-          TCompositeModule &context_cmodule, bool no_export=false);
+          TCompositeModule &context_cmodule, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 
   bool ExecuteScript(
           const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list=NULL,
-          const std::string &file_name="-", int start_line_num=1, bool no_export=false);
+          const std::string &file_name="-", int start_line_num=1, bool ignore_export=false);
+    // defined in agent_binexec.cpp
 
   /*!\brief search filename from the path-list, return the native path
       \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */
@@ -1066,6 +1078,7 @@ protected:
   TCompositeModuleGenerator  cmp_module_generator_;
   TFunctionManager           function_manager_;
 
+  boost::filesystem::path  *current_dir_;
   std::list<boost::filesystem::path>  *path_list_;
 
 };

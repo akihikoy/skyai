@@ -195,7 +195,7 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
     {
       TCompositeModule cmodule(option("export_dot"), "temporary");
       cmodule.SetAgent(agent);
-      agent.CompositeModuleGenerator().Create(cmodule, option("export_dot"), cmodule.InstanceName());
+      agent.CompositeModuleGenerator().Create(cmodule, option("export_dot"));
       cmodule.ExportToDOT(cout);
     }
     return false;

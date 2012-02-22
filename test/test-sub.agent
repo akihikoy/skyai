@@ -1,0 +1,12 @@
+logger_action_result.config ={
+    FileName = "log-action-res.dat"
+    OrderOfColumns ={
+        ["behavior.out_episode_number"]= 1
+        ["rl_in_cont_time.out_1"]= 2
+        ["rwd_accumulator.out_last_accessed"]= 4
+        ["behavior.out_td_error"]= 5
+        ["behavior.out_current_action_value"]= 6+5
+        ["holder_action.out_1"]= 8
+      }
+    PutBlankData = true
+  }

@@ -28,7 +28,7 @@
 #include <skyai/skyai.h>
 #include <lora/rand.h>
 #include <lora/variable_space_impl.h>
-#include <lora/variable_parser.h>
+#include <lora/variable_literal.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -369,11 +369,12 @@ protected:
 
   virtual void slot_step_exec (void)
     {
+      using namespace var_space;
       std::map<TInt,TString>::const_iterator
           sch_itr= conf_.Schedule.find(mem_.Counter);
       if (sch_itr!=conf_.Schedule.end())
       {
-        if (!ExecuteFunction(sch_itr->second, std::list<var_space::TLiteral>()))
+        if (!ExecuteFunction(sch_itr->second, /*literal_table=*/std::list<TLiteral>()))
           {LERROR("failed to execute function(counter="<<sch_itr->first<<"): "<<sch_itr->second); lexit(df);}
       }
       ++mem_.Counter;

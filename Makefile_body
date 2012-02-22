@@ -104,10 +104,12 @@ $(ARC) : $(OBJS)
 	@(echo "$@ is generated")
 	@(echo "*************************************************")
 
+$(SO) : SO_NOVER:=`echo $(SO)|sed 's/\.so.*/.so/g'`
 $(SO) : $(LOBJS)
 	$(CXX) -shared -Wl,-soname,`basename $@` $(LOBJS) -o $@
 	@(echo "*************************************************")
 	@(echo "$@ is generated")
+	@(if [ $@ != $(SO_NOVER) ];then ln -sfv `basename $@` $(SO_NOVER);fi)
 	@(echo "*************************************************")
 
 %.o : %.cpp

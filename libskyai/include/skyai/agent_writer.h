@@ -1,10 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    variable_space_fwd.h
-    \brief   liblora - variable-space : generic manipulators of variables  (header for forward declarations)
+/*! \file    agent_writer.h
+    \brief   libskyai - certain program (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Jun.12, 2010-
+    \date    Feb.07, 2012
 
-    Copyright (C) 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -22,59 +22,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef loco_rabbits_variable_space_fwd_h
-#define loco_rabbits_variable_space_fwd_h
+#ifndef skyai_agent_writer_h
+#define skyai_agent_writer_h
 //-------------------------------------------------------------------------------------------
-#include <lora/common.h>
-#include <lora/stl_fwd.h>
+#include <string>
+#include <boost/filesystem/path.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
-namespace var_space
-{
+class TCompositeModule;
+class TAgent;
+namespace var_space {class TLiteralTable;}
+//-------------------------------------------------------------------------------------------
+
+/*!\brief save modules, connections, configurations to the file [path_list] */
+bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path, const std::string &ext_file_prefix="");
+
+/*!\brief save modules, connections, configurations to the stream [os] */
+bool WriteAgentToStream (const TAgent &agent, std::ostream &os, bool ext_sto_available=false);
+//-------------------------------------------------------------------------------------------
+
+/*!\brief dump information */
+bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
+      const std::string &kind, const std::string *opt=NULL, const std::string &indent="");
 //-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------
-// type definitions
+}  // end of loco_rabbits
 //-------------------------------------------------------------------------------------------
-
-// primitive types:
-typedef long                 pt_int       ;
-typedef long double          pt_real      ;
-typedef bool                 pt_bool      ;
-typedef std::string          pt_string    ;
-
-typedef pt_string            TIdentifier;
-
-class TVariable;
-typedef LIST_FWD(TVariable) TVariableList;
-typedef MAP_FWD(TIdentifier, TVariable) TVariableMap;
-class TForwardIterator;
-class TConstForwardIterator;
-
-//!\brief dummy type to use a variable as a variable space
-struct TVariableSpace {void *dummy;};
-inline TVariableSpace VariableSpace()  {TVariableSpace vs; return vs;}
-
-class TAnyPrimitive;
-
-class TLiteral;
-class TLiteralTable;
-
-#ifndef VAR_SPACE_INDENT_STEP
-#define VAR_SPACE_INDENT_STEP  "  "
-#endif
-
-#ifndef VAR_SPACE_ERR_EXIT
-#define VAR_SPACE_ERR_EXIT(x_err_message)  do{LERROR(x_err_message); lexit(df);}while(0)
-#endif
-
-//-------------------------------------------------------------------------------------------
-}  // end of namespace var_space
-//-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
-//-------------------------------------------------------------------------------------------
-#endif // loco_rabbits_variable_space_fwd_h
+#endif // skyai_agent_writer_h
 //-------------------------------------------------------------------------------------------

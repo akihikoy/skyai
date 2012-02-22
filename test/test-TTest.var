@@ -1,0 +1,37 @@
+x = 1
+y = -12 * (2 + 0.5)
+z = (2.1, -1.0) * (2,2) + (1,1)
+
+a = ()
+str = "hoge\nhoge"+"--"
+b=(3==3)
+m = {
+    clear()
+    ["a"]=2.1
+    [""]=-1.2
+    ["hoge hoge"]=10
+  }
+blist = (false,true,3==2,3>=2.5)
+
+_B01 = {
+    clear()
+    resize(3)
+    []=(1,2,3)
+    [1]=(2)
+    [2]=()
+  }
+cells = {
+    clear()
+    []={x=1;y=2;}
+    []={x=-2.5;y=-3.5;}
+  }
+cell = {x=20; y=0.1;}
+
+x= cast<real>(cell.y) * cast<int>(cell.x) // + cast<int>(y)
+
+// cells = {
+    // []= 2+clear()
+  // }
+
+// x= 2+func(a)
+// func(a)

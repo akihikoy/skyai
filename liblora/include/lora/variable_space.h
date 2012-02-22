@@ -26,12 +26,17 @@
 #define loco_rabbits_variable_space_h
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space_fwd.h>
-#include <vector>
 #include <boost/function.hpp>
+#include <vector>
+#include <list>
+#include <map>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
+
+class TBinaryStack;
+
 namespace var_space
 {
 //-------------------------------------------------------------------------------------------
@@ -77,41 +82,15 @@ public:
     };
 
 
-  TVariable () : is_primitive_(false), is_const_(false)  {}
+  TVariable () : is_null_(true), is_primitive_(false), is_const_(false)  {}
 
-  #define INIT_LIST  \
-      is_primitive_                 (x.is_primitive_                 ),  \
-      is_const_                     (x.is_const_                     ),  \
-                                                                         \
-      members_                      (x.members_                      ),  \
-                                                                         \
-      f_primitive_get_as_int_       (x.f_primitive_get_as_int_       ),  \
-      f_primitive_get_as_real_      (x.f_primitive_get_as_real_      ),  \
-      f_primitive_get_as_bool_      (x.f_primitive_get_as_bool_      ),  \
-      f_primitive_get_as_string_    (x.f_primitive_get_as_string_    ),  \
-                                                                         \
-      f_primitive_set_by_int_       (x.f_primitive_set_by_int_       ),  \
-      f_primitive_set_by_real_      (x.f_primitive_set_by_real_      ),  \
-      f_primitive_set_by_bool_      (x.f_primitive_set_by_bool_      ),  \
-      f_primitive_set_by_string_    (x.f_primitive_set_by_string_    ),  \
-                                                                         \
-      f_direct_assign_              (x.f_direct_assign_              ),  \
-      f_set_member_                 (x.f_set_member_                 ),  \
-      f_get_member_                 (x.f_get_member_                 ),  \
-      f_direct_call_                (x.f_direct_call_                ),  \
-      f_function_call_              (x.f_function_call_              ),  \
-      f_push_                       (x.f_push_                       ),  \
-      f_get_begin_                  (x.f_get_begin_                  ),  \
-      f_get_end_                    (x.f_get_end_                    ),  \
-      f_write_to_stream_            (x.f_write_to_stream_            )
-  TVariable (TVariable &x) : INIT_LIST {}
-  TVariable (const TVariable &x) : INIT_LIST {}
-  #undef INIT_LIST
+  TVariable (TVariable &x)  {operator=(x);}
+  TVariable (const TVariable &x)  {operator=(x);}
 
-  TVariable (TVariableSpace) : is_primitive_(false), is_const_(false)  {VariableSpaceMode();}
+  TVariable (TVariableSpace) : is_null_(false), is_primitive_(false), is_const_(false)  {VariableSpaceMode();}
 
   template <typename t_var>
-  TVariable (t_var &x) : is_primitive_(false), is_const_(false)
+  TVariable (t_var &x) : is_null_(false), is_primitive_(false), is_const_(false)
     {
       generator<t_var>(*this)(x);
     }
@@ -120,19 +99,47 @@ public:
   void Generate (t_var &x)
     {
       Clear();
+      is_null_= false;
       generator<t_var>(*this)(x);
     }
 
-  //!\brief use this variable as a struct or a variable space
-  void VariableSpaceMode (void);
+  const TVariable& operator= (const TVariable &rhs)
+    {
+      if(rhs.is_null_)  {is_null_= true; return *this;}
 
-  bool IsPrimitive() const {return is_primitive_;}
-  bool IsConst() const {return is_const_;}
+      is_null_                    =  rhs.is_null_                      ;
+      is_primitive_               =  rhs.is_primitive_                 ;
+      is_const_                   =  rhs.is_const_                     ;
 
-  std::size_t Size() const;
+      members_                    =  rhs.members_                      ;
+
+      f_primitive_get_as_int_     =  rhs.f_primitive_get_as_int_       ;
+      f_primitive_get_as_real_    =  rhs.f_primitive_get_as_real_      ;
+      f_primitive_get_as_bool_    =  rhs.f_primitive_get_as_bool_      ;
+      f_primitive_get_as_string_  =  rhs.f_primitive_get_as_string_    ;
+
+      f_primitive_set_by_int_     =  rhs.f_primitive_set_by_int_       ;
+      f_primitive_set_by_real_    =  rhs.f_primitive_set_by_real_      ;
+      f_primitive_set_by_bool_    =  rhs.f_primitive_set_by_bool_      ;
+      f_primitive_set_by_string_  =  rhs.f_primitive_set_by_string_    ;
+
+      f_direct_assign_            =  rhs.f_direct_assign_              ;
+      f_set_member_               =  rhs.f_set_member_                 ;
+      f_get_member_               =  rhs.f_get_member_                 ;
+      f_direct_call_              =  rhs.f_direct_call_                ;
+      f_function_call_            =  rhs.f_function_call_              ;
+      f_push_                     =  rhs.f_push_                       ;
+      f_get_begin_                =  rhs.f_get_begin_                  ;
+      f_get_end_                  =  rhs.f_get_end_                    ;
+      f_write_to_stream_          =  rhs.f_write_to_stream_            ;
+      f_write_to_binary_          =  rhs.f_write_to_binary_            ;
+
+      return *this;
+    }
 
   void Clear ()
     {
+      is_null_                      = true;
       is_primitive_                 = false;
       is_const_                     = false;
 
@@ -157,7 +164,17 @@ public:
       f_get_begin_                  .clear();
       f_get_end_                    .clear();
       f_write_to_stream_            .clear();
+      f_write_to_binary_            .clear();
     }
+
+  //!\brief use this variable as a struct or a variable space
+  void VariableSpaceMode (void);
+
+  bool IsNull() const {return is_null_;}
+  bool IsPrimitive() const {return is_primitive_;}
+  bool IsConst() const {return is_const_;}
+
+  std::size_t Size() const;
 
   template <typename T>
   bool AddMemberVariable(const TIdentifier &id, T &x)  {return AddToVarMap<T>(members_,id,x);}
@@ -181,6 +198,29 @@ public:
       x= PrimitiveGetAs<t_var>();
     }
 
+
+  #define DEF_IFDEF(x_postfix,x_func)  bool IfDef##x_postfix() const {if(x_func)return true; return false;}
+  DEF_IFDEF(GetAsInt      , f_primitive_get_as_int_      )
+  DEF_IFDEF(GetAsReal     , f_primitive_get_as_real_     )
+  DEF_IFDEF(GetAsBool     , f_primitive_get_as_bool_     )
+  DEF_IFDEF(GetAsString   , f_primitive_get_as_string_   )
+  DEF_IFDEF(SetByInt      , f_primitive_set_by_int_      )
+  DEF_IFDEF(SetByReal     , f_primitive_set_by_real_     )
+  DEF_IFDEF(SetByBool     , f_primitive_set_by_bool_     )
+  DEF_IFDEF(SetByString   , f_primitive_set_by_string_   )
+
+  DEF_IFDEF(DirectAssign  , f_direct_assign_             )
+  DEF_IFDEF(SetMember     , f_set_member_                )
+  DEF_IFDEF(GetMember     , f_get_member_                )
+  DEF_IFDEF(DirectCall    , f_direct_call_               )
+  DEF_IFDEF(FunctionCall  , f_function_call_             )
+  DEF_IFDEF(Push          , f_push_                      )
+  DEF_IFDEF(GetBegin      , f_get_begin_                 )
+  DEF_IFDEF(GetEnd        , f_get_end_                   )
+  DEF_IFDEF(WriteToStream , f_write_to_stream_           )
+  DEF_IFDEF(WriteToBinary , f_write_to_binary_           )
+  #undef DEF_IFDEF
+
   inline void DirectAssign (const TVariable &value);
   inline void SetMember (const TVariable &id, const TVariable &value);
   inline TVariable GetMember (const TVariable &id);
@@ -197,6 +237,7 @@ public:
   inline void GetEnd (TForwardIterator &res);
   inline void GetEnd (TConstForwardIterator &res) const;
   inline void WriteToStream (std::ostream &os, bool bare=false, const pt_string &indent="") const;
+  inline void WriteToBinary (TBinaryStack &bstack) const;
 
   inline bool NoMember (void) const
     {
@@ -205,6 +246,7 @@ public:
     }
 
   //!\todo FIXME: add remove (erase) method
+
 
 protected:
 
@@ -229,6 +271,7 @@ protected:
     };
 
 
+  bool is_null_;
   bool is_primitive_;  //!< \todo FIXME: implement this feature (used in save to file)
     //! \todo FIXME: kind_ in {primitive,composite,function} is better
   bool is_const_;  //!< \todo FIXME: implement this feature
@@ -272,6 +315,9 @@ protected:
 
   /*!\brief write the data into a stream */
   boost::function<void(const TVariableMap &members, std::ostream &os, bool bare, const pt_string &indent)> f_write_to_stream_;
+
+  /*!\brief write the data into a binary-stack */
+  boost::function<void(const TVariableMap &members, TBinaryStack &bstack)> f_write_to_binary_;
 
 
   friend class TForwardIterator;
@@ -483,6 +529,12 @@ inline void TVariable::WriteToStream (std::ostream &os, bool bare, const pt_stri
   if(!f_write_to_stream_)
     {VAR_SPACE_ERR_EXIT("WriteToStream is not defined");}
   f_write_to_stream_ (members_,os,bare,indent);
+}
+inline void TVariable::WriteToBinary (TBinaryStack &bstack) const
+{
+  if(!f_write_to_binary_)
+    {VAR_SPACE_ERR_EXIT("WriteToBinary is not defined");}
+  f_write_to_binary_ (members_,bstack);
 }
 //-------------------------------------------------------------------------------------------
 

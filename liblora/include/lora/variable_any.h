@@ -27,6 +27,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space_fwd.h>
 #include <lora/string.h>
+#include <lora/cast.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -38,32 +39,265 @@ namespace var_space
 extern pt_string AnyPrimitiveIdentifier;
 
 //===========================================================================================
-struct TAnyPrimitive
+class TAnyPrimitive
 //===========================================================================================
 {
+public:
   enum TType {ptInt=0, ptReal, ptBool, ptString};
-  pt_int Type;
+
+  TAnyPrimitive() : type_(static_cast<int>(ptInt)), e_int_(0) {}
+  TAnyPrimitive(const pt_int    &x) : type_(static_cast<int>(ptInt   )), e_int_   (x) {}
+  TAnyPrimitive(const pt_real   &x) : type_(static_cast<int>(ptReal  )), e_real_  (x) {}
+  TAnyPrimitive(const pt_bool   &x) : type_(static_cast<int>(ptBool  )), e_bool_  (x) {}
+  TAnyPrimitive(const pt_string &x) : type_(static_cast<int>(ptString)), e_string_(x) {}
+
+  const pt_int& Type() const {return type_;}
+  void SetType(pt_int t)  {type_= t;}
+  pt_int& SetType()  {return type_;}
+
+  void Set(const pt_int    &x)  {type_=static_cast<int>(ptInt   ); e_int_   = x;}
+  void Set(const pt_real   &x)  {type_=static_cast<int>(ptReal  ); e_real_  = x;}
+  void Set(const pt_bool   &x)  {type_=static_cast<int>(ptBool  ); e_bool_  = x;}
+  void Set(const pt_string &x)  {type_=static_cast<int>(ptString); e_string_= x;}
+
+  const pt_int&    Int    () const {return e_int_   ;}
+  const pt_real&   Real   () const {return e_real_  ;}
+  const pt_bool&   Bool   () const {return e_bool_  ;}
+  const pt_string& String () const {return e_string_;}
+
+private:
+  pt_int type_;
   union
   {
-    pt_int       EInt;
-    pt_real      EReal;
-    pt_bool      EBool;
+    pt_int       e_int_;
+    pt_real      e_real_;
+    pt_bool      e_bool_;
   };
-  pt_string      EString;
+  pt_string      e_string_;
 
-  TAnyPrimitive() : Type(static_cast<int>(ptInt)), EInt(0) {}
-  TAnyPrimitive(const pt_int    &x) : Type(static_cast<int>(ptInt   )), EInt   (x) {}
-  TAnyPrimitive(const pt_real   &x) : Type(static_cast<int>(ptReal  )), EReal  (x) {}
-  TAnyPrimitive(const pt_bool   &x) : Type(static_cast<int>(ptBool  )), EBool  (x) {}
-  TAnyPrimitive(const pt_string &x) : Type(static_cast<int>(ptString)), EString(x) {}
-  void Set(const pt_int    &x)  {Type=static_cast<int>(ptInt   ); EInt   = x;}
-  void Set(const pt_real   &x)  {Type=static_cast<int>(ptReal  ); EReal  = x;}
-  void Set(const pt_bool   &x)  {Type=static_cast<int>(ptBool  ); EBool  = x;}
-  void Set(const pt_string &x)  {Type=static_cast<int>(ptString); EString= x;}
 };
 //-------------------------------------------------------------------------------------------
 
 std::ostream& operator<< (std::ostream &lhs, const TAnyPrimitive &rhs);
+//-------------------------------------------------------------------------------------------
+
+inline void CastToBool(TAnyPrimitive &value)
+{
+  switch(value.Type())
+  {
+  case TAnyPrimitive::ptInt :     value.Set(lora_cast<pt_bool>(value.Int())); break;
+  case TAnyPrimitive::ptReal :    value.Set(lora_cast<pt_bool>(value.Real())); break;
+  case TAnyPrimitive::ptBool :    break;
+  case TAnyPrimitive::ptString :  value.Set(lora_cast<pt_bool>(value.String())); break;
+  default : FIXME("fatal value type: "<<static_cast<int>(value.Type()));
+  }
+}
+
+inline void CastToBool(TAnyPrimitive &lhs, TAnyPrimitive &rhs)
+{
+  CastToBool(lhs);
+  CastToBool(rhs);
+}
+
+inline void Cast2(TAnyPrimitive &lhs, TAnyPrimitive &rhs)
+{
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :
+    switch(rhs.Type())
+    {
+    case TAnyPrimitive::ptInt :     break;
+    case TAnyPrimitive::ptReal :    lhs.Set(lora_cast<pt_real>(lhs.Int())); break;
+    case TAnyPrimitive::ptBool :    rhs.Set(lora_cast<pt_int>(rhs.Bool())); break;
+    case TAnyPrimitive::ptString :  lhs.Set(lora_cast<pt_string>(lhs.Int())); break;
+    default : FIXME("fatal value type: "<<static_cast<int>(rhs.Type()));
+    }
+    break;
+  case TAnyPrimitive::ptReal :
+    switch(rhs.Type())
+    {
+    case TAnyPrimitive::ptInt :     rhs.Set(lora_cast<pt_real>(rhs.Int())); break;
+    case TAnyPrimitive::ptReal :    break;
+    case TAnyPrimitive::ptBool :    rhs.Set(lora_cast<pt_real>(rhs.Bool())); break;
+    case TAnyPrimitive::ptString :  lhs.Set(lora_cast<pt_string>(lhs.Real())); break;
+    default : FIXME("fatal value type: "<<static_cast<int>(rhs.Type()));
+    }
+    break;
+  case TAnyPrimitive::ptBool :
+    switch(rhs.Type())
+    {
+    case TAnyPrimitive::ptInt :     lhs.Set(lora_cast<pt_int>(lhs.Bool())); break;
+    case TAnyPrimitive::ptReal :    lhs.Set(lora_cast<pt_real>(lhs.Bool())); break;
+    case TAnyPrimitive::ptBool :    break;
+    case TAnyPrimitive::ptString :  lhs.Set(lora_cast<pt_string>(lhs.Bool())); break;
+    default : FIXME("fatal value type: "<<static_cast<int>(rhs.Type()));
+    }
+    break;
+  case TAnyPrimitive::ptString :
+    switch(rhs.Type())
+    {
+    case TAnyPrimitive::ptInt :     rhs.Set(lora_cast<pt_string>(rhs.Int())); break;
+    case TAnyPrimitive::ptReal :    rhs.Set(lora_cast<pt_string>(rhs.Real())); break;
+    case TAnyPrimitive::ptBool :    rhs.Set(lora_cast<pt_string>(rhs.Bool())); break;
+    case TAnyPrimitive::ptString :  break;
+    default : FIXME("fatal value type: "<<static_cast<int>(rhs.Type()));
+    }
+    break;
+  default : FIXME("fatal value type: "<<static_cast<int>(lhs.Type()));
+  }
+}
+
+inline TAnyPrimitive operator+(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    + rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   + rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator+ is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() + rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator-(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    - rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   - rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator- is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() - rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator*(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  if(lhs.Type()==TAnyPrimitive::ptString && rhs.Type()==TAnyPrimitive::ptInt)
+    return TAnyPrimitive(loco_rabbits::operator*(lhs.String(),rhs.Int()));
+  if(lhs.Type()==TAnyPrimitive::ptInt && rhs.Type()==TAnyPrimitive::ptString)
+    return TAnyPrimitive(loco_rabbits::operator*(lhs.Int(),rhs.String()));
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    * rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   * rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator* is not available for bool"); break;
+  case TAnyPrimitive::ptString :  LERROR("operator* is not available for string"); break;
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator/(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    / rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   / rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator/ is not available for bool"); break;
+  case TAnyPrimitive::ptString :  LERROR("operator/ is not available for string"); break;
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator%(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    % rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(real_fmod(lhs.Real(),rhs.Real()));
+  case TAnyPrimitive::ptBool :    LERROR("operator% is not available for bool"); break;
+  case TAnyPrimitive::ptString :  LERROR("operator% is not available for string"); break;
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator&&(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  CastToBool(lhs,rhs);
+  return TAnyPrimitive(lhs.Bool() && rhs.Bool());
+}
+inline TAnyPrimitive operator||(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  CastToBool(lhs,rhs);
+  return TAnyPrimitive(lhs.Bool() || rhs.Bool());
+}
+inline TAnyPrimitive operator!(TAnyPrimitive rhs)
+{
+  CastToBool(rhs);
+  return TAnyPrimitive(!rhs.Bool());
+}
+inline TAnyPrimitive operator==(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    == rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   == rhs.Real());
+  case TAnyPrimitive::ptBool :    return TAnyPrimitive(lhs.Bool()   == rhs.Bool());
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() == rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator!=(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    != rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   != rhs.Real());
+  case TAnyPrimitive::ptBool :    return TAnyPrimitive(lhs.Bool()   != rhs.Bool());
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() != rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator<=(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    <= rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   <= rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator<= is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() <= rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator>=(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    >= rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   >= rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator>= is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() >= rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator<(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    < rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   < rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator< is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() < rhs.String());
+  }
+  return TAnyPrimitive();
+}
+inline TAnyPrimitive operator>(TAnyPrimitive lhs, TAnyPrimitive rhs)
+{
+  Cast2(lhs,rhs);
+  switch(lhs.Type())
+  {
+  case TAnyPrimitive::ptInt :     return TAnyPrimitive(lhs.Int()    > rhs.Int());
+  case TAnyPrimitive::ptReal :    return TAnyPrimitive(lhs.Real()   > rhs.Real());
+  case TAnyPrimitive::ptBool :    LERROR("operator> is not available for bool"); break;
+  case TAnyPrimitive::ptString :  return TAnyPrimitive(lhs.String() > rhs.String());
+  }
+  return TAnyPrimitive();
+}
 //-------------------------------------------------------------------------------------------
 
 
@@ -74,12 +308,12 @@ std::ostream& operator<< (std::ostream &lhs, const TAnyPrimitive &rhs);
 template <> inline const std::string ConvertToStr (const var_space::TAnyPrimitive &val)
 {
   using namespace var_space;
-  switch(static_cast<TAnyPrimitive::TType>(val.Type))
+  switch(static_cast<TAnyPrimitive::TType>(val.Type()))
   {
-  case TAnyPrimitive::ptInt    : return ConvertToStr(val.EInt   ); break;
-  case TAnyPrimitive::ptReal   : return ConvertToStr(val.EReal  ); break;
-  case TAnyPrimitive::ptBool   : return ConvertToStr(val.EBool  ); break;
-  case TAnyPrimitive::ptString : return ConvertToStr(val.EString); break;
+  case TAnyPrimitive::ptInt    : return ConvertToStr(val.Int()   ); break;
+  case TAnyPrimitive::ptReal   : return ConvertToStr(val.Real()  ); break;
+  case TAnyPrimitive::ptBool   : return ConvertToStr(val.Bool()  ); break;
+  case TAnyPrimitive::ptString : return ConvertToStr(val.String()); break;
   default : LERROR("fatal!"); lexit(df);
   }
   return "";

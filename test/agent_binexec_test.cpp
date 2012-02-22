@@ -1,11 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    skyai.h
-    \brief   libskyai : Highly-Modularized Reinforcement Learning Library
+/*! \file    agent_binexec_test.cpp
+    \brief   Test program of agent binary executor
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Aug.24, 2009-
-\todo FIXME: reduce the dependencies: separate TCompositeModule,TAgent from base.h
+    \date    Feb.14, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -23,22 +22,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_skyai_h
-#define skyai_skyai_h
-//-------------------------------------------------------------------------------------------
-#include <skyai/module_manager.h>
-#include <skyai/base.h>
-#include <skyai/port_templates.h>
-#include <skyai/port_generators.h>
-#include <skyai/types.h>
+#include <skyai/skyai.h>
+#include <skyai/utility.h>
+#include <lora/small_classes.h>
+#include <fstream>
+#include <boost/filesystem/operations.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
+}
 //-------------------------------------------------------------------------------------------
+using namespace std;
+using namespace loco_rabbits;
 
+int main(int argc,char**argv)
+{
+  TOptionParser option(argc,argv);
 
-//-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
-//-------------------------------------------------------------------------------------------
-#endif // skyai_skyai_h
+  TAgent  agent;
+  std::ofstream debug;
+  std::list<std::string> included_list;
+  if (!ParseCmdLineOption(agent, option, debug, &included_list,/*agent_option_required=*/true))  return 0;
+
+  // agent.SaveToFile (agent.GetDataFileName("after.agent"),"after-");
+  agent.SaveToFile (boost::filesystem::complete("after.agent").file_string(),"after-");
+
+  return 0;
+}
 //-------------------------------------------------------------------------------------------

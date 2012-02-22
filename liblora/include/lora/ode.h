@@ -91,7 +91,7 @@ struct TODEAngle
   TODEAngle (const dReal &_a1) : angle1(_a1), angle2(0.0) {};
   TODEAngle (const dReal &_a1, const dReal &_a2) : angle1(_a1), angle2(_a2) {};
 };
-typedef std::map<dJointID, TODEAngle>  TODEJointAngleMap;
+typedef MAP_FWD(dJointID, TODEAngle)  TODEJointAngleMap;
 //-------------------------------------------------------------------------------------------
 
 //!\brief set joint angles connected to the base (ib)

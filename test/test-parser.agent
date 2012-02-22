@@ -1,0 +1,43 @@
+def make_td_disc_act_module(td_module)
+{
+  module  td_module                                  behavior
+  module  MAVFLinearDiscAction                       avf_linear
+  module  MRemoveSignalArguments_TInt                exec_action
+  module  MSimpleAccumulator_TReal                   rwd_accumulator
+
+  module  MHolder_TInt                               holder_action
+  module  MSimpleDataLogger2_TInt_TReal              logger_eps_return
+  module  MUniversalDataLogger                       logger_action_result
+  // def hoge(hoge)
+  // {
+  // }
+}
+
+module  td_module                                  behavior
+module  MAVFLinearDiscAction                       avf_linear
+module  MRemoveSignalArguments_TInt                exec_action
+module  MSimpleAccumulator_TReal                   rwd_accumulator
+
+export   rl_slot_initialize.slot_in  as  slot_initialize
+connect  rl_slot_initialize.signal_out           , avf_linear.slot_initialize
+connect  rl_slot_initialize.signal_out           , behavior.slot_initialize
+connect  rl_slot_initialize.signal_out           , logger_eps_return.slot_initialize
+connect  rl_slot_initialize.signal_out           , logger_action_result.slot_initialize
+
+include "test-sub.agent"
+
+composite MTDDiscAct
+{
+  make_td_disc_act_module(MTDGenericFuncApprox_TDiscreteAction)
+}
+
+edit behavior
+{
+  connect mod.a , mod.b
+  mod.config={}
+  edit hoge
+  {
+    connect mod.a , mod.b
+    mod.config={}
+  }
+}

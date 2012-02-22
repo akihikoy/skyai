@@ -25,6 +25,7 @@ else
   ARC := ../lib/liblora.a
 endif
 OBJS:= common.o              \
+       binary.o              \
        bioloid.o             \
        cast.o                \
        file.o                \
@@ -42,6 +43,9 @@ OBJS:= common.o              \
        sys.o                 \
        type_gen.o            \
        variable_any.o        \
+       variable_bindef.o     \
+       variable_binexec.o    \
+       variable_literal.o    \
        variable_parser.o     \
        variable_space.o
 LOBJS:=$(OBJS:.o=.lo)

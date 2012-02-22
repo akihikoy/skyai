@@ -1,11 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    skyai.h
-    \brief   libskyai : Highly-Modularized Reinforcement Learning Library
+/*! \file    variable_parser_test.cpp
+    \brief   Test program of variable parser
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Aug.24, 2009-
-\todo FIXME: reduce the dependencies: separate TCompositeModule,TAgent from base.h
+    \date    Feb.03, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -23,22 +22,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_skyai_h
-#define skyai_skyai_h
-//-------------------------------------------------------------------------------------------
-#include <skyai/module_manager.h>
-#include <skyai/base.h>
-#include <skyai/port_templates.h>
-#include <skyai/port_generators.h>
-#include <skyai/types.h>
+#include <lora/variable_parser.h>
+#include <lora/variable_bindef.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
+}
 //-------------------------------------------------------------------------------------------
 
+loco_rabbits::TBinaryStack bin_stack;
 
-//-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
-//-------------------------------------------------------------------------------------------
-#endif // skyai_skyai_h
+void callback(const std::string& file_name,int line_num,bool error_stat)
+{
+  if(error_stat)  return;
+  std::cout<<"--eol@"<<file_name<<":"<<line_num<<std::endl;
+  loco_rabbits::var_space::PrintToStream(bin_stack);
+  bin_stack.Clear();
+}
+
+int main(int argc, char**argv)
+{
+  using namespace std;
+  using namespace loco_rabbits;
+  using namespace var_space;
+  string filename= (argc>1)?argv[1]:"(file is not specified)";
+  TParserCallbacks callbacks;
+  // callbacks.OnCommandPushed= callback;
+  callbacks.OnEndOfLine= callback;
+  if (ParseFile (filename,bin_stack,callbacks))
+  {
+    cout<<"remaining bin_stack:"<<endl;
+    PrintToStream(bin_stack);
+  }
+  return 0;
+}
 //-------------------------------------------------------------------------------------------

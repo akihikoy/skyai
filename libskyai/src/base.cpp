@@ -339,11 +339,11 @@ void TModuleInterface::SetLazyLoadFile (const std::string &file_name)
 }
 //-------------------------------------------------------------------------------------------
 
-bool TModuleInterface::ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, bool no_export)
+bool TModuleInterface::ExecuteFunction (const std::string &func_name, const std::list<var_space::TLiteral> &argv, var_space::TLiteral *ret_val, bool ignore_export)
 {
   LASSERT(pagent_);
   LASSERT(parent_cmodule_);
-  return pagent_->ExecuteFunction(func_name, argv, *parent_cmodule_, no_export);
+  return pagent_->ExecuteFunction(func_name, argv, *parent_cmodule_, ret_val, ignore_export);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -647,7 +647,7 @@ TModuleInterface&  TCompositeModule::AddSubModule (const std::string &v_module_c
     TCompositeModule *cp = new TCompositeModule(v_module_class, v_instance_name);
     cp->SetAgent(Agent());
     cp->SetParentCModule(this);
-    if (!Agent().CompositeModuleGenerator().Create(*cp, v_module_class, v_instance_name))
+    if (!Agent().CompositeModuleGenerator().Create(*cp, v_module_class))
     {
       delete cp; cp=NULL;
       lexit(df);
@@ -1036,12 +1036,6 @@ bool TCompositeModule::ExportMemory (const std::string &sub_module_name, const s
 }
 //-------------------------------------------------------------------------------------------
 
-
-// NOTE: the following member functions are defined in parser.cpp
-// bool TCompositeModule::WriteToStream (std::ostream &os, const std::string &indent) const;
-// bool TCompositeModule::LoadFromFile(const std::string &file_name, std::list<std::string> *included_list)
-
-
 override void TCompositeModule::SetNeverAccessed (bool na)
 {
   TModuleInterface::SetNeverAccessed(na);
@@ -1276,15 +1270,12 @@ const TCompositeModuleGenerator::TGeneratorInfo* TCompositeModuleGenerator::Gene
   std::map<std::string, TGeneratorInfo>::const_iterator  itr(generators_.find(cmodule_name));
   if (itr==generators_.end())
   {
-    LERROR(cmodule_name<<": module (composite) not found");
+    LERROR(cmodule_name<<": composite module not found");
     return NULL;
   }
   return &(itr->second);
 }
-
-// NOTE: the following member functions are defined in parser.cpp
-// bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::string &cmodule_name, const std::string &instance_name, bool no_export) const;
-// bool TCompositeModuleGenerator::WriteToStream (std::ostream &os, const std::string &indent) const;
+//-------------------------------------------------------------------------------------------
 
 
 //===========================================================================================
@@ -1334,13 +1325,28 @@ const TFunctionManager::TFunctionInfo* TFunctionManager::Function(const std::str
 }
 //-------------------------------------------------------------------------------------------
 
-// NOTE: the following member function is defined in parser.cpp
-// bool TFunctionManager::WriteToStream (std::ostream &os, const std::string &indent) const;
-
 
 //===========================================================================================
 // class TAgent
 //===========================================================================================
+
+TAgent::TAgent ()
+  : modules_     ("TAgent","global"),
+    conf_        (modules_.ParamBoxConfig().SetMemberMap()),
+    current_dir_ (NULL),
+    path_list_   (NULL)
+{
+  modules_.SetAgent(*this);
+  current_dir_= new boost::filesystem::path();
+  *current_dir_= boost::filesystem::initial_path();
+}
+
+/*virtual*/TAgent::~TAgent()
+{
+  if(current_dir_)  delete current_dir_;
+  current_dir_= NULL;
+}
+//-------------------------------------------------------------------------------------------
 
 //! clear all modules and path_list_ (memories are freed)
 void TAgent::Clear()
@@ -1351,10 +1357,6 @@ void TAgent::Clear()
   path_list_= NULL;
 }
 //-------------------------------------------------------------------------------------------
-
-// NOTE: the following member functions are defined in parser.cpp
-// bool TAgent::LoadFromFile (const std::string &filename, std::list<std::string> *included_list);
-// bool TAgent::SaveToFile (const std::string &filename) const;
 
 /*!\brief add dir_name (native format path) to the path-list */
 void TAgent::AddPath (const std::string &dir_name)
@@ -1385,51 +1387,43 @@ std::list<boost::filesystem::path>&  TAgent::SetPathList()
 
 bool TAgent::ExecuteFunction(
         const std::string &func_name, const std::list<var_space::TLiteral> &argv,
-        TCompositeModule &context_cmodule,  bool no_export)
+        TCompositeModule &context_cmodule, var_space::TLiteral *ret_val,  bool ignore_export)
 {
-  return function_manager_.ExecuteFunction(func_name, argv, context_cmodule,
-            boost::filesystem::initial_path(),
-            /*path_list=*/NULL, /*included_list=*/NULL,
-            &cmp_module_generator_, no_export);
+  return function_manager_.ExecuteFunction(func_name, argv, context_cmodule, ret_val, ignore_export);
 }
 //-------------------------------------------------------------------------------------------
-
-// NOTE: the following member function is defined in parser.cpp
-// bool TAgent::ExecuteScript(
-        // const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list,
-        // const std::string &file_name, int start_line_num, bool no_export);
 
 /*!\brief search filename from the path-list, return the native path
     \param [in]omissible_extension  :  indicate an extension with dot, such as ".agent" */
 std::string TAgent::SearchFileName (const std::string &filename, const std::string &omissible_extension) const
 {
   using namespace boost::filesystem;
-  path  file_path(filename,native), complete_path;
+  path  file_path(filename,native), absolute_path;
   if (file_path.is_complete())
   {
     if (exists(file_path))  return file_path.file_string();
-    if (exists((complete_path= file_path.parent_path()/(file_path.filename()+omissible_extension))))  return complete_path.file_string();
+    if (exists((absolute_path= file_path.parent_path()/(file_path.filename()+omissible_extension))))  return absolute_path.file_string();
     return "";
   }
 
-  if (exists(complete_path= complete(file_path)))  return complete_path.file_string();
-  if (exists(complete_path= complete(file_path.string()+omissible_extension)))  return complete_path.file_string();
+  if (exists(absolute_path= complete(file_path)))  return absolute_path.file_string();
+  if (exists(absolute_path= complete(file_path.string()+omissible_extension)))  return absolute_path.file_string();
 
   if (path_list_==NULL)  return "";
 
   path  tmp_path(file_path);
   for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
-    if (exists(complete_path= (*itr)/tmp_path))
-      return complete_path.file_string();
+    if (exists(absolute_path= (*itr)/tmp_path))
+      return absolute_path.file_string();
   tmp_path= file_path.string()+omissible_extension;
   for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
-    if (exists(complete_path= (*itr)/tmp_path))
-      return complete_path.file_string();
+    if (exists(absolute_path= (*itr)/tmp_path))
+      return absolute_path.file_string();
   return "";
 }
 //-------------------------------------------------------------------------------------------
 
-/*!\brief return a complete native path to filename which is a relative path from conf_.DataDir */
+/*!\brief return a absolute native path to filename which is a relative path from conf_.DataDir */
 std::string TAgent::GetDataFileName (const std::string &filename) const
 {
   using namespace boost::filesystem;

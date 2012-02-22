@@ -1,0 +1,88 @@
+// def create_ts_emit_real_if_boolvector(bool_vec_op)
+// {
+  // module  MVectorShuffler_TBoolVector  in
+  // export  in.in_x  as  in_boolvec
+  // export  in.config.Order  as  Indexes
+  // module  bool_vec_op  in0
+  // connect in.out_y ,  in0.in_x
+  // module  MReplaceSignalArguments_TReal_TBool  in0_signal
+  // export  in0_signal.slot_in  as  slot_time_step
+  // connect in0.out_y ,   in0_signal.in_replace
+  // module  MEmitIf  in0_signal_t
+  // connect in0_signal.signal_out ,   in0_signal_t.slot_in
+  // module  MReplaceSignalArguments_TVoid_TReal  in0_signal_r
+  // connect in0_signal_t.signal_out ,   in0_signal_r.slot_in
+  // export  in0_signal_r.in_replace  as  in_real
+  // export  in0_signal_t.signal_out  as  signal_true  // emit: void(void)
+  // export  in0_signal_r.signal_out  as  signal_real  // emit: void(real)
+// }
+
+// composite MTsEmitRealIfBoolVectorOr
+// {
+  // create_ts_emit_real_if_boolvector(MBoolVectorOr)
+// }
+
+composite MTsEmitRealIfBoolVectorOr
+{
+  // create_ts_emit_real_if_boolvector(MBoolVectorOr)
+  module  MVectorShuffler_TBoolVector  in
+  export  in.in_x  as  in_boolvec
+  export  in.config.Order  as  Indexes
+  module  MBoolVectorOr  in0
+  connect in.out_y ,  in0.in_x
+  module  MReplaceSignalArguments_TReal_TBool  in0_signal
+  export  in0_signal.slot_in  as  slot_time_step
+  connect in0.out_y ,   in0_signal.in_replace
+  module  MEmitIf  in0_signal_t
+  connect in0_signal.signal_out ,   in0_signal_t.slot_in
+  module  MReplaceSignalArguments_TVoid_TReal  in0_signal_r
+  connect in0_signal_t.signal_out ,   in0_signal_r.slot_in
+  export  in0_signal_r.in_replace  as  in_real
+  export  in0_signal_t.signal_out  as  signal_true  // emit: void(void)
+  export  in0_signal_r.signal_out  as  signal_real  // emit: void(real)
+}
+
+// def create_ts_reward_for_vector_elem_if_boolvector(m_bool_vec_op)
+// {
+  // module  MVectorToScalar_TRealVector  in
+  // export  in.config.Index  as  VecIndex
+  // export  in.in_x  as  in_vec
+  // module  MMultiply_TReal_TReal  elem_w
+  // module  MConstant_TReal  elem_w_factor
+  // export  elem_w_factor.config.Constant  as  Factor
+  // connect elem_w_factor.out_const ,   elem_w.in_x1
+  // connect in.out_y ,   elem_w.in_x2
+
+  // module  m_bool_vec_op  emit_boolvec_op
+  // export  emit_boolvec_op.config.Indexes  as  BoolVecIndexes
+  // export  emit_boolvec_op.slot_time_step  as  slot_finish_time_step
+  // export  emit_boolvec_op.in_boolvec  as  in_boolvec
+  // connect elem_w.out_y ,  emit_boolvec_op.in_real
+  // export  emit_boolvec_op.signal_real  as  signal_reward
+// }
+
+// composite MTsRewardForVectorElemIfBoolVectorOr
+// {
+  // create_ts_reward_for_vector_elem_if_boolvector(MTsEmitRealIfBoolVectorOr)
+// }
+
+composite MTsRewardForVectorElemIfBoolVectorOr
+{
+  // create_ts_reward_for_vector_elem_if_boolvector(MTsEmitRealIfBoolVectorOr)
+  module  MVectorToScalar_TRealVector  in
+  export  in.config.Index  as  VecIndex
+  export  in.in_x  as  in_vec
+  module  MMultiply_TReal_TReal  elem_w
+  module  MConstant_TReal  elem_w_factor
+  export  elem_w_factor.config.Constant  as  Factor
+  connect elem_w_factor.out_const ,   elem_w.in_x1
+  connect in.out_y ,   elem_w.in_x2
+
+  module  MTsEmitRealIfBoolVectorOr  emit_boolvec_op
+  export  emit_boolvec_op.config.Indexes  as  BoolVecIndexes
+  export  emit_boolvec_op.slot_time_step  as  slot_finish_time_step
+  export  emit_boolvec_op.in_boolvec  as  in_boolvec
+  connect elem_w.out_y ,  emit_boolvec_op.in_real
+  export  emit_boolvec_op.signal_real  as  signal_reward
+}
+

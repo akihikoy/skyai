@@ -94,6 +94,25 @@ void struct_write_to_stream_generator (const TVariableMap &members, std::ostream
 }
 //-------------------------------------------------------------------------------------------
 
+void struct_write_to_binary_generator (const TVariableMap &members, TBinaryStack &bstack)
+{
+  for (TVariableMap::const_iterator itr(members.begin()),last(members.end()); itr!=last; ++itr)
+  {
+    AddPushID(bstack, itr->first);
+    if(itr->second.IsPrimitive())
+    {
+      itr->second.WriteToBinary(bstack);
+      AddCommand(bstack,bin::cmd::M_ASGN_P);
+    }
+    else
+    {
+      AddCommand(bstack,bin::cmd::M_ASGN_CS);
+      itr->second.WriteToBinary(bstack);
+      AddCommand(bstack,bin::cmd::CASGN_END);
+    }
+  }
+}
+//-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------
 // generators for generic types
@@ -161,16 +180,19 @@ SPECIALIZER(long double     )
 
 void TVariable::VariableSpaceMode (void)
 {
+  is_null_ = false;
   is_primitive_ = false;
   f_direct_assign_   =  struct_direct_assign_generator;
   f_set_member_      =  struct_set_member_generator;
   f_get_member_      =  struct_get_member_generator;
   f_write_to_stream_ =  struct_write_to_stream_generator;
+  f_write_to_binary_ =  struct_write_to_binary_generator;
 }
 //-------------------------------------------------------------------------------------------
 
 std::size_t TVariable::Size() const
 {
+  if (is_null_)  return 0;
   if (!is_primitive_ && !f_get_begin_)  return 0;
   if (is_primitive_ && !f_get_begin_)  return 1;
   TConstForwardIterator  id_itr, id_last;
@@ -211,6 +233,7 @@ void TVariable::generator<pt_SAMPLE>::operator() (pt_SAMPLE &x)
 
   o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<pt_SAMPLE,pt_AS>,&x,_1,_2);
   o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<pt_SAMPLE>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(primitive_write_to_binary_generator<pt_SAMPLE>,&x,_1,_2);
 }
 #endif
 
@@ -230,6 +253,7 @@ void TVariable::generator<pt_SAMPLE>::operator() (pt_SAMPLE &x)
                                                                                \
     o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<x_type, pt_int>,&x,_1,_2);    \
     o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<x_type>,&x,_1,_2,_3,_4);  \
+    o.f_write_to_binary_ = boost::bind(primitive_write_to_binary_generator<x_type>,&x,_1,_2);        \
   }
 SPECIALIZE_GENERATE_INT(unsigned short)
 SPECIALIZE_GENERATE_INT(unsigned int  )
@@ -255,6 +279,7 @@ void TVariable::generator<pt_bool>::operator() (pt_bool &x)
 
   o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<pt_bool, pt_bool>,&x,_1,_2);
   o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<pt_bool>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(primitive_write_to_binary_generator<pt_bool>,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -274,6 +299,7 @@ void TVariable::generator<pt_bool>::operator() (pt_bool &x)
                                                                                \
     o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<x_type, pt_real>,&x,_1,_2);    \
     o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<x_type>,&x,_1,_2,_3,_4);   \
+    o.f_write_to_binary_ = boost::bind(primitive_write_to_binary_generator<x_type>,&x,_1,_2);         \
   }
 SPECIALIZE_GENERATE_REAL(float       )
 SPECIALIZE_GENERATE_REAL(double      )
@@ -302,6 +328,7 @@ void TVariable::generator<pt_string>::operator() (pt_string &x)
 
   o.f_direct_assign_ = boost::bind(primitive_direct_assign_generator<pt_string, pt_string>,&x,_1,_2);
   o.f_write_to_stream_ = boost::bind(primitive_write_to_stream_generator<pt_string>,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(primitive_write_to_binary_generator<pt_string>,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 

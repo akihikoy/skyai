@@ -1,0 +1,128 @@
+// Q(lambda)-learning modules for discrete action set
+// Using linear function approximator and generic TD learner
+
+def make_td_disc_act_module(td_module)
+{
+  module  td_module                                  behavior
+  module  MAVFLinearDiscAction                       avf_linear
+  module  MRemoveSignalArguments_TInt                exec_action
+  module  MSimpleAccumulator_TReal                   rwd_accumulator
+
+  module  MHolder_TInt                               holder_action
+  module  MSimpleDataLogger2_TInt_TReal              logger_eps_return
+  module  MUniversalDataLogger                       logger_action_result
+
+  // interface modules:
+  module  MForwarder0                                rl_slot_initialize
+  module  MForwarder0                                rl_slot_start_episode
+  module  MMediator0_TRealVector                     rl_in_feature
+  module  MMediator0_TReal                           rl_in_cont_time
+
+  /// initialization process:
+  export   rl_slot_initialize.slot_in  as  slot_initialize
+  connect  rl_slot_initialize.signal_out           , avf_linear.slot_initialize
+  connect  rl_slot_initialize.signal_out           , behavior.slot_initialize
+  connect  rl_slot_initialize.signal_out           , logger_eps_return.slot_initialize
+  connect  rl_slot_initialize.signal_out           , logger_action_result.slot_initialize
+
+  /// start of episode process:
+  export   rl_slot_start_episode.slot_in  as  slot_start_episode
+  connect  rl_slot_start_episode.signal_out        , avf_linear.slot_reset
+  connect  rl_slot_start_episode.signal_out        , behavior.slot_start_episode
+
+  /// start of time step process:
+
+  /// end of time step process:
+
+  /// learning signals:
+  export   behavior.signal_execute_action  as_is
+  connect  behavior.signal_execute_action             , exec_action.slot_in
+  connect  behavior.signal_execute_action             , holder_action.slot_1
+  connect  exec_action.signal_out                     , rwd_accumulator.slot_reset
+  export   exec_action.signal_out  as  signal_start_of_action
+
+  export   rwd_accumulator.slot_add  as  slot_add_to_reward
+
+  export   behavior.slot_finish_action  as_is
+  connect  behavior.signal_avf_add_to_parameter       , avf_linear.slot_add_to_parameter
+  connect  behavior.signal_end_of_action              , logger_action_result.slot_log
+  export   behavior.signal_end_of_action as_is
+
+  export   behavior.slot_finish_episode  as_is
+
+  connect  behavior.signal_end_of_episode             , logger_eps_return.slot_log
+  connect  logger_eps_return.slot_log_finished        , logger_action_result.slot_newline
+  export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
+
+  /// I/O:
+  export   behavior.in_updatable  as_is
+
+  export   avf_linear.in_action_set_size  as_is
+  export   rwd_accumulator.out_sum  as  out_reward_in_action
+  connect  rwd_accumulator.out_sum                    , behavior.in_reward
+
+  export   rl_in_feature.in_1  as  in_feature
+  connect  rl_in_feature.out_1                        , avf_linear.in_feature
+  connect  behavior.out_episode_number                , avf_linear.in_episode_number
+  connect  avf_linear.out_select_action               , behavior.in_avf_select_action
+  connect  avf_linear.out_replacing_trace             , behavior.in_avf_replacing_trace
+  connect  avf_linear.out_create_parameter            , behavior.in_avf_create_parameter
+  connect  avf_linear.out_zero_parameter              , behavior.in_avf_zero_parameter
+  export   avf_linear.in_action_availability  as  in_action_availability
+
+  export   behavior.out_return_in_episode  as_is
+
+  connect  behavior.out_episode_number                , logger_eps_return.in_data1
+  connect  behavior.out_return_in_episode             , logger_eps_return.in_data2
+
+  export   rl_in_cont_time.in_1  as  in_cont_time
+  connect  behavior.out_episode_number                , logger_action_result.in_data_int
+  connect  rl_in_cont_time.out_1                      , logger_action_result.in_data_real
+  connect  rwd_accumulator.out_last_accessed          , logger_action_result.in_data_real
+  connect  behavior.out_td_error                      , logger_action_result.in_data_real
+  connect  behavior.out_current_action_value          , logger_action_result.in_data_real
+  connect  holder_action.out_1                        , logger_action_result.in_data_int
+
+  /// parameter setting:
+
+  logger_eps_return.config={
+      FileName = "log-eps-ret.dat"
+    }
+
+  logger_action_result.config ={
+      FileName = "log-action-res.dat"
+      OrderOfColumns ={
+          ["behavior.out_episode_number"]= 1
+          ["rl_in_cont_time.out_1"]= 2
+          ["rwd_accumulator.out_last_accessed"]= 4
+          ["behavior.out_td_error"]= 5
+          ["behavior.out_current_action_value"]= 6
+          ["holder_action.out_1"]= 8
+        }
+      PutBlankData = true
+    }
+
+  export behavior.config.Alpha                  as_is
+  export behavior.config.AlphaDecreasingFactor  as_is
+  export behavior.config.AlphaMin               as_is
+  export behavior.config.Gamma                  as_is
+  export behavior.config.GradientMax            as_is
+  export behavior.config.Lambda                 as_is
+  export behavior.config.LearningAlgorithm      as_is
+  export behavior.config.UsingEligibilityTrace  as_is
+  export behavior.config.UsingReplacingTrace    as_is
+
+  export avf_linear.config.ActionSelection      as_is
+  export avf_linear.config.Eps                  as_is
+  export avf_linear.config.EpsDecreasingFactor  as_is
+  export avf_linear.config.PolicyImprovement    as_is
+  export avf_linear.config.Tau                  as_is
+  export avf_linear.config.TauDecreasingFactor  as_is
+  export avf_linear.config.TauMin               as_is
+  export avf_linear.config.TraceMax             as_is
+}
+
+composite MTDDiscAct
+{
+  make_td_disc_act_module(MTDGenericFuncApprox_TDiscreteAction)
+}

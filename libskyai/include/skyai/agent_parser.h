@@ -1,11 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    skyai.h
-    \brief   libskyai : Highly-Modularized Reinforcement Learning Library
+/*! \file    agent_parser.h
+    \brief   libskyai - certain program (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Aug.24, 2009-
-\todo FIXME: reduce the dependencies: separate TCompositeModule,TAgent from base.h
+    \date    Feb.03, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -23,22 +22,40 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_skyai_h
-#define skyai_skyai_h
+#ifndef skyai_agent_parser_h
+#define skyai_agent_parser_h
 //-------------------------------------------------------------------------------------------
-#include <skyai/module_manager.h>
-#include <skyai/base.h>
-#include <skyai/port_templates.h>
-#include <skyai/port_generators.h>
-#include <skyai/types.h>
+#include <lora/binary.h>
+#include <boost/function.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
+namespace agent_parser
+{
 //-------------------------------------------------------------------------------------------
+
+struct TParserCallbacks
+{
+  /*! \brief event callback in parsing a file;
+         file_name: current file name, line_num: current line num, error_stat: error status */
+  typedef boost::function<void(const std::string &file_name,int line_num, bool error_stat)> TCallback;
+
+  /*! \brief callback function to get a path from file_name by searching a path list
+         return true if file_name exists, false if file_name doesn't exist */
+  typedef boost::function<bool(const std::string &file_name, std::string &abs_file_name)> TGetFilePath;
+
+  TCallback      OnCommandPushed;
+  TCallback      OnEndOfLine;
+  TGetFilePath   OnInclude;
+  TGetFilePath   OnIncludeOnce;  //!< this callback should assign "" to abs_file_name if file_name is already loaded
+};
+
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks());
 
 
 //-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
+}  // end of agent_parser
+}  // end of loco_rabbits
 //-------------------------------------------------------------------------------------------
-#endif // skyai_skyai_h
+#endif // skyai_agent_parser_h
 //-------------------------------------------------------------------------------------------

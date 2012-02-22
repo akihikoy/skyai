@@ -1,0 +1,35 @@
+test={
+    a=3
+    b=-3.14e+16
+    c=true
+    d= "ho\tge\n\thoge"
+    e=(-2.5, 12, true,a)
+    A={resize(3); [@]= -1;
+        [1]= -1.5e-2
+        []= 3.14
+      }
+    B= {
+        ["hoge"]=12
+        ["ho\tge"]=-1.21e-500
+        [-12]=12
+      }
+    C= {
+        []={a=1;b=true;}
+        []={a=2;b=false;}
+        [0]={a=0;b=false;}
+        [@]={a=100;b=true;}
+      }
+    ab=3
+    f=a##b
+    a##b=10
+    a=b+3+a
+    a=b+(3+a)
+    a=(1,2+(a+3),4)
+    // a=1,2,3 // syntax error
+    func(1,(2,b+1,func(1,(2*3,1/2),c)),3)
+    a=a+ +1.2 * -2.1  // not syntax error
+    a=!!(b&&b||c&&e[3]||b>=PI)
+    a=C[a-1].b
+  }
+}
+a=test.a

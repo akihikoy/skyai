@@ -44,29 +44,28 @@ void any_converter_generator_pr(const TAnyPrimitive *from, t_to &to);
 template <typename t_from>
 void any_converter_generator_rp(const t_from &from, TAnyPrimitive *to);
 
-#define ANY_CONVERTER_GEN(x_type,x_tid)  \
+#define ANY_CONVERTER_GEN(x_type)  \
   template <>                                                                    \
   void any_converter_generator_pr(const TAnyPrimitive *from, x_type &to)         \
   {                                                                              \
-    switch(static_cast<TAnyPrimitive::TType>(from->Type))                        \
+    switch(static_cast<TAnyPrimitive::TType>(from->Type()))                      \
     {                                                                            \
-    case TAnyPrimitive::ptInt    : to= lora_cast<x_type>(from->EInt   ); break;  \
-    case TAnyPrimitive::ptReal   : to= lora_cast<x_type>(from->EReal  ); break;  \
-    case TAnyPrimitive::ptBool   : to= lora_cast<x_type>(from->EBool  ); break;  \
-    case TAnyPrimitive::ptString : to= lora_cast<x_type>(from->EString); break;  \
+    case TAnyPrimitive::ptInt    : to= lora_cast<x_type>(from->Int()   ); break; \
+    case TAnyPrimitive::ptReal   : to= lora_cast<x_type>(from->Real()  ); break; \
+    case TAnyPrimitive::ptBool   : to= lora_cast<x_type>(from->Bool()  ); break; \
+    case TAnyPrimitive::ptString : to= lora_cast<x_type>(from->String()); break; \
     default : LERROR("fatal!"); lexit(df);                                       \
     }                                                                            \
   }                                                                              \
   template <>                                                                    \
   void any_converter_generator_rp(const x_type &from, TAnyPrimitive *to)         \
   {                                                                              \
-    to->Type = static_cast<pt_int>(TAnyPrimitive::pt##x_tid);                    \
-    to->E##x_tid = lora_cast<x_type>(from);                                      \
+    to->Set(lora_cast<x_type>(from));                                            \
   }
-ANY_CONVERTER_GEN(pt_int    , Int    )
-ANY_CONVERTER_GEN(pt_real   , Real   )
-ANY_CONVERTER_GEN(pt_bool   , Bool   )
-ANY_CONVERTER_GEN(pt_string , String )
+ANY_CONVERTER_GEN(pt_int   )
+ANY_CONVERTER_GEN(pt_real  )
+ANY_CONVERTER_GEN(pt_bool  )
+ANY_CONVERTER_GEN(pt_string)
 #undef ANY_CONVERTER_GEN
 //-------------------------------------------------------------------------------------------
 
@@ -87,18 +86,17 @@ void any_direct_assign_generator(TAnyPrimitive *x, TVariableMap &members, const 
   TVariable id(sid);
   if(!var.IsPrimitive() || var.NoMember() || var.GetMember(id).PrimitiveGetAs<pt_string>()!=AnyPrimitiveIdentifier)
   {
-    var.PrimitiveGetAs<pt_string>(x->EString);
-    x->Type= static_cast<pt_int>(TAnyPrimitive::ptString);
+    x->Set(var.PrimitiveGetAs<pt_string>());
     return;
   }
   sid="t";
-  var.GetMember(id).PrimitiveGetAs<pt_int>(x->Type);
-  switch(static_cast<TAnyPrimitive::TType>(x->Type))
+  x->SetType(var.GetMember(id).PrimitiveGetAs<pt_int>());
+  switch(static_cast<TAnyPrimitive::TType>(x->Type()))
   {
-  case TAnyPrimitive::ptInt    : var.PrimitiveGetAs<pt_int   >(x->EInt   ); break;
-  case TAnyPrimitive::ptReal   : var.PrimitiveGetAs<pt_real  >(x->EReal  ); break;
-  case TAnyPrimitive::ptBool   : var.PrimitiveGetAs<pt_bool  >(x->EBool  ); break;
-  case TAnyPrimitive::ptString : var.PrimitiveGetAs<pt_string>(x->EString); break;
+  case TAnyPrimitive::ptInt    : x->Set(var.PrimitiveGetAs<pt_int   >()); break;
+  case TAnyPrimitive::ptReal   : x->Set(var.PrimitiveGetAs<pt_real  >()); break;
+  case TAnyPrimitive::ptBool   : x->Set(var.PrimitiveGetAs<pt_bool  >()); break;
+  case TAnyPrimitive::ptString : x->Set(var.PrimitiveGetAs<pt_string>()); break;
   default : LERROR("fatal!"); lexit(df);
   }
 }
@@ -107,6 +105,17 @@ void any_direct_assign_generator(TAnyPrimitive *x, TVariableMap &members, const 
 void any_write_to_stream_generator (TAnyPrimitive *x, const TVariableMap &, std::ostream &os, bool, const pt_string&)
 {
   os<<*x;
+}
+void any_write_to_binary_generator (TAnyPrimitive *x, const TVariableMap &, TBinaryStack &bstack)
+{
+  switch(static_cast<TAnyPrimitive::TType>(x->Type()))
+  {
+  case TAnyPrimitive::ptInt    : AddPushLiteral(bstack,x->Int()   ); break;
+  case TAnyPrimitive::ptReal   : AddPushLiteral(bstack,x->Real()  ); break;
+  case TAnyPrimitive::ptBool   : AddPushLiteral(bstack,x->Bool()  ); break;
+  case TAnyPrimitive::ptString : AddPushLiteral(bstack,x->String()); break;
+  default : LERROR("fatal!"); lexit(df);
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -127,12 +136,13 @@ void TVariable::generator<TAnyPrimitive>::operator() (TAnyPrimitive &x)
   o.f_primitive_set_by_string_  = SET_BY(pt_string );
 
   o.AddMemberVariable<pt_string>("-",AnyPrimitiveIdentifier);
-  o.AddMemberVariable<pt_int>("t",x.Type);
+  o.AddMemberVariable<pt_int>("t",x.SetType());
 
   o.f_get_member_ =  any_get_member_generator;
 
   o.f_direct_assign_ = boost::bind(any_direct_assign_generator,&x,_1,_2);
   o.f_write_to_stream_ = boost::bind(any_write_to_stream_generator,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(any_write_to_binary_generator,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 #undef GET_AS

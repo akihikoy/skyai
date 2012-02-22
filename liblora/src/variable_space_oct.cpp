@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_space_oct.h>
-// #include <lora/variable_space_impl.h>
+#include <lora/variable_bindef.h>
 //-------------------------------------------------------------------------------------------
 #include <lora/octave.h>
 #include <lora/string.h>
@@ -235,6 +235,29 @@ void oct_vec_write_to_stream_generator (t_oct_vec *x, const TVariableMap &member
   os<<")";
 }
 
+template <typename t_oct_vec>
+void oct_vec_write_to_binary_generator (t_oct_vec *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushID(bstack,"clear");
+  AddCommand(bstack,bin::cmd::LLISTS);
+  AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+  if (x->length()>0)
+  {
+    AddPushID(bstack,"resize");
+    AddCommand(bstack,bin::cmd::LLISTS);
+    AddPushLiteral(bstack,x->length());
+    AddCommand(bstack,bin::cmd::FUNC_CALL);
+    int idx(0);
+    for (double *itr(OctBegin(*x)), *last(OctEnd(*x)); itr!=last; ++itr,++idx)
+    {
+      AddPushLiteral(bstack,idx);
+      AddPushLiteral(bstack,*itr);
+      AddCommand(bstack,bin::cmd::E_ASGN_P);
+    }
+  }
+}
+
 #define SET_FUNC_OBJECTS(x_oct_vec)  \
   o.f_direct_assign_ = boost::bind(oct_vec_direct_assign_generator<x_oct_vec>,&x,_1,_2);          \
                                                                                                   \
@@ -249,7 +272,8 @@ void oct_vec_write_to_stream_generator (t_oct_vec *x, const TVariableMap &member
   o.f_get_begin_ = boost::bind(oct_get_begin_generator<x_oct_vec>,&x,_1,_2);                      \
   o.f_get_end_   = boost::bind(oct_get_end_generator<x_oct_vec>,&x,_1,_2);                        \
                                                                                                   \
-  o.f_write_to_stream_ = boost::bind(oct_vec_write_to_stream_generator<x_oct_vec>,&x,_1,_2,_3,_4);
+  o.f_write_to_stream_ = boost::bind(oct_vec_write_to_stream_generator<x_oct_vec>,&x,_1,_2,_3,_4);\
+  o.f_write_to_binary_ = boost::bind(oct_vec_write_to_binary_generator<x_oct_vec>,&x,_1,_2);
 
 void TVariable::generator<ColumnVector>::operator() (ColumnVector &x)
 {
@@ -408,6 +432,17 @@ void oct_rom_write_to_stream_generator (TRowOfMatrix x, const TVariableMap &memb
   os<<")";
 }
 
+void oct_rom_write_to_binary_generator (TRowOfMatrix x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  int idx(0);
+  for (TRowOfMatrixIterator itr(x.Begin()), last(x.End()); itr!=last; ++itr,++idx)
+  {
+    AddPushLiteral(bstack,idx);
+    AddPushLiteral(bstack,*itr);
+    AddCommand(bstack,bin::cmd::E_ASGN_P);
+  }
+}
+
 void TVariable::generator<TRowOfMatrix>::operator() (TRowOfMatrix &x)
 {
   o.f_direct_assign_ = boost::bind(oct_rom_direct_assign_generator,x,_1,_2);
@@ -419,6 +454,7 @@ void TVariable::generator<TRowOfMatrix>::operator() (TRowOfMatrix &x)
   o.f_get_end_   = boost::bind(oct_rom_get_end_generator,x,_1,_2);
 
   o.f_write_to_stream_ = boost::bind(oct_rom_write_to_stream_generator,x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(oct_rom_write_to_binary_generator,x,_1,_2);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -639,6 +675,30 @@ void oct_mat_write_to_stream_generator (Matrix *x, const TVariableMap &members, 
     os<< indent << "}";
 }
 
+void oct_mat_write_to_binary_generator (Matrix *x, const TVariableMap &members, TBinaryStack &bstack)
+{
+  AddPushID(bstack,"clear");
+  AddCommand(bstack,bin::cmd::LLISTS);
+  AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+  if (x->rows()>0)
+  {
+    AddPushID(bstack,"resize");
+    AddCommand(bstack,bin::cmd::LLISTS);
+    AddPushLiteral(bstack,x->rows());
+    AddPushLiteral(bstack,x->cols());
+    AddCommand(bstack,bin::cmd::FUNC_CALL);
+
+    for (int row(0); row<x->rows(); ++row)
+    {
+      AddPushLiteral(bstack,row);
+      AddCommand(bstack,bin::cmd::E_ASGN_CS);
+      oct_rom_write_to_binary_generator (TRowOfMatrix(*x,row), members, bstack);
+      AddCommand(bstack,bin::cmd::CASGN_END);
+    }
+  }
+}
+
 void TVariable::generator<Matrix>::operator() (Matrix &x)
 {
   o.f_direct_assign_ = boost::bind(oct_mat_direct_assign_generator,&x,_1,_2);
@@ -655,6 +715,7 @@ void TVariable::generator<Matrix>::operator() (Matrix &x)
   o.f_get_end_   = boost::bind(oct_get_end_generator<Matrix>,&x,_1,_2);
 
   o.f_write_to_stream_ = boost::bind(oct_mat_write_to_stream_generator,&x,_1,_2,_3,_4);
+  o.f_write_to_binary_ = boost::bind(oct_mat_write_to_binary_generator,&x,_1,_2);
 }
 //-------------------------------------------------------------------------------------------
 

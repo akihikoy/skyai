@@ -1,11 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    skyai.h
-    \brief   libskyai : Highly-Modularized Reinforcement Learning Library
+/*! \file    FILE_NAME
+    \brief   liblora - certain program (source)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Aug.24, 2009-
-\todo FIXME: reduce the dependencies: separate TCompositeModule,TAgent from base.h
+    \date    GEN_DATE
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -23,22 +22,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_skyai_h
-#define skyai_skyai_h
+#include <lora/FILE_PREFIX.h>
 //-------------------------------------------------------------------------------------------
-#include <skyai/module_manager.h>
-#include <skyai/base.h>
-#include <skyai/port_templates.h>
-#include <skyai/port_generators.h>
-#include <skyai/types.h>
-//-------------------------------------------------------------------------------------------
-namespace loco_rabbits
+namespace NAME_SPACE
 {
-//-------------------------------------------------------------------------------------------
 
 
+
 //-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
-//-------------------------------------------------------------------------------------------
-#endif // skyai_skyai_h
+}  // end of NAME_SPACE
 //-------------------------------------------------------------------------------------------

@@ -3,6 +3,7 @@
     \brief   libskyai - agent file (script) parser (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Nov.17, 2009-
+\warning DEPRECATED
 
     Copyright (C) 2009, 2010  Akihiko Yamaguchi
 
@@ -85,17 +86,6 @@ bool ExecuteScript(const std::string &exec_script,
 
 /*!\brief load modules, connections, configurations from the file [path_list] */
 bool LoadAgentFromFile (boost::filesystem::path file_path, TAgentParserInfoIn &in, TAgentParserInfoOut &out);
-
-/*!\brief save modules, connections, configurations to the file [path_list] */
-bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_path, const std::string &ext_file_prefix="");
-
-/*!\brief save modules, connections, configurations to the stream [os] */
-bool WriteAgentToStream (const TAgent &agent, std::ostream &os, bool ext_sto_available=false);
-//-------------------------------------------------------------------------------------------
-
-/*!\brief dump information */
-bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
-      const std::string &kind, const std::string *opt=NULL, const std::string &indent="");
 //-------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------
