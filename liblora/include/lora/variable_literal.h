@@ -92,6 +92,7 @@ public:
   bool IsList() const {return kind_==dkList;}
   bool IsVariable() const {return kind_==dkVariable;}
 
+  pt_string& AsIdentifier()  {return primitive_.String();}
   TAnyPrimitive& AsPrimitive()
     {
       if(kind_==dkList && list_.size()==1)  return list_.front();
@@ -207,7 +208,8 @@ inline TVariable Variable(TLiteral &literal)
 {
   TVariable var;
   if(literal.IsNull())            {LERROR("Variable::the given literal is null"); lexit(df);}
-  else if(literal.IsIdentifier()) {LERROR("Variable::cannot convert an identifier `"<<literal.AsIdentifier()<<"\' to a TVariable"); lexit(df);}
+  // else if(literal.IsIdentifier()) {LERROR("Variable::cannot convert an identifier `"<<literal.AsIdentifier()<<"\' to a TVariable"); lexit(df);}
+  else if(literal.IsIdentifier()) var.Generate(literal.AsIdentifier());
   else if(literal.IsCommand())    {LERROR("Variable::cannot convert a command `"<<literal.AsCommand()<<"\' to a TVariable"); lexit(df);}
   else if(literal.IsType())       {LERROR("Variable::cannot convert a type to a TVariable"); lexit(df);}
   else if(literal.IsPrimitive())  var.Generate(literal.AsPrimitive());

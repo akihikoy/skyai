@@ -103,7 +103,7 @@ void TBinExecutor::inherit_module (bool ignore_export)
 //-------------------------------------------------------------------------------------------
 
 //! call function of identifier func_id with arguments argv, store the return value into ret_val
-override bool TBinExecutor::function_call(const std::string &func_id, std::list<var_space::TLiteral> &argv, var_space::TLiteral &ret_val)
+/*override*/bool TBinExecutor::function_call(const std::string &func_id, std::list<var_space::TLiteral> &argv, var_space::TLiteral &ret_val)
 {
   if(TParent::function_call(func_id, argv, ret_val))  return true;
 
@@ -115,6 +115,29 @@ override bool TBinExecutor::function_call(const std::string &func_id, std::list<
     return false;
   }
   return true;
+}
+//-------------------------------------------------------------------------------------------
+
+//! access to the member of value
+/*override*/var_space::TVariable TBinExecutor::member_access(const var_space::TLiteral &value, const var_space::TLiteral &member_c)
+{
+LDBGVAR(value);
+LDBGVAR(member_c);
+  if(!value.IsIdentifier() || !member_c.IsIdentifier())
+    return TParent::member_access(value,member_c);
+
+  var_space::TIdentifier identifier(value.AsIdentifier());
+  var_space::TIdentifier member(member_c.AsIdentifier());
+
+  if(identifier=="config")  // global config
+    return cmodule_stack_.back()->ParamBoxConfig().GetMember(var_space::TVariable(member));
+
+  if(member=="config")
+    return cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig();
+  if(member=="memory")
+    return cmodule_stack_.back()->SubModule(identifier).ParamBoxMemory();
+
+  return TParent::member_access(value,member_c);
 }
 //-------------------------------------------------------------------------------------------
 

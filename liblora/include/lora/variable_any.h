@@ -45,7 +45,7 @@ class TAnyPrimitive
 public:
   enum TType {ptInt=0, ptReal, ptBool, ptString};
 
-  TAnyPrimitive() : type_(static_cast<int>(ptInt)), e_int_(0) {}
+  TAnyPrimitive() : type_(static_cast<int>(ptInt)) {}
   TAnyPrimitive(const pt_int    &x) : type_(static_cast<int>(ptInt   )), e_int_   (x) {}
   TAnyPrimitive(const pt_real   &x) : type_(static_cast<int>(ptReal  )), e_real_  (x) {}
   TAnyPrimitive(const pt_bool   &x) : type_(static_cast<int>(ptBool  )), e_bool_  (x) {}
@@ -60,10 +60,29 @@ public:
   void Set(const pt_bool   &x)  {type_=static_cast<int>(ptBool  ); e_bool_  = x;}
   void Set(const pt_string &x)  {type_=static_cast<int>(ptString); e_string_= x;}
 
+  pt_int&    Int    ()  {return e_int_   ;}
+  pt_real&   Real   ()  {return e_real_  ;}
+  pt_bool&   Bool   ()  {return e_bool_  ;}
+  pt_string& String ()  {return e_string_;}
+
   const pt_int&    Int    () const {return e_int_   ;}
   const pt_real&   Real   () const {return e_real_  ;}
   const pt_bool&   Bool   () const {return e_bool_  ;}
   const pt_string& String () const {return e_string_;}
+
+  template <typename T>
+  T GetAs() const
+    {
+      switch(type_)
+      {
+      case ptInt :     return lora_cast<T>(e_int_);
+      case ptReal :    return lora_cast<T>(e_real_);
+      case ptBool :    return lora_cast<T>(e_bool_);
+      case ptString :  return lora_cast<T>(e_string_);
+      default : FIXME("fatal value type: "<<static_cast<int>(type_));
+      }
+      return T();
+    }
 
 private:
   pt_int type_;

@@ -34,19 +34,6 @@ connect  ngnet_nonzero_cnt.out_y         , logger_ngnet.in_data_int
 connect  ngnet_nonzero.out_y             , logger_ngnet.in_data_real_vector
 connect  in_state.out_1                  , logger_ngnet.in_data_real_vector
 
-def test_func()
-{
-  return 10
-}
-def call_func(X)
-{
-  return X()
-}
-
-ngnet_nonzero.config ={
-    Threshold = 0.01 * call_func(test_func)
-  }
-
 logger_ngnet.config ={
     FileName = "log-ngnet.dat"
     OrderOfColumns ={
@@ -61,6 +48,21 @@ logger_ngnet.config ={
     PutBlankData = true
   }
 
+def test_func()
+{
+  return 10
+}
+def call_func(X)
+{
+  return X()
+}
+ngnet_nonzero.config ={
+    Threshold = 0.01 * call_func(test_func)
+    Threshold = cast<real>(Threshold)*10000*cast<real>(ngnet_nonzero.config.Threshold)
+  }
+ngnet_nonzero_cnt.config ={
+    Threshold = cast<int>(logger_ngnet.config.OrderOfColumns["ngnet_nonzero.out_y"])
+  }
 
 include_once "empty-file.var"
 include_once "empty-file.var"

@@ -41,6 +41,7 @@ struct TCell
 {
   int x;
   double y;
+  vector<double> z;
 };
 namespace loco_rabbits{ namespace var_space{
   void Register (TCell &test, TVariableMap &mmap)
@@ -49,6 +50,7 @@ namespace loco_rabbits{ namespace var_space{
       AddToVarMap(mmap, #x_member, test.x_member)
     ADD( x );
     ADD( y );
+    ADD( z );
     #undef ADD
   }
 }}

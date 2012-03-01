@@ -97,13 +97,6 @@ protected:
 
   var_space::TLiteral                  return_value_;
 
-// std::list<std::string>               func_param_stack_;
-// TAgentParseMode                      parse_mode_;
-// std::set<std::string>                keywords_;
-
-// std::string                          tmp_func_name_;
-
-// TBinaryStack *tmp_bin_stack_;
   std::pair<var_space::TIdentifier,TCompositeModuleGenerator::TGeneratorInfo> tmp_cmod_generator_info_;
   std::pair<var_space::TIdentifier,TFunctionManager::TFunctionInfo> tmp_func_info_;
 
@@ -124,6 +117,9 @@ protected:
 
   //! call function of identifier func_id with arguments argv, store the return value into ret_val
   override bool function_call(const std::string &func_id, std::list<var_space::TLiteral> &argv, var_space::TLiteral &ret_val);
+
+  //! access to the member of value
+  override var_space::TVariable member_access(const var_space::TLiteral &value, const var_space::TLiteral &member_c);
 
   override void exec_command(int command, const TBinaryStack &bstack);
 

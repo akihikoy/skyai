@@ -124,6 +124,7 @@ TLiteral EvaluateLiteral (const TLiteral &src, const TLiteralTable *literal_tabl
     {
       if (config.AllowId)  return src;
       LERROR("identifier `"<<src_id<<"\' is not registered in the literal-table");
+      LERROR("if `"<<src_id<<"\' is a variable, use cast<TYPE>("<<src_id<<")");
       error= true;
       if(config.ExitByError) lexit(df);
       return LiteralId("");

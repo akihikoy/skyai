@@ -153,20 +153,20 @@ void TExtForwardIterator::i_dereference_()
 //-------------------------------------------------------------------------------------------
 
 //! access to the member of value
-/*virtual*/TVariable TBinExecutor::member_access(const TLiteral &value, const TIdentifier &member)
+/*virtual*/TVariable TBinExecutor::member_access(const TLiteral &value, const TLiteral &member_c)
 {
-  TIdentifier member_id(member);
+  TLiteral member(member_c);
   if(value.IsIdentifier())
   {
     TIdentifier id(value.AsIdentifier());
     LASSERT(!variable_stack_.empty());
     // VAR_ERR_CATCHER_S
-    return variable_stack_.back().GetMember(TVariable(id)).ToVariable().GetMember(TVariable(member_id));
+    return variable_stack_.back().GetMember(TVariable(id)).ToVariable().GetMember(Variable(member));
     // VAR_ERR_CATCHER_E
   }
   else if(value.IsVariable())
   {
-    return value.AsVariable().GetMember(TVariable(member_id));
+    return value.AsVariable().GetMember(Variable(member));
   }
   else
   {
@@ -513,13 +513,16 @@ IMPL_CMD_EXEC( GT     )  // bin=[-]; pop two values, compute relation(2>1), push
 IMPL_CMD_EXEC( MEMBER )  // bin=[-]; pop two values(1,2;1 shoud be an identifier), get a member ref(2.1), push the result;
 {
   TEvaluateLiteralConfig config;  config.AllowId= true;
-  std::string member(pop_id());
+  TIdentifier member(pop_id());
   TLiteral value(pop_literal(config));
-  TVariable var(member_access(value,member));
-  literal_stack_.push_back(var);
+  literal_stack_.push_back( member_access(value,LiteralId(member)) );
 }
 IMPL_CMD_EXEC( ELEM   )  // bin=[-]; pop two values, get an elemental ref(2[1]), push the result;
 {
+  TEvaluateLiteralConfig config;  config.AllowId= true;
+  TLiteral member(pop_literal());
+  TLiteral value(pop_literal(config));
+  literal_stack_.push_back( member_access(value,member) );
 }
 
 IMPL_CMD_EXEC( CAST   )  // bin=[-]; pop two values(1,2;2 should be a type), cast 1 to 2(cast<2>(1), push the result;
@@ -528,37 +531,135 @@ IMPL_CMD_EXEC( CAST   )  // bin=[-]; pop two values(1,2;2 should be a type), cas
   TLiteral value(pop_literal(config)),type(pop_literal());
   if(!type.IsType())  {LERROR("type is required, but used: "<<type); error_= true; return;}
 
-  if(value.IsVariable())
+  if(value.IsIdentifier() || value.IsVariable())
+  {
+    TVariable tmp_var;
+    TVariable *pvalue(NULL);
+    if(value.IsVariable())  pvalue= &value.AsVariable();
+    else
+    {
+      pt_string id(value.AsIdentifier());
+      LASSERT(!variable_stack_.empty());
+      VAR_ERR_CATCHER_S
+      tmp_var= variable_stack_.back().GetMember(TVariable(id)).ToVariable();
+      VAR_ERR_CATCHER_E
+      pvalue= &tmp_var;
+    }
+
+    switch(type.AsType().front().Int())
+    {
+    case bin::vtype::INT  :
+      literal_stack_.push_back(TLiteral( pvalue->PrimitiveGetAs<pt_int>() ));
+      break;
+    case bin::vtype::REAL :
+      literal_stack_.push_back(TLiteral( pvalue->PrimitiveGetAs<pt_real>() ));
+      break;
+    case bin::vtype::BOOL :
+      literal_stack_.push_back(TLiteral( pvalue->PrimitiveGetAs<pt_bool>() ));
+      break;
+    case bin::vtype::STR  :
+      literal_stack_.push_back(TLiteral( pvalue->PrimitiveGetAs<pt_string>() ));
+      break;
+    case bin::vtype::LIST :
+      {
+        TLiteral casted(LiteralEmptyList());
+        TForwardIterator itr,ilast;
+        pvalue->GetBegin(itr);
+        pvalue->GetEnd(ilast);
+        switch((++type.AsType().begin())->Int())
+        {
+        case bin::vtype::INT  :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->PrimitiveGetAs<pt_int>());
+          break;
+        case bin::vtype::REAL :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->PrimitiveGetAs<pt_real>());
+          break;
+        case bin::vtype::BOOL :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->PrimitiveGetAs<pt_bool>());
+          break;
+        case bin::vtype::STR  :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->PrimitiveGetAs<pt_string>());
+          break;
+        case bin::vtype::LIST :
+          print_error("cannot cast to list<list<...> >");
+          break;
+        default:
+          FIXME("fatal!");
+          break;
+        }
+        literal_stack_.push_back(casted);
+      }
+      break;
+    default:
+      FIXME("fatal!");
+      break;
+    }
+  }
+  else if(value.IsPrimitive())
   {
     switch(type.AsType().front().Int())
     {
     case bin::vtype::INT  :
-      {
-        TLiteral  casted(value.AsVariable().PrimitiveGetAs<pt_int>());
-        literal_stack_.push_back(casted);
-      }
+      literal_stack_.push_back(TLiteral( value.AsPrimitive().GetAs<pt_int>() ));
       break;
     case bin::vtype::REAL :
-      {
-        TLiteral  casted(value.AsVariable().PrimitiveGetAs<pt_real>());
-        literal_stack_.push_back(casted);
-      }
+      literal_stack_.push_back(TLiteral( value.AsPrimitive().GetAs<pt_real>() ));
       break;
     case bin::vtype::BOOL :
-      {
-        TLiteral  casted(value.AsVariable().PrimitiveGetAs<pt_bool>());
-        literal_stack_.push_back(casted);
-      }
+      literal_stack_.push_back(TLiteral( value.AsPrimitive().GetAs<pt_bool>() ));
       break;
     case bin::vtype::STR  :
-      {
-        TLiteral  casted(value.AsVariable().PrimitiveGetAs<pt_string>());
-        literal_stack_.push_back(casted);
-      }
+      literal_stack_.push_back(TLiteral( value.AsPrimitive().GetAs<pt_string>() ));
       break;
     case bin::vtype::LIST :
       {
-        FIXME("...");
+        TLiteral casted(LiteralEmptyList());
+        casted.AppendToList(value.AsPrimitive());
+        literal_stack_.push_back(casted);
+      }
+      break;
+    default:
+      FIXME("fatal!");
+      break;
+    }
+  }
+  else if(value.IsList())
+  {
+    switch(type.AsType().front().Int())
+    {
+    case bin::vtype::INT  :
+    case bin::vtype::REAL :
+    case bin::vtype::BOOL :
+    case bin::vtype::STR  :
+      print_error("cannot cast a list to primitive other than a list of size 1");
+      lexit(df);
+      break;
+    case bin::vtype::LIST :
+      {
+        TLiteral casted(LiteralEmptyList());
+        std::list<TAnyPrimitive>::const_iterator itr(value.AsList().begin()), ilast(value.AsList().end());
+        switch((++type.AsType().begin())->Int())
+        {
+        case bin::vtype::INT  :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->GetAs<pt_int>());
+          break;
+        case bin::vtype::REAL :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->GetAs<pt_real>());
+          break;
+        case bin::vtype::BOOL :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->GetAs<pt_bool>());
+          break;
+        case bin::vtype::STR  :
+          for (; itr!=ilast; ++itr)  casted.AppendToList(itr->GetAs<pt_string>());
+          break;
+        case bin::vtype::LIST :
+          print_error("cannot cast to list<list<...> >");
+          break;
+        default:
+          FIXME("fatal!");
+          break;
+        }
+        literal_stack_.push_back(casted);
       }
       break;
     default:
@@ -568,7 +669,8 @@ IMPL_CMD_EXEC( CAST   )  // bin=[-]; pop two values(1,2;2 should be a type), cas
   }
   else
   {
-    FIXME("fixme");
+    LERROR("cannot cast: "<<value);
+    lexit(df);
   }
 }
 
@@ -577,6 +679,7 @@ IMPL_CMD_EXEC( T_TO_LIST )  // bin=[-]; pop a type(1), push the list of it (list
   TLiteral type(pop_literal());
   if(!type.IsType())  {LERROR("type is required, but used: "<<type); error_= true; return;}
   type.AppendToType(bin::vtype::LIST);
+  literal_stack_.push_back(type);
 }
 
 #undef IMPL_CMD_EXEC

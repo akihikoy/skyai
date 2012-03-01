@@ -307,7 +307,7 @@ protected:
   virtual bool function_call(const std::string &func_id, std::list<TLiteral> &argv, TLiteral &ret_val);
 
   //! access to the member of value
-  virtual TVariable member_access(const TLiteral &value, const TIdentifier &member);
+  virtual TVariable member_access(const TLiteral &value, const TLiteral &member_c);
 
   virtual void exec_command(int command, const TBinaryStack &bstack);
 
