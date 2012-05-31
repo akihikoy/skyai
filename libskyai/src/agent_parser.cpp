@@ -37,7 +37,7 @@ class TCodeParser : public boost::spirit::classic::grammar<TCodeParser<t_iterato
 {
 public:
 
-  TCodeParser() : bin_stack_(NULL), file_name_(NULL), line_num_(NULL), error_(NULL) {}
+  TCodeParser() : bin_stack_(NULL), file_name_(NULL), line_num_(NULL), error_(NULL), ctrl_id_stack(0) {}
 
   const TBinaryStack& BinStack() const {return *bin_stack_;}
   const std::string& FileName() const {return file_name_;}
@@ -84,6 +84,7 @@ public:
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
       rule_t  statement_assign_agent_config;
       rule_t  statement_starting_with_identifier, statement_assign_config, statement_assign_memory;
+      rule_t  statement_ctrl, statement_if;
       rule_t  statement_unexpected;
 
       typename var_space::TCodeParser<t_iterator>::template definition<ScannerT>  var_parser_def;
@@ -117,6 +118,8 @@ private:
 
   TParserCallbacks  callbacks_;
 
+  mutable long ctrl_id_stack;
+
   mutable var_space::TCodeParser<t_iterator>  var_parser;
 
   // actions:
@@ -129,6 +132,9 @@ private:
   DECL_ACTION(include_file);
   DECL_ACTION(include_file_once);
   DECL_ACTION(syntax_error);
+  DECL_ACTION(ctrl_if);
+  DECL_ACTION(ctrl_else);
+  DECL_ACTION(ctrl_end_if);
   #undef DECL_ACTION
 
   static std::string join_iterators (t_iterator first, t_iterator last)
@@ -145,6 +151,12 @@ private:
       std::cerr<<"("<<*file_name_<<":"<<*line_num_<<") "<<str<<std::endl;
     }
 
+  void on_command_pushed() const
+    {
+      if(callbacks_.OnCommandPushed)
+        callbacks_.OnCommandPushed(*file_name_,*line_num_,*error_);
+    }
+
 };
 //-------------------------------------------------------------------------------------------
 
@@ -155,9 +167,7 @@ TEMPLATE_DEC
 void XCLASS::add_single_command(t_iterator first, t_iterator last, int command) const
 {
   bin_stack_->Push(command);
-
-  if(callbacks_.OnCommandPushed)
-    callbacks_.OnCommandPushed(*file_name_,*line_num_,*error_);
+  on_command_pushed();
 }
 
 TEMPLATE_DEC
@@ -205,6 +215,30 @@ void XCLASS::syntax_error (t_iterator first, t_iterator last) const
   std::cout<<"  > "<<join_iterators(first,last)<<std::endl;
 }
 
+TEMPLATE_DEC
+void XCLASS::ctrl_if (t_iterator first, t_iterator last) const
+{
+  bin_stack_->Push(bin::cmd::CTRL_IF);
+  bin_stack_->Push(ctrl_id_stack);
+  ++ctrl_id_stack;
+  on_command_pushed();
+}
+TEMPLATE_DEC
+void XCLASS::ctrl_else (t_iterator first, t_iterator last) const
+{
+  bin_stack_->Push(bin::cmd::CTRL_ELSE);
+  bin_stack_->Push(ctrl_id_stack-1);
+  on_command_pushed();
+}
+TEMPLATE_DEC
+void XCLASS::ctrl_end_if (t_iterator first, t_iterator last) const
+{
+  bin_stack_->Push(bin::cmd::CTRL_END_IF);
+  --ctrl_id_stack;
+  bin_stack_->Push(ctrl_id_stack);
+  on_command_pushed();
+}
+
 #undef TEMPLATE_DEC
 #undef XCLASS
 //-------------------------------------------------------------------------------------------
@@ -234,6 +268,9 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   ALIAS_ACTION(syntax_error        , f_syntax_error           );
   ALIAS_ACTION(include_file        , f_include_file           );
   ALIAS_ACTION(include_file_once   , f_include_file_once      );
+  ALIAS_ACTION(ctrl_if             , f_ctrl_if                );
+  ALIAS_ACTION(ctrl_else           , f_ctrl_else              );
+  ALIAS_ACTION(ctrl_end_if         , f_ctrl_end_if            );
   #undef ALIAS_ACTION
 
   #define SCMD(x_command)  \
@@ -329,6 +366,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       | statement_dump1 [SCMD(DUMP1)]
       | statement_dump2 [SCMD(DUMP2)]
       | statement_destroy [SCMD(DESTROY)]
+      | statement_ctrl
       | statement_starting_with_identifier
       );
 
@@ -450,6 +488,23 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       >> op_brace_l [SCMD(ASGN_GCNF)]
         >> var_statements >> *blank_eol_p
           >> op_brace_r [SCMD(ASGN_END)];
+
+  statement_ctrl
+    = (
+      statement_if
+      // |
+      );
+
+  statement_if
+    = str_p("if") >> *blank_eol_p >> op_parenthesis_l
+        >> expr_block >> *blank_eol_p >> op_parenthesis_r >> *blank_eol_p
+          >> op_brace_l [f_ctrl_if]
+            >> statements_global >> op_brace_r
+              >> (!(
+                *blank_eol_p
+                  >> str_p("else") >> *blank_eol_p >> op_brace_l [f_ctrl_else]
+                    >> statements_global >> op_brace_r
+              )) [f_ctrl_end_if];
 
   statement_starting_with_identifier
     = expr_identifier

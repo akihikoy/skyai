@@ -31,6 +31,43 @@ namespace loco_rabbits
 namespace var_space
 {
 
+void SkipCommand(int command, const TBinaryStack &bstack)
+{
+  using namespace loco_rabbits::var_space::bin;
+  int vtype,num;
+  switch(command)
+  {
+  case cmd::PUSH: // bin=[- vtype value]; push a value of vtype;
+    vtype= bstack.ReadI();
+    switch(vtype)
+    {
+    case vtype::ID   :  bstack.ReadS(); break;
+    case vtype::INT  :  bstack.ReadI(); break;
+    case vtype::REAL :  bstack.ReadR(); break;
+    case vtype::BOOL :  bstack.ReadB(); break;
+    case vtype::STR  :  bstack.ReadS(); break;
+    case vtype::TYPE :  bstack.ReadI(); break;
+    default:  FIXME("unknown value type code");
+    }
+    break;
+  case cmd::PUSHL: // bin=[- N vtype value1 .. valueN]; push a list (value1,..,valueN) of vtype;
+    num= bstack.ReadI();
+    vtype= bstack.ReadI();
+    switch(vtype)
+    {
+    case vtype::INT  :  for(;num>0;--num) bstack.ReadI(); break;
+    case vtype::REAL :  for(;num>0;--num) bstack.ReadR(); break;
+    case vtype::BOOL :  for(;num>0;--num) bstack.ReadB(); break;
+    case vtype::STR  :  for(;num>0;--num) bstack.ReadS(); break;
+    default:  FIXME("unknown value type code");
+    }
+    break;
+  default:
+    break;
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 void CopyCommand(int command, const TBinaryStack &src, TBinaryStack &dst)
 {
   using namespace loco_rabbits::var_space::bin;

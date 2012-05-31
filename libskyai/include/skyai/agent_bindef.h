@@ -73,11 +73,17 @@ namespace cmd  // command
   DEF_CMD( EXPO_C_AS , 1303 ) // bin=[-]; pop three identifier(1,2,3), export the config  3.config.2 as 1;
   DEF_CMD( EXPO_M    , 1304 ) // bin=[-]; pop two identifier(1,2), export the memory  2.memory.1 as 1;
   DEF_CMD( EXPO_M_AS , 1305 ) // bin=[-]; pop three identifier(1,2,3), export the memory  3.memory.2 as 1;
+
+  DEF_CMD( CTRL_IF     , 5000 ) // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+  DEF_CMD( CTRL_ELSE   , 5001 ) // bin=[- value]; skip until finding [END_IF value];
+  DEF_CMD( CTRL_END_IF , 5002 ) // bin=[- value]; do nothing;
 #undef DEF_CMD
 }  // end of cmd
 
 }  // end of bin
 
+
+void SkipCommand(int command, const TBinaryStack &bstack);
 
 void CopyCommand(int command, const TBinaryStack &src, TBinaryStack &dst);
 

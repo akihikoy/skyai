@@ -64,6 +64,22 @@ ngnet_nonzero_cnt.config ={
     Threshold = cast<int>(logger_ngnet.config.OrderOfColumns["ngnet_nonzero.out_y"])
   }
 
-include_once "empty-file.var"
-include_once "empty-file.var"
+// include_once "empty-file.var"
+// include_once "empty-file.var"
 
+if(call_func(test_func)<0)
+{
+  ngnet_nonzero.config ={
+      Threshold = call_func(test_func)
+    }
+}
+else
+{
+  ngnet_nonzero.config ={
+      Threshold = -1.0*call_func(test_func)
+    }
+  if(true)
+  {
+    module  MMediator0_TRealVector  test
+  }
+}

@@ -81,7 +81,7 @@ protected:
   void PopVariable();
   int  VariableStackSize();
 
-  enum TExecutionMode {emNormal=0, emFunctionDef, emCompositeDef, emEdit};
+  enum TExecutionMode {emNormal=0, emFunctionDef, emCompositeDef, emEdit, emSkipIf, emSkipElse};
 
   boost::filesystem::path              current_dir_;
   std::list<std::string>               *included_list_;
@@ -94,6 +94,8 @@ protected:
   std::list<TCompositeModule*>         cmodule_stack_;
   std::list<TExecutionMode>            mode_stack_;
   std::list<TCompositeModule>          cmodule_entity_stack_;
+
+  long                                 tmp_ctrl_id_;
 
   var_space::TLiteral                  return_value_;
 
@@ -158,6 +160,10 @@ protected:
   DEF_CMD_EXEC( EXPO_C_AS )
   DEF_CMD_EXEC( EXPO_M    )
   DEF_CMD_EXEC( EXPO_M_AS )
+
+  DEF_CMD_EXEC( CTRL_IF     )
+  DEF_CMD_EXEC( CTRL_ELSE   )
+  DEF_CMD_EXEC( CTRL_END_IF )
   #undef DEF_CMD_EXEC
 
 };

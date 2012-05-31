@@ -285,7 +285,8 @@ void TExtForwardIterator::i_dereference_()
 IMPL_CMD_EXEC( PUSH      )  // bin=[- vtype value]; push a value of vtype;
 {
   using namespace bin;
-  switch(bstack.ReadI())
+  int type_code= bstack.ReadI();
+  switch(type_code)
   {
   case vtype::ID   :  literal_stack_.push_back(LiteralId(bstack.ReadS())); break;
   case vtype::INT  :  literal_stack_.push_back(TLiteral(bstack.ReadI())); break;
@@ -293,7 +294,7 @@ IMPL_CMD_EXEC( PUSH      )  // bin=[- vtype value]; push a value of vtype;
   case vtype::BOOL :  literal_stack_.push_back(TLiteral(bstack.ReadB())); break;
   case vtype::STR  :  literal_stack_.push_back(TLiteral(bstack.ReadS())); break;
   case vtype::TYPE :  literal_stack_.push_back(LiteralType(bstack.ReadI())); break;
-  default:  FIXME("unknown value type code");
+  default:  FIXME("unknown value type code: "<<type_code);
   }
 }
 IMPL_CMD_EXEC( PUSHL     )  // bin=[- N vtype value1 .. valueN]; push a list (value1,..,valueN) of vtype;
@@ -302,13 +303,14 @@ IMPL_CMD_EXEC( PUSHL     )  // bin=[- N vtype value1 .. valueN]; push a list (va
   int num= bstack.ReadI();
   literal_stack_.push_back(TLiteral(LiteralEmptyList()));
   TLiteral  &back(literal_stack_.back());
-  switch(bstack.ReadI())
+  int type_code= bstack.ReadI();
+  switch(type_code)
   {
   case vtype::INT  :  for(;num>0;--num) back.AppendToList(TAnyPrimitive(bstack.ReadI())); break;
   case vtype::REAL :  for(;num>0;--num) back.AppendToList(TAnyPrimitive(bstack.ReadR())); break;
   case vtype::BOOL :  for(;num>0;--num) back.AppendToList(TAnyPrimitive(bstack.ReadB())); break;
   case vtype::STR  :  for(;num>0;--num) back.AppendToList(TAnyPrimitive(bstack.ReadS())); break;
-  default:  FIXME("unknown value type code");
+  default:  FIXME("unknown value type code: "<<type_code);
   }
 }
 IMPL_CMD_EXEC( LAPPEND   )  // bin=[-]; pop two values(1,2), append 1 to 2:(2,1), push the result;
@@ -720,7 +722,7 @@ bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopVariable();
     LASSERT(executor.VariableStackSize()==0);
-    return executor.Error();
+    return !executor.Error();
   }
   return false;
 }
@@ -735,7 +737,7 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TVariable &var, TLiteralTable
   executor.Execute(true);
   executor.PopVariable();
   LASSERT(executor.VariableStackSize()==0);
-  return executor.Error();
+  return !executor.Error();
 }
 //-------------------------------------------------------------------------------------------
 

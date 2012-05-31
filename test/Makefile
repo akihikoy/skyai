@@ -1,5 +1,5 @@
 ##-------------------------------------------------------------------------------------------
-#     Copyright (C) 2011  Akihiko Yamaguchi
+#     Copyright (C) 2012  Akihiko Yamaguchi
 #
 #     This file is part of SkyAI.
 #
@@ -16,38 +16,24 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-#     TODO:
-#       1. generate a blank file:  touch Makefile_preconf
-#       2. edit Makefile_preconf as follows (specify SKYAI_DIRECTORY):
-#
-#         include $(BASE_REL_DIR)/Makefile_preconf.sample
-#         SKYAI_BASE := SKYAI_DIRECTORY
-#
+BASE_REL_DIR:=..
+include $(BASE_REL_DIR)/Makefile_preconf
 ##-------------------------------------------------------------------------------------------
-SKYAI_BASE := $(wildcard ~/proj/skyai)
+## make  *.out  from  *.c and *.cpp
+USER_MAKE_TRG := execs
+EXECS    := \
+      $(patsubst %.c,%.out,$(wildcard *.c)) \
+      $(patsubst %.cpp,%.out,$(wildcard *.cpp)) #
+OBJS := $(EXECS:.out=.o)
 ##-------------------------------------------------------------------------------------------
-EXEC :=
-ARC :=
-SO :=
-USER_MAKE_TRG :=
-OBJS :=
-LOBJS :=
-LIBOBJS :=
-EXTRA_CLEAN :=
+USING_SKYAI_ODE:=true
+MAKING_SKYAI:=true
+include $(BASE_REL_DIR)/Makefile_body
 ##-------------------------------------------------------------------------------------------
-USING_SO:=true
-SKYAI_SOVER:=0.1
-##-------------------------------------------------------------------------------------------
-CXX := g++
-AR := ar
-ifeq ($(DEBUG),true)
-  CXXFLAGS := -g -Wall -rdynamic
-else
-  CXXFLAGS := -g -Wall -rdynamic -O3 -march=i686
-endif
-LDFLAGS  := $(CXXFLAGS)
-RMFLAGS  :=  -vf
-##-------------------------------------------------------------------------------------------
-LIBS    := -I/usr/include -I/usr/local/include
-LDLIBS  := -lm -L/usr/local/lib
+execs : $(EXECS)
+%.out : %.o extra_make $(LIBOBJS)
+	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+	@(echo "*************************************************")
+	@(echo "$@ is generated")
+	@(echo "*************************************************")
 ##-------------------------------------------------------------------------------------------

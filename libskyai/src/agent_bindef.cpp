@@ -31,6 +31,27 @@ namespace loco_rabbits
 namespace agent_parser
 {
 
+void SkipCommand(int command, const TBinaryStack &bstack)
+{
+  using namespace loco_rabbits::agent_parser::bin;
+  if(command<cmd::COMMAND_BASE)
+  {
+    var_space::SkipCommand(command,bstack);
+    return;
+  }
+  switch(command)
+  {
+  case cmd::CTRL_IF: // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+  case cmd::CTRL_ELSE: // bin=[- value]; skip until finding [END_IF value];
+  case cmd::CTRL_END_IF: // bin=[- value]; do nothing;
+    bstack.ReadI();
+    break;
+  default:
+    break;
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 void CopyCommand(int command, const TBinaryStack &src, TBinaryStack &dst)
 {
   using namespace loco_rabbits::agent_parser::bin;
@@ -40,6 +61,16 @@ void CopyCommand(int command, const TBinaryStack &src, TBinaryStack &dst)
     return;
   }
   dst.Push(command);
+  switch(command)
+  {
+  case cmd::CTRL_IF: // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+  case cmd::CTRL_ELSE: // bin=[- value]; skip until finding [END_IF value];
+  case cmd::CTRL_END_IF: // bin=[- value]; do nothing;
+    dst.Push(src.ReadI());
+    break;
+  default:
+    break;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
@@ -103,6 +134,16 @@ void PrintLineToStream(int command, const TBinaryStack &bstack, std::ostream &os
   AS_IS( cmd::EXPO_M    )
   AS_IS( cmd::EXPO_M_AS )
   #undef AS_IS
+
+  case cmd::CTRL_IF: // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+    os<<"cmd::CTRL_IF "    <<bstack.ReadI()<<endl;
+    break;
+  case cmd::CTRL_ELSE: // bin=[- value]; skip until finding [END_IF value];
+    os<<"cmd::CTRL_ELSE "  <<bstack.ReadI()<<endl;
+    break;
+  case cmd::CTRL_END_IF: // bin=[- value]; do nothing;
+    os<<"cmd::CTRL_END_IF "<<bstack.ReadI()<<endl;
+    break;
   default:  FIXME("unknown command code:"<<command);
   }
 }

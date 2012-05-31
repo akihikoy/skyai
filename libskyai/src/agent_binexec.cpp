@@ -111,7 +111,7 @@ void TBinExecutor::inherit_module (bool ignore_export)
   LASSERT(function_manager_!=NULL);
   if (!function_manager_->ExecuteFunction(func_id, argv, *(cmodule_stack_.back()), &ret_val, ignore_export_))
   {
-    print_error("failed to execute the function: "+func_id);
+    print_error("failed to execute function: "+func_id);
     return false;
   }
   return true;
@@ -143,12 +143,25 @@ LDBGVAR(member_c);
 
 /*override*/void TBinExecutor::exec_command(int command, const TBinaryStack &bstack)
 {
-  if(!mode_stack_.empty() && mode_stack_.back()==emFunctionDef)
+  if(!mode_stack_.empty())
   {
-    if(command==bin::cmd::FUNC_DEF)  {print_error("def: forbidden within a function definition"); return;}
-    if(command!=bin::cmd::FDEF_END)
+    if(mode_stack_.back()==emFunctionDef)
     {
-      CopyCommand(command, bstack, tmp_func_info_.second.Binary);
+      if(command==bin::cmd::FUNC_DEF)  {print_error("def: forbidden within a function definition"); return;}
+      if(command!=bin::cmd::FDEF_END)
+      {
+        CopyCommand(command, bstack, tmp_func_info_.second.Binary);
+        return;
+      }
+    }
+    else if(mode_stack_.back()==emSkipIf)
+    {
+      if(command==bin::cmd::CTRL_ELSE || command==bin::cmd::CTRL_END_IF)
+      {
+        if(bstack.ReadI()==tmp_ctrl_id_)  mode_stack_.pop_back();
+        return;
+      }
+      SkipCommand(command, bstack);
       return;
     }
   }
@@ -195,6 +208,10 @@ LDBGVAR(member_c);
   CALL_CMD_EXEC( EXPO_C_AS )
   CALL_CMD_EXEC( EXPO_M    )
   CALL_CMD_EXEC( EXPO_M_AS )
+
+  CALL_CMD_EXEC( CTRL_IF     )
+  CALL_CMD_EXEC( CTRL_ELSE   )
+  CALL_CMD_EXEC( CTRL_END_IF )
   #undef CALL_CMD_EXEC
 
   default:  FIXME("unknown command code:"<<command);
@@ -501,6 +518,27 @@ IMPL_CMD_EXEC( EXPO_M_AS ) // bin=[-]; pop three identifier(1,2,3), export the m
     error_= true;
 }
 
+IMPL_CMD_EXEC( CTRL_IF     ) // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+{
+  var_space::TLiteral cond= pop_literal();
+  LASSERT(cond.IsPrimitive());
+  var_space::CastToBool(cond.AsPrimitive());
+  tmp_ctrl_id_= bstack.ReadI();
+  if(!cond.AsPrimitive().Bool())
+  {
+    mode_stack_.push_back(emSkipIf);
+  }
+}
+IMPL_CMD_EXEC( CTRL_ELSE   ) // bin=[- value]; skip until finding [END_IF value];
+{
+  tmp_ctrl_id_= bstack.ReadI();
+  mode_stack_.push_back(emSkipIf);
+}
+IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
+{
+  bstack.ReadI();
+}
+
 #undef IMPL_CMD_EXEC
 
 //===========================================================================================
@@ -554,7 +592,7 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std:
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopCmpModule();
     LASSERT(executor.CmpModuleStackSize()==0);
-    return executor.Error();
+    return !executor.Error();
   }
   return false;
 }
@@ -581,7 +619,7 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, va
   executor.PopCmpModule();
   LASSERT(executor.CmpModuleStackSize()==0);
   if(ret_val)  *ret_val= executor.ReturnValue();
-  return executor.Error();
+  return !executor.Error();
 }
 //-------------------------------------------------------------------------------------------
 

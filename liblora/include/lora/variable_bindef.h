@@ -156,6 +156,8 @@ inline void AddCommand(TBinaryStack &bstack, const int &value)
 }
 
 
+void SkipCommand(int command, const TBinaryStack &bstack);
+
 void CopyCommand(int command, const TBinaryStack &src, TBinaryStack &dst);
 
 //! copy src to dst while pred is true

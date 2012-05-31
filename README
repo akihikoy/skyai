@@ -2,7 +2,7 @@
 SkyAI -- Highly modularized Reinforcement Learning library
 for real and simulation robots to learn behaviors.
 
-Copyright (C) 2009, 2010, 2011  Akihiko Yamaguchi
+Copyright (C) 2009, 2010, 2011, 2012  Akihiko Yamaguchi
 
 \section Overview
 --------
@@ -32,5 +32,5 @@ Please visit http://skyai.org/
 Akihiko Yamaguchi
 ay@akiyam.sakura.ne.jp
 
-Last updated: Thu May 26 01:30:11 JST 2011
+Last updated: Thu May 31 11:21:20 JST 2012
 */
