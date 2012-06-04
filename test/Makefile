@@ -31,7 +31,8 @@ MAKING_SKYAI:=true
 include $(BASE_REL_DIR)/Makefile_body
 ##-------------------------------------------------------------------------------------------
 execs : $(EXECS)
-%.out : %.o extra_make $(LIBOBJS)
+
+%.out : %.o $(LIBOBJS)
 	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
 	@(echo "*************************************************")
 	@(echo "$@ is generated")

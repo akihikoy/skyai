@@ -251,7 +251,7 @@ IMPL_CMD_EXEC( DUMP2     ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into f
     print_error("dump2: failed to dump info");
 }
 
-IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop four identifiers(1,2), create module: type 2, id 1;
+IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;
 {
   if(forbidden_in_edit("module"))  return;
 
@@ -259,7 +259,7 @@ IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop four identifiers(1,2), create module:
   LASSERT(!cmodule_stack_.empty());
   cmodule_stack_.back()->AddSubModule(type, identifier);
 }
-IMPL_CMD_EXEC( REMOVE    ) // bin=[-]; pop four identifiers(1,2), create module: type 2, id 1;
+IMPL_CMD_EXEC( REMOVE    ) // bin=[-]; pop an identifier(1), remove module: id 1;
 {
   if(forbidden_in_edit("remove"))  return;
 
@@ -540,6 +540,285 @@ IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
 }
 
 #undef IMPL_CMD_EXEC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//===========================================================================================
+// class TBinWriter
+//===========================================================================================
+
+/*override*/void TBinWriter::exec_command(int command, const TBinaryStack &bstack)
+{
+  if(command<bin::cmd::COMMAND_BASE)
+  {
+    TParent::exec_command(command,bstack);
+    return;
+  }
+  switch(command)
+  {
+  #define CALL_CMD_EXEC(x_cmd) case bin::cmd::x_cmd: cmd_##x_cmd (command, bstack); break;
+  CALL_CMD_EXEC( LINCLUDE  )
+  CALL_CMD_EXEC( DUMP1     )
+  CALL_CMD_EXEC( DUMP2     )
+
+  CALL_CMD_EXEC( MODULE    )
+  CALL_CMD_EXEC( REMOVE    )
+  CALL_CMD_EXEC( CONNECT   )
+  CALL_CMD_EXEC( DISCNCT   )
+
+  CALL_CMD_EXEC( ASGN_GCNF )
+  CALL_CMD_EXEC( ASGN_CNF  )
+  CALL_CMD_EXEC( ASGN_MEM  )
+  CALL_CMD_EXEC( ASGN_END  )
+  CALL_CMD_EXEC( EDIT      )
+  CALL_CMD_EXEC( EDIT_END  )
+
+  CALL_CMD_EXEC( COMPOSITE )
+  CALL_CMD_EXEC( CMP_END   )
+  CALL_CMD_EXEC( FUNC_DEF  )
+  CALL_CMD_EXEC( FDEF_END  )
+  CALL_CMD_EXEC( S_PARAMS  )
+  CALL_CMD_EXEC( RETURN    )
+
+  CALL_CMD_EXEC( DESTROY   )
+
+  CALL_CMD_EXEC( INHERIT   )
+  CALL_CMD_EXEC( INHERITPR )
+
+  CALL_CMD_EXEC( EXPO_P    )
+  CALL_CMD_EXEC( EXPO_P_AS )
+  CALL_CMD_EXEC( EXPO_C    )
+  CALL_CMD_EXEC( EXPO_C_AS )
+  CALL_CMD_EXEC( EXPO_M    )
+  CALL_CMD_EXEC( EXPO_M_AS )
+
+  CALL_CMD_EXEC( CTRL_IF     )
+  CALL_CMD_EXEC( CTRL_ELSE   )
+  CALL_CMD_EXEC( CTRL_END_IF )
+  #undef CALL_CMD_EXEC
+
+  default:  FIXME("unknown command code:"<<command);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+#define IMPL_CMD_EXEC(x_cmd)  void TBinWriter::cmd_##x_cmd (int command, const TBinaryStack &bstack)
+
+IMPL_CMD_EXEC( LINCLUDE  ) // bin=[-]; pop two values(1,2; 1:str,2:id), add str to the lazy-include-list of id;
+{
+  std::string filename(pop_literal());
+  std::string identifier(pop_id());
+
+  out_to_stream()<<"linclude "<<identifier<<" "<<filename<<std::endl;
+}
+IMPL_CMD_EXEC( DUMP1     ) // bin=[-]; pop two strings(1,2), dump 2 into file 1;
+{
+  std::string filename(pop_literal()), str1(pop_literal());
+  out_to_stream()<<"dump1 "<<str1<<" "<<filename<<std::endl;
+}
+IMPL_CMD_EXEC( DUMP2     ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into file 1;
+{
+  std::string filename(pop_literal()), str2(pop_literal()), str1(pop_literal());
+  out_to_stream()<<"dump2 "<<str1<<" "<<str2<<" "<<filename<<std::endl;
+}
+
+IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;
+{
+  std::string identifier(pop_id()), type(pop_id());
+  out_to_stream()<<"module "<<type<<" "<<identifier<<std::endl;
+}
+IMPL_CMD_EXEC( REMOVE    ) // bin=[-]; pop an identifier(1), remove module: id 1;
+{
+  std::string identifier(pop_id());
+  out_to_stream()<<"remove "<<identifier<<std::endl;
+}
+IMPL_CMD_EXEC( CONNECT   ) // bin=[-]; pop four identifiers(1,2,3,4), connect 4.3-2.1;
+{
+  std::string port2(pop_id()), module2(pop_id()), port1(pop_id()), module1(pop_id());
+  out_to_stream()<<"connect "<<module1<<"."<<port1<<" ,  "<<module2<<"."<<port2<<std::endl;
+}
+IMPL_CMD_EXEC( DISCNCT   ) // bin=[-]; pop four identifiers(1,2,3,4), disconnect 4.3-2.1;
+{
+  std::string port2(pop_id()), module2(pop_id()), port1(pop_id()), module1(pop_id());
+  out_to_stream()<<"disconnect "<<module1<<"."<<port1<<" ,  "<<module2<<"."<<port2<<std::endl;
+}
+
+IMPL_CMD_EXEC( ASGN_GCNF ) // bin=[-]; start assigning to global config;
+{
+  out_to_stream()<<"config ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( ASGN_CNF  ) // bin=[-]; pop an identifier, start assigning to its config;
+{
+  std::string identifier(pop_id());
+  out_to_stream()<<identifier<<".config ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( ASGN_MEM  ) // bin=[-]; pop an identifier, start assigning to its memory;
+{
+  std::string identifier(pop_id());
+  out_to_stream()<<identifier<<".memory ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( ASGN_END  ) // bin=[-]; end assigning;
+{
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+  --indent_;
+}
+IMPL_CMD_EXEC( EDIT      ) // bin=[-]; pop an identifier, start editing it;
+{
+  std::string identifier(pop_id());
+  out_to_stream()<<"edit "<<identifier<<std::endl;
+  out_to_stream()<<"{"<<std::endl;
+  ++indent_;
+}
+IMPL_CMD_EXEC( EDIT_END  ) // bin=[-]; end editing;
+{
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+}
+
+IMPL_CMD_EXEC( COMPOSITE ) // bin=[-]; pop an identifier, start defining a composite module;
+{
+  std::string module_name(pop_id());
+  out_to_stream()<<"composite "<<module_name<<std::endl;
+  out_to_stream()<<"{"<<std::endl;
+  ++indent_;
+}
+IMPL_CMD_EXEC( CMP_END   ) // bin=[-]; end defining the composite module;
+{
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+}
+IMPL_CMD_EXEC( FUNC_DEF  ) // bin=[-]; pop identifiers (parameters,func-name), start defining a function;
+{
+  std::list<std::string> param_list;
+  for(var_space::TIdentifier id(pop_id()); id!="@def"; id=pop_id())
+    param_list.push_front(id);
+  std::string func_name= param_list.front();
+  param_list.pop_front();
+
+  std::string delim("");
+  std::ostream &os(out_to_stream());
+  os<<"def "<<func_name<<"(";
+  for(std::list<std::string>::const_iterator itr(param_list.begin()),last(param_list.end());itr!=last;delim=",",++itr)
+    os<<delim<<*itr;
+  os<<")"<<std::endl;
+  out_to_stream()<<"{"<<std::endl;
+  ++indent_;
+}
+IMPL_CMD_EXEC( FDEF_END  ) // bin=[-]; end defining the function;
+{
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+}
+IMPL_CMD_EXEC( S_PARAMS  ) // bin=[-]; start parameters of function-definition;
+{
+  literal_stack_.push_back(var_space::LiteralId("@def"));
+}
+IMPL_CMD_EXEC( RETURN    ) // bin=[-]; pop a value, set it as a return value, exit the execution;
+{
+  std::string ret_val(pop_paren_value());
+  out_to_stream()<<"return "<<ret_val<<std::endl;
+}
+
+IMPL_CMD_EXEC( DESTROY   ) // bin=[-]; pop two values(1,2; 1:id,2:str), destroy 1 of kind 2;
+{
+  std::string identifier(pop_id());
+  std::string str1(pop_literal());
+  out_to_stream()<<"_destroy "<<str1<<" "<<identifier<<std::endl;
+}
+
+IMPL_CMD_EXEC( INHERIT   ) // bin=[-]; pop an identifier, inherit the module;
+{
+  std::string  cmodule_name(pop_id());
+  out_to_stream()<<"inherit "<<cmodule_name<<std::endl;
+}
+IMPL_CMD_EXEC( INHERITPR ) // bin=[-]; pop an identifier, inherit_prv the module;
+{
+  std::string  cmodule_name(pop_id());
+  out_to_stream()<<"inherit_prv "<<cmodule_name<<std::endl;
+}
+
+IMPL_CMD_EXEC( EXPO_P    ) // bin=[-]; pop two identifier(1,2), export the port  2.1 as 1;
+{
+  std::string  port_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<"."<<port_name<<" as_is"<<std::endl;
+}
+IMPL_CMD_EXEC( EXPO_P_AS ) // bin=[-]; pop three identifier(1,2,3), export the port  3.2 as 1;
+{
+  std::string  export_name(pop_id()), port_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<"."<<port_name<<" as "<<export_name<<std::endl;
+}
+IMPL_CMD_EXEC( EXPO_C    ) // bin=[-]; pop two identifier(1,2), export the config  2.config.1 as 1;
+{
+  std::string  param_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<".config."<<param_name<<" as_is"<<std::endl;
+}
+IMPL_CMD_EXEC( EXPO_C_AS ) // bin=[-]; pop three identifier(1,2,3), export the config  3.config.2 as 1;
+{
+  std::string  export_name(pop_id()), param_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<".config."<<param_name<<" as "<<export_name<<std::endl;
+}
+IMPL_CMD_EXEC( EXPO_M    ) // bin=[-]; pop two identifier(1,2), export the memory  2.memory.1 as 1;
+{
+  std::string  param_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<".memory."<<param_name<<" as_is"<<std::endl;
+}
+IMPL_CMD_EXEC( EXPO_M_AS ) // bin=[-]; pop three identifier(1,2,3), export the memory  3.memory.2 as 1;
+{
+  std::string  export_name(pop_id()), param_name(pop_id()), module_name(pop_id());
+  out_to_stream()<<"export "<<module_name<<".memory."<<param_name<<" as "<<export_name<<std::endl;
+}
+
+IMPL_CMD_EXEC( CTRL_IF     ) // bin=[- value]; pop a value, if false: skip until finding [ELSE value] or [END_IF value], if true: do nothing;
+{
+  bstack.ReadI();
+  std::string cond= pop_paren_value();
+  out_to_stream()<<"if("<<cond<<")"<<std::endl;
+  out_to_stream()<<"{"<<std::endl;
+  ++indent_;
+}
+IMPL_CMD_EXEC( CTRL_ELSE   ) // bin=[- value]; skip until finding [END_IF value];
+{
+  bstack.ReadI();
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+  out_to_stream()<<"else"<<std::endl;
+  out_to_stream()<<"{"<<std::endl;
+  ++indent_;
+}
+IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
+{
+  bstack.ReadI();
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+}
+
+#undef IMPL_CMD_EXEC
+
+
+
+
+
+
+
 
 //===========================================================================================
 

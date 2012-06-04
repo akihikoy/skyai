@@ -190,6 +190,71 @@ inline bool TBinExecutor::forbidden_in_edit(const std::string &x)
 //-------------------------------------------------------------------------------------------
 
 
+
+
+
+
+
+//===========================================================================================
+class TBinWriter : public loco_rabbits::var_space::TBinWriter
+//===========================================================================================
+{
+public:
+
+  typedef loco_rabbits::var_space::TBinWriter TParent;
+
+  TBinWriter() : TParent() {}
+
+protected:
+
+  override void exec_command(int command, const TBinaryStack &bstack);
+
+  #define DEF_CMD_EXEC(x_cmd)  void cmd_##x_cmd (int command, const TBinaryStack &bstack);
+  DEF_CMD_EXEC( LINCLUDE  )
+  DEF_CMD_EXEC( DUMP1     )
+  DEF_CMD_EXEC( DUMP2     )
+
+  DEF_CMD_EXEC( MODULE    )
+  DEF_CMD_EXEC( REMOVE    )
+  DEF_CMD_EXEC( CONNECT   )
+  DEF_CMD_EXEC( DISCNCT   )
+
+  DEF_CMD_EXEC( ASGN_GCNF )
+  DEF_CMD_EXEC( ASGN_CNF  )
+  DEF_CMD_EXEC( ASGN_MEM  )
+  DEF_CMD_EXEC( ASGN_END  )
+  DEF_CMD_EXEC( EDIT      )
+  DEF_CMD_EXEC( EDIT_END  )
+
+  DEF_CMD_EXEC( COMPOSITE )
+  DEF_CMD_EXEC( CMP_END   )
+  DEF_CMD_EXEC( FUNC_DEF  )
+  DEF_CMD_EXEC( FDEF_END  )
+  DEF_CMD_EXEC( S_PARAMS  )
+  DEF_CMD_EXEC( RETURN    )
+
+  DEF_CMD_EXEC( DESTROY   )
+
+  DEF_CMD_EXEC( INHERIT   )
+  DEF_CMD_EXEC( INHERITPR )
+
+  DEF_CMD_EXEC( EXPO_P    )
+  DEF_CMD_EXEC( EXPO_P_AS )
+  DEF_CMD_EXEC( EXPO_C    )
+  DEF_CMD_EXEC( EXPO_C_AS )
+  DEF_CMD_EXEC( EXPO_M    )
+  DEF_CMD_EXEC( EXPO_M_AS )
+
+  DEF_CMD_EXEC( CTRL_IF     )
+  DEF_CMD_EXEC( CTRL_ELSE   )
+  DEF_CMD_EXEC( CTRL_END_IF )
+  #undef DEF_CMD_EXEC
+
+};
+//-------------------------------------------------------------------------------------------
+
+
+
 //===========================================================================================
 
 /*!\brief load modules, connections, configurations from the file [file_name] */

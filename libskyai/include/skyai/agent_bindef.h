@@ -43,8 +43,8 @@ namespace cmd  // command
   DEF_CMD( DUMP1     , 1 ) // bin=[-]; pop two strings(1,2), dump 2 into file 1;
   DEF_CMD( DUMP2     , 2 ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into file 1;
 
-  DEF_CMD( MODULE    , 10 ) // bin=[-]; pop four identifiers(1,2), create module: type 2, id 1;
-  DEF_CMD( REMOVE    , 11 ) // bin=[-]; pop four identifiers(1,2), create module: type 2, id 1;
+  DEF_CMD( MODULE    , 10 ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;
+  DEF_CMD( REMOVE    , 11 ) // bin=[-]; pop an identifier(1), remove module: id 1;
   DEF_CMD( CONNECT   , 12 ) // bin=[-]; pop four identifiers(1,2,3,4), connect 4.3-2.1;
   DEF_CMD( DISCNCT   , 13 ) // bin=[-]; pop four identifiers(1,2,3,4), disconnect 4.3-2.1;
 

@@ -1,8 +1,8 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    variable_parser_test.cpp
-    \brief   Test program of variable parser
+/*! \file    variable_writer.cpp
+    \brief   Test program of variable writer
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Feb.03, 2012
+    \date    Jun.04, 2012
 
     Copyright (C) 2012  Akihiko Yamaguchi
 
@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_parser.h>
-#include <lora/variable_bindef.h>
+#include <lora/variable_binexec.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -35,9 +35,7 @@ loco_rabbits::TBinaryStack bin_stack;
 void callback(const std::string& file_name,int line_num,bool error_stat)
 {
   if(error_stat)  return;
-  std::cout<<"--eol@"<<file_name<<":"<<line_num<<std::endl;
-  loco_rabbits::var_space::PrintToStream(bin_stack);
-  bin_stack.Clear();
+  std::cerr<<"--eol@"<<file_name<<":"<<line_num<<std::endl;
 }
 
 int main(int argc, char**argv)
@@ -51,8 +49,13 @@ int main(int argc, char**argv)
   callbacks.OnEndOfLine= callback;
   if (ParseFile (filename,bin_stack,callbacks))
   {
-    cout<<"remaining bin_stack:"<<endl;
-    PrintToStream(bin_stack);
+    cerr<<"loaded:"<<endl;
+    PrintToStream(bin_stack,cerr);
+    cerr<<"----"<<endl;
+    TBinWriter writer;
+    writer.SetBinStack(&bin_stack);
+    writer.SetOutStream(&cout);
+    writer.Execute();
   }
   return 0;
 }

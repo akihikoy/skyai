@@ -1,8 +1,8 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    agent_parser_test.cpp
-    \brief   Test program of agent parser
+/*! \file    agent_binexec.cpp
+    \brief   Test program of agent binary executor
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Feb.04, 2012
+    \date    Feb.14, 2012
 
     Copyright (C) 2012  Akihiko Yamaguchi
 
@@ -22,45 +22,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#include <skyai/agent_parser.h>
-#include <skyai/agent_bindef.h>
+#include <skyai/skyai.h>
+#include <skyai/utility.h>
+#include <lora/small_classes.h>
+#include <fstream>
+#include <boost/filesystem/operations.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 }
 //-------------------------------------------------------------------------------------------
+using namespace std;
+using namespace loco_rabbits;
 
-loco_rabbits::TBinaryStack bin_stack;
-
-void callback(const std::string& file_name,int line_num,bool error_stat)
+int main(int argc,char**argv)
 {
-  if(error_stat)  return;
-  std::cout<<"--eol@"<<file_name<<":"<<line_num<<std::endl;
-  loco_rabbits::agent_parser::PrintToStream(bin_stack);
-  bin_stack.Clear();
-}
+  TOptionParser option(argc,argv);
 
-bool file_finder(const std::string &file_name, std::string &abs_file_name)
-{
-  abs_file_name= file_name;
-  return true;
-}
+  TAgent  agent;
+  std::ofstream debug;
+  std::list<std::string> included_list;
+  if (!ParseCmdLineOption(agent, option, debug, &included_list,/*agent_option_required=*/true))  return 0;
 
-int main(int argc, char**argv)
-{
-  using namespace std;
-  using namespace loco_rabbits;
-  using namespace agent_parser;
-  string filename= (argc>1)?argv[1]:"(file is not specified)";
-  TParserCallbacks callbacks;
-  // callbacks.OnCommandPushed= callback;
-  callbacks.OnEndOfLine= callback;
-  callbacks.OnInclude= file_finder;
-  if (ParseFile (filename,bin_stack,callbacks))
-  {
-    cout<<"remaining bin_stack:"<<endl;
-    PrintToStream(bin_stack);
-  }
+  // agent.SaveToFile (agent.GetDataFileName("after.agent"),"after-");
+  agent.SaveToFile (boost::filesystem::complete("after.agent").file_string(),"after-");
+
   return 0;
 }
 //-------------------------------------------------------------------------------------------

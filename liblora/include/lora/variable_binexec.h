@@ -227,7 +227,7 @@ class TBinExecutor
 {
 public:
 
-  TBinExecutor() : bin_stack_(NULL), literal_table_(NULL) {}
+  TBinExecutor() : bin_stack_(NULL), literal_table_(NULL), error_(false) {}
 
   virtual void PartiallyExecute(const std::string& file_name, int line_num, bool error_stat);
 
@@ -358,12 +358,145 @@ protected:
 //-------------------------------------------------------------------------------------------
 
 
+
+//===========================================================================================
+class TBinWriter
+//===========================================================================================
+{
+public:
+
+  TBinWriter() : bin_stack_(NULL), out_stream_(NULL), indent_(0), error_(false) {}
+
+  virtual void PartiallyExecute(const std::string& file_name, int line_num, bool error_stat);
+
+  virtual void Execute(bool from_current=false);
+
+  const TBinaryStack& BinStack() const {return *bin_stack_;}
+  std::ostream& OutStream() const {return *out_stream_;}
+
+  void SetBinStack(const TBinaryStack *p)  {bin_stack_= p;}
+  void SetOutStream(std::ostream *p)  {out_stream_= p;}
+
+  const std::string& FileName() const {return file_name_;}
+  int LineNum() const {return line_num_;}
+  bool Error() const {return error_;}
+
+protected:
+
+  const TBinaryStack *bin_stack_;
+  std::ostream *out_stream_;
+
+  std::list<TLiteral> literal_stack_;
+
+  int indent_;
+
+  std::string  file_name_;
+  int  line_num_;
+  bool error_;
+
+
+  std::ostream& out_to_stream()
+    {
+      LASSERT(out_stream_!=NULL);
+      for(int i(0);i<indent_;++i)  *out_stream_<<"  ";
+      return *out_stream_;
+    }
+
+  std::string pop_literal ()
+    {
+      LASSERT(!literal_stack_.empty());
+      TLiteral value= literal_stack_.back();
+      literal_stack_.pop_back();
+      LASSERT((value.IsIdentifier() || value.IsPrimitive()) && value.AsPrimitive().IsString());
+      return value.AsPrimitive().String();
+    }
+
+  void pop_literal_list(std::list<std::string> &literal_list)
+    {
+      std::list<TLiteral>::iterator  ilast(literal_stack_.end()),ifirst(literal_stack_.begin());
+      std::list<TLiteral>::iterator  itr(ilast);
+      LASSERT(ifirst!=ilast);
+      for(--itr; itr!=ifirst && !itr->IsCommand(bin::cmd::LLISTS); --itr) {}
+      LASSERT(itr->IsCommand(bin::cmd::LLISTS));
+      std::list<TLiteral>::iterator  itr2(itr);
+      for(++itr; itr!=ilast; ++itr)
+      {
+        LASSERT((itr-> IsIdentifier() || itr->IsPrimitive()) && itr->AsPrimitive().IsString());
+        literal_list.push_back("("+itr->AsPrimitive().String()+")");
+      }
+      literal_stack_.erase(itr2,ilast);
+    }
+
+  std::string pop_id (void)
+    {
+      return pop_literal();
+    }
+
+  std::string pop_paren_value (void)
+    {
+      return "("+pop_literal()+")";
+    }
+
+  void print_error (const std::string &str)
+    {
+      error_= true;
+      std::cerr<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
+    }
+
+  virtual void exec_command(int command, const TBinaryStack &bstack);
+
+  #define DEF_CMD_EXEC(x_cmd)  void cmd_##x_cmd (int command, const TBinaryStack &bstack);
+  DEF_CMD_EXEC( PUSH      )
+  DEF_CMD_EXEC( PUSHL     )
+  DEF_CMD_EXEC( LAPPEND   )
+  DEF_CMD_EXEC( PUSH_EMPL )
+  DEF_CMD_EXEC( LLISTS    )
+  DEF_CMD_EXEC( POP       )
+
+  DEF_CMD_EXEC( M_ASGN_P  )
+  DEF_CMD_EXEC( M_ASGN_CS )
+  DEF_CMD_EXEC( E_ASGN_P  )
+  DEF_CMD_EXEC( E_ASGN_CS )
+  DEF_CMD_EXEC( P_ASGN_P  )
+  DEF_CMD_EXEC( P_ASGN_CS )
+  DEF_CMD_EXEC( F_ASGN_P  )
+  DEF_CMD_EXEC( F_ASGN_CS )
+  DEF_CMD_EXEC( CASGN_END )
+
+  DEF_CMD_EXEC( FUNC_CALL )
+
+  DEF_CMD_EXEC( CONCAT )
+  DEF_CMD_EXEC( ADD    )
+  DEF_CMD_EXEC( SUBT   )
+  DEF_CMD_EXEC( MULT   )
+  DEF_CMD_EXEC( DIV    )
+  DEF_CMD_EXEC( MOD    )
+  DEF_CMD_EXEC( AND    )
+  DEF_CMD_EXEC( OR     )
+  DEF_CMD_EXEC( NOT    )
+  DEF_CMD_EXEC( EQ     )
+  DEF_CMD_EXEC( NEQ    )
+  DEF_CMD_EXEC( LTEQ   )
+  DEF_CMD_EXEC( GTEQ   )
+  DEF_CMD_EXEC( LT     )
+  DEF_CMD_EXEC( GT     )
+  DEF_CMD_EXEC( MEMBER )
+  DEF_CMD_EXEC( ELEM   )
+
+  DEF_CMD_EXEC( CAST   )
+
+  DEF_CMD_EXEC( T_TO_LIST )
+  #undef DEF_CMD_EXEC
+
+};
+//-------------------------------------------------------------------------------------------
+
+
 //===========================================================================================
 
 bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &literal_table);
 
 bool ExecuteBinary (const TBinaryStack &bin_stack, TVariable &var, TLiteralTable &literal_table);
-
 
 
 //-------------------------------------------------------------------------------------------

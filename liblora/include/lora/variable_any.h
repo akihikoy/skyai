@@ -70,6 +70,11 @@ public:
   const pt_bool&   Bool   () const {return e_bool_  ;}
   const pt_string& String () const {return e_string_;}
 
+  bool IsInt    () const {return type_==ptInt    ;}
+  bool IsReal   () const {return type_==ptReal   ;}
+  bool IsBool   () const {return type_==ptBool   ;}
+  bool IsString () const {return type_==ptString ;}
+
   template <typename T>
   T GetAs() const
     {

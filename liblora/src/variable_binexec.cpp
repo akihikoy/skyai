@@ -301,7 +301,7 @@ IMPL_CMD_EXEC( PUSHL     )  // bin=[- N vtype value1 .. valueN]; push a list (va
 {
   using namespace bin;
   int num= bstack.ReadI();
-  literal_stack_.push_back(TLiteral(LiteralEmptyList()));
+  literal_stack_.push_back(LiteralEmptyList());
   TLiteral  &back(literal_stack_.back());
   int type_code= bstack.ReadI();
   switch(type_code)
@@ -320,7 +320,7 @@ IMPL_CMD_EXEC( LAPPEND   )  // bin=[-]; pop two values(1,2), append 1 to 2:(2,1)
 }
 IMPL_CMD_EXEC( PUSH_EMPL )  // bin=[-]; push an empty list;
 {
-  literal_stack_.push_back(TLiteral(LiteralEmptyList()));
+  literal_stack_.push_back(LiteralEmptyList());
 }
 IMPL_CMD_EXEC( LLISTS    )  // bin=[-]; start list-of-literals (in l-o-l, PUSH, PUSHL, VLIST{S,E} are available);
 {
@@ -692,6 +692,315 @@ IMPL_CMD_EXEC( T_TO_LIST )  // bin=[-]; pop a type(1), push the list of it (list
 #undef CONV_ERR_CATCHER_S
 #undef CONV_ERR_CATCHER_E
 
+
+//===========================================================================================
+// class TBinWriter
+//===========================================================================================
+
+/*virtual*/void TBinWriter::PartiallyExecute(const std::string& file_name, int line_num, bool error_stat)
+{
+  if(error_stat)  return;
+  LASSERT(bin_stack_!=NULL);
+
+  file_name_= file_name;
+  line_num_= line_num;
+  // std::cout<<"parsing:"<<file_name<<":"<<line_num<<std::endl;
+  // PrintToStream(bin_stack);
+  Execute(true);
+}
+//-------------------------------------------------------------------------------------------
+
+/*virtual*/void TBinWriter::Execute(bool from_current)
+{
+  LASSERT(bin_stack_!=NULL);
+
+  if(!from_current)  bin_stack_->GoFirst();
+  while(!bin_stack_->IsEOD())
+  {
+    exec_command(bin_stack_->ReadI(), *bin_stack_);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+/*virtual*/void TBinWriter::exec_command(int command, const TBinaryStack &bstack)
+{
+  switch(command)
+  {
+  #define CALL_CMD_EXEC(x_cmd) case bin::cmd::x_cmd: cmd_##x_cmd (command, bstack); break;
+  CALL_CMD_EXEC( PUSH      )
+  CALL_CMD_EXEC( PUSHL     )
+  CALL_CMD_EXEC( LAPPEND   )
+  CALL_CMD_EXEC( PUSH_EMPL )
+  CALL_CMD_EXEC( LLISTS    )
+  CALL_CMD_EXEC( POP       )
+
+  CALL_CMD_EXEC( M_ASGN_P  )
+  CALL_CMD_EXEC( M_ASGN_CS )
+  CALL_CMD_EXEC( E_ASGN_P  )
+  CALL_CMD_EXEC( E_ASGN_CS )
+  CALL_CMD_EXEC( P_ASGN_P  )
+  CALL_CMD_EXEC( P_ASGN_CS )
+  CALL_CMD_EXEC( F_ASGN_P  )
+  CALL_CMD_EXEC( F_ASGN_CS )
+  CALL_CMD_EXEC( CASGN_END )
+
+  CALL_CMD_EXEC( FUNC_CALL )
+
+  CALL_CMD_EXEC( CONCAT )
+  CALL_CMD_EXEC( ADD    )
+  CALL_CMD_EXEC( SUBT   )
+  CALL_CMD_EXEC( MULT   )
+  CALL_CMD_EXEC( DIV    )
+  CALL_CMD_EXEC( MOD    )
+  CALL_CMD_EXEC( AND    )
+  CALL_CMD_EXEC( OR     )
+  CALL_CMD_EXEC( NOT    )
+  CALL_CMD_EXEC( EQ     )
+  CALL_CMD_EXEC( NEQ    )
+  CALL_CMD_EXEC( LTEQ   )
+  CALL_CMD_EXEC( GTEQ   )
+  CALL_CMD_EXEC( LT     )
+  CALL_CMD_EXEC( GT     )
+  CALL_CMD_EXEC( MEMBER )
+  CALL_CMD_EXEC( ELEM   )
+
+  CALL_CMD_EXEC( CAST   )
+
+  CALL_CMD_EXEC( T_TO_LIST )
+  #undef CALL_CMD_EXEC
+
+  default:  FIXME("unknown command code:"<<command);
+  }
+}
+//-------------------------------------------------------------------------------------------
+
+#define IMPL_CMD_EXEC(x_cmd)  void TBinWriter::cmd_##x_cmd (int command, const TBinaryStack &bstack)
+
+IMPL_CMD_EXEC( PUSH      )  // bin=[- vtype value]; push a value of vtype;
+{
+  using namespace bin;
+  int type_code= bstack.ReadI();
+  switch(type_code)
+  {
+  case vtype::ID   :  literal_stack_.push_back(TLiteral(bstack.ReadS())); break;
+  case vtype::INT  :  literal_stack_.push_back(TLiteral(ConvertToStr(bstack.ReadI()))); break;
+  case vtype::REAL :  literal_stack_.push_back(TLiteral(ConvertToStr(bstack.ReadR()))); break;
+  case vtype::BOOL :  literal_stack_.push_back(TLiteral(ConvertToStr(bstack.ReadB()))); break;
+  case vtype::STR  :  literal_stack_.push_back(TLiteral(ConvertToStr(bstack.ReadS()))); break;
+  case vtype::TYPE :  literal_stack_.push_back(TLiteral(std::string(bin::TypeStr(bstack.ReadI())))); break;
+  default:  FIXME("unknown value type code: "<<type_code);
+  }
+}
+IMPL_CMD_EXEC( PUSHL     )  // bin=[- N vtype value1 .. valueN]; push a list (value1,..,valueN) of vtype;
+{
+  using namespace bin;
+  int num= bstack.ReadI();
+  int type_code= bstack.ReadI();
+  std::string value, delim("");
+  switch(type_code)
+  {
+  case vtype::INT  :  for(;num>0;delim=", ",--num) value+=delim+ConvertToStr(bstack.ReadI()); break;
+  case vtype::REAL :  for(;num>0;delim=", ",--num) value+=delim+ConvertToStr(bstack.ReadR()); break;
+  case vtype::BOOL :  for(;num>0;delim=", ",--num) value+=delim+ConvertToStr(bstack.ReadB()); break;
+  case vtype::STR  :  for(;num>0;delim=", ",--num) value+=delim+ConvertToStr(bstack.ReadS()); break;
+  default:  FIXME("unknown value type code: "<<type_code);
+  }
+  literal_stack_.push_back(TLiteral(value));
+}
+IMPL_CMD_EXEC( LAPPEND   )  // bin=[-]; pop two values(1,2), append 1 to 2:(2,1), push the result;
+{
+  std::string value= pop_literal();
+  if(literal_stack_.back().AsPrimitive().String()=="") literal_stack_.back().AsPrimitive().String()= value;
+  else  literal_stack_.back().AsPrimitive().String()+= ","+value;
+}
+IMPL_CMD_EXEC( PUSH_EMPL )  // bin=[-]; push an empty list;
+{
+  literal_stack_.push_back(TLiteral(std::string("")));
+}
+IMPL_CMD_EXEC( LLISTS    )  // bin=[-]; start list-of-literals (in l-o-l, PUSH, PUSHL, VLIST{S,E} are available);
+{
+  literal_stack_.push_back(LiteralCmd(bin::cmd::LLISTS));
+}
+IMPL_CMD_EXEC( POP       )  // bin=[-]; pop a value;
+{
+  out_to_stream()<<pop_literal()<<std::endl;
+}
+
+IMPL_CMD_EXEC( M_ASGN_P  )  // bin=[-]; pop two values(1,2;2 shoud be an identifier), assign:2=1;
+{
+  std::string value= pop_paren_value();
+  std::string identifier(pop_id());
+
+  out_to_stream()<<identifier<<" = "<<value<<std::endl;
+}
+IMPL_CMD_EXEC( M_ASGN_CS )  // bin=[-]; pop an identifier, start composite assign:id={..};
+{
+  std::string identifier(pop_id());
+
+  out_to_stream()<<identifier<<" ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( E_ASGN_P  )  // bin=[-]; pop two values(1,2), elemental assign:[2]=1;
+{
+  std::string value= pop_paren_value();
+  std::string key= pop_paren_value();
+
+  out_to_stream()<<"["<<key<<"]"<<" = "<<value<<std::endl;
+}
+IMPL_CMD_EXEC( E_ASGN_CS )  // bin=[-]; pop a value, start elemental composite assign:[val]={..};
+{
+  std::string key= pop_paren_value();
+
+  out_to_stream()<<"["<<key<<"]"<<" ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( P_ASGN_P  )  // bin=[-]; pop a value, push:[]=val;
+{
+  std::string value= pop_paren_value();
+
+  out_to_stream()<<"[]"<<" = "<<value<<std::endl;
+}
+IMPL_CMD_EXEC( P_ASGN_CS )  // bin=[-]; start composite push:[]={..};
+{
+  out_to_stream()<<"[]"<<" ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( F_ASGN_P  )  // bin=[-]; pop a value, fill:[@]=val;
+{
+  std::string value= pop_paren_value();
+
+  out_to_stream()<<"[@]"<<" = "<<value<<std::endl;
+}
+IMPL_CMD_EXEC( F_ASGN_CS )  // bin=[-]; start composite fill:[@]={..};
+{
+  out_to_stream()<<"[@]"<<" ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( CASGN_END )  // finish M_ASGN_CS, E_ASGN_CS, P_ASGN_CS, F_ASGN_CS;
+{
+  --indent_;
+  out_to_stream()<<"}"<<std::endl;
+  --indent_;
+}
+
+IMPL_CMD_EXEC( FUNC_CALL )  // bin=[-]; pop list-of-literals, pop an identifier, call function:id(l-o-l);
+{
+  std::list<std::string>  argv;
+  pop_literal_list(argv);
+  std::string identifier(pop_id());
+
+  std::string delim("");
+  std::stringstream fcall;
+  fcall<<identifier<<"(";
+  for(std::list<std::string>::const_iterator itr(argv.begin()),last(argv.end());itr!=last;delim=", ",++itr)
+    fcall<<delim<<*itr;
+  fcall<<")";
+  literal_stack_.push_back(fcall.str());
+}
+
+IMPL_CMD_EXEC( CONCAT )  // bin=[-]; pop two values(1,2;2 shoud be an identifier), concatenate:2##1, push the result as an identifier;
+{
+  std::string id2(pop_id()), id1(pop_id());
+  literal_stack_.push_back(id1+"##"+id2);
+}
+IMPL_CMD_EXEC( ADD    )  // bin=[-]; pop two values, add them(2+1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"+"+ value1);
+}
+IMPL_CMD_EXEC( SUBT   )  // bin=[-]; pop two values, subtract them(2-1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"-"+ value1);
+}
+IMPL_CMD_EXEC( MULT   )  // bin=[-]; pop two values, multiply them(2*1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"*"+ value1);
+}
+IMPL_CMD_EXEC( DIV    )  // bin=[-]; pop two values, divide them(2/1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"/"+ value1);
+}
+IMPL_CMD_EXEC( MOD    )  // bin=[-]; pop two values, compute mod(2%1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"%"+ value1);
+}
+IMPL_CMD_EXEC( AND    )  // bin=[-]; pop two values, compute and(2&&1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"&&"+ value1);
+}
+IMPL_CMD_EXEC( OR     )  // bin=[-]; pop two values, compute or(2||1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"||"+ value1);
+}
+IMPL_CMD_EXEC( NOT    )  // bin=[-]; pop a value, compute not(!1), push the result;
+{
+  std::string value1(pop_paren_value());
+  literal_stack_.push_back( "!"+ value1);
+}
+IMPL_CMD_EXEC( EQ     )  // bin=[-]; pop two values, compute equality(2==1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"=="+ value1);
+}
+IMPL_CMD_EXEC( NEQ    )  // bin=[-]; pop two values, compute inequality(2!=1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"!="+ value1);
+}
+IMPL_CMD_EXEC( LTEQ   )  // bin=[-]; pop two values, compute relation(2<=1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"<="+ value1);
+}
+IMPL_CMD_EXEC( GTEQ   )  // bin=[-]; pop two values, compute relation(2>=1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +">="+ value1);
+}
+IMPL_CMD_EXEC( LT     )  // bin=[-]; pop two values, compute relation(2<1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +"<"+ value1);
+}
+IMPL_CMD_EXEC( GT     )  // bin=[-]; pop two values, compute relation(2>1), push the result;
+{
+  std::string value1(pop_paren_value()),value2(pop_paren_value());
+  literal_stack_.push_back(value2 +">"+ value1);
+}
+IMPL_CMD_EXEC( MEMBER )  // bin=[-]; pop two values(1,2;1 shoud be an identifier), get a member ref(2.1), push the result;
+{
+  TIdentifier member(pop_id());
+  std::string value(pop_paren_value());
+  literal_stack_.push_back(value +"."+member);
+}
+IMPL_CMD_EXEC( ELEM   )  // bin=[-]; pop two values, get an elemental ref(2[1]), push the result;
+{
+  std::string member(pop_paren_value());
+  std::string value(pop_paren_value());
+  literal_stack_.push_back(value +"["+member+"]");
+}
+
+IMPL_CMD_EXEC( CAST   )  // bin=[-]; pop two values(1,2;2 should be a type), cast 1 to 2(cast<2>(1), push the result;
+{
+  std::string value(pop_paren_value()),type(pop_literal());
+  literal_stack_.push_back("cast<"+type+" >("+value+")");
+}
+
+IMPL_CMD_EXEC( T_TO_LIST )  // bin=[-]; pop a type(1), push the list of it (list<t>);
+{
+  std::string type(pop_literal());
+  literal_stack_.push_back("list<"+type+">");
+}
+
+#undef IMPL_CMD_EXEC
+
+// end of TBinWriter
 
 //===========================================================================================
 

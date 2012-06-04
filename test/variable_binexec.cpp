@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    variable_binexec_test.cpp
+/*! \file    variable_binexec.cpp
     \brief   Test program of variable binary executor
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Feb.04, 2012
@@ -94,6 +94,7 @@ int main(int argc,char**argv)
 {
   using namespace var_space;
   string filename= (argc>1)?argv[1]:"(file does not exist)";
+  cout<<"loading "<<filename<<"..."<<endl;
 
   TTest test;
   TVariable var(test);
