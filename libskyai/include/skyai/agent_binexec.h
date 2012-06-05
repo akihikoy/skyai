@@ -190,11 +190,6 @@ inline bool TBinExecutor::forbidden_in_edit(const std::string &x)
 //-------------------------------------------------------------------------------------------
 
 
-
-
-
-
-
 //===========================================================================================
 class TBinWriter : public loco_rabbits::var_space::TBinWriter
 //===========================================================================================
@@ -262,6 +257,8 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std:
 
 bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, var_space::TLiteralTable *literal_table=NULL, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 
+/*!\brief write the binary bin_stack into a stream os in the agent script format */
+bool WriteBinary (const TBinaryStack &bin_stack, std::ostream &os, int indent=0);
 
 
 //-------------------------------------------------------------------------------------------

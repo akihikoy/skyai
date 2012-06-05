@@ -241,6 +241,7 @@ void oct_vec_write_to_binary_generator (t_oct_vec *x, const TVariableMap &member
   AddPushID(bstack,"clear");
   AddCommand(bstack,bin::cmd::LLISTS);
   AddCommand(bstack,bin::cmd::FUNC_CALL);
+  AddCommand(bstack,bin::cmd::POP);
 
   if (x->length()>0)
   {
@@ -248,6 +249,7 @@ void oct_vec_write_to_binary_generator (t_oct_vec *x, const TVariableMap &member
     AddCommand(bstack,bin::cmd::LLISTS);
     AddPushLiteral(bstack,x->length());
     AddCommand(bstack,bin::cmd::FUNC_CALL);
+    AddCommand(bstack,bin::cmd::POP);
     int idx(0);
     for (double *itr(OctBegin(*x)), *last(OctEnd(*x)); itr!=last; ++itr,++idx)
     {
@@ -680,6 +682,7 @@ void oct_mat_write_to_binary_generator (Matrix *x, const TVariableMap &members, 
   AddPushID(bstack,"clear");
   AddCommand(bstack,bin::cmd::LLISTS);
   AddCommand(bstack,bin::cmd::FUNC_CALL);
+  AddCommand(bstack,bin::cmd::POP);
 
   if (x->rows()>0)
   {
@@ -688,6 +691,7 @@ void oct_mat_write_to_binary_generator (Matrix *x, const TVariableMap &members, 
     AddPushLiteral(bstack,x->rows());
     AddPushLiteral(bstack,x->cols());
     AddCommand(bstack,bin::cmd::FUNC_CALL);
+    AddCommand(bstack,bin::cmd::POP);
 
     for (int row(0); row<x->rows(); ++row)
     {

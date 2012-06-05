@@ -432,6 +432,7 @@ void vector_write_to_binary_generator (std::vector<t_elem> *x, const TVariableMa
   AddPushID(bstack,"clear");
   AddCommand(bstack,bin::cmd::LLISTS);
   AddCommand(bstack,bin::cmd::FUNC_CALL);
+  AddCommand(bstack,bin::cmd::POP);
 
   if (x->size()>0)
   {
@@ -439,6 +440,7 @@ void vector_write_to_binary_generator (std::vector<t_elem> *x, const TVariableMa
     AddCommand(bstack,bin::cmd::LLISTS);
     AddPushLiteral(bstack,x->size());
     AddCommand(bstack,bin::cmd::FUNC_CALL);
+    AddCommand(bstack,bin::cmd::POP);
     const TVariable x_var(*x);
     TConstForwardIterator itr,last;
     x_var.GetBegin(itr);
@@ -779,6 +781,7 @@ void list_write_to_binary_generator (std::list<t_elem> *x, const TVariableMap &m
   AddPushID(bstack,"clear");
   AddCommand(bstack,bin::cmd::LLISTS);
   AddCommand(bstack,bin::cmd::FUNC_CALL);
+  AddCommand(bstack,bin::cmd::POP);
 
   if (x->size()>0)
   {
@@ -1008,6 +1011,7 @@ void map_write_to_binary_generator (std::map<t_key,t_elem> *x, const TVariableMa
   AddPushID(bstack,"clear");
   AddCommand(bstack,bin::cmd::LLISTS);
   AddCommand(bstack,bin::cmd::FUNC_CALL);
+  AddCommand(bstack,bin::cmd::POP);
 
   if (x->size()>0)
   {

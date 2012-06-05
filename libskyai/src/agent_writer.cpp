@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------------------------
 #include <skyai/agent_writer.h>
 #include <skyai/agent_bindef.h>
+#include <skyai/agent_binexec.h>
 #include <skyai/base.h>
 #include <skyai/types.h>
 //-------------------------------------------------------------------------------------------
@@ -313,12 +314,15 @@ static bool save_cmodule_generator (const std::string &id, const TCompositeModul
   os<<indent<<"composite  "<<id<<endl;
   os<<indent<<"{"<<endl;
 //FIXME: os<<TIndentString(generator.Script, indent+"  ");
-agent_parser::PrintToStream(generator.Binary,os);
+// agent_parser::PrintToStream(generator.Binary,os);
 // like that:
       // TCompositeModule cmodule(option("export_dot"), "temporary");
       // cmodule.SetAgent(agent);
       // agent.CompositeModuleGenerator().Create(cmodule, option("export_dot"));
       // cmodule.ExportToDOT(cout);
+  size_t i(0); while(i<indent.size() && indent[i]==' ') ++i; i/=2;
+  generator.Binary.GoFirst();
+  agent_parser::WriteBinary(generator.Binary, os, i+1);
   os<<indent<<"}"<<endl;
   return true;
 }
@@ -360,7 +364,10 @@ static bool save_function (const std::string &id, const TFunctionManager::TFunct
   os<<indent<<"def  "<<id<<"("<<ContainerToStr(finfo.ParamList.begin(),finfo.ParamList.end(),", ")<<")"<<endl;
   os<<indent<<"{"<<endl;
 //FIXME: os<<TIndentString(finfo.Script, indent+"  ");
-agent_parser::PrintToStream(finfo.Binary,os);
+// agent_parser::PrintToStream(finfo.Binary,os);
+  size_t i(0); while(i<indent.size() && indent[i]==' ') ++i; i/=2;
+  finfo.Binary.GoFirst();
+  agent_parser::WriteBinary(finfo.Binary, os, i+1);
   os<<indent<<"}"<<endl;
   return true;
 }

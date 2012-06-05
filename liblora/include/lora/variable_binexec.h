@@ -373,9 +373,11 @@ public:
 
   const TBinaryStack& BinStack() const {return *bin_stack_;}
   std::ostream& OutStream() const {return *out_stream_;}
+  int  Indent() const {return indent_;}
 
   void SetBinStack(const TBinaryStack *p)  {bin_stack_= p;}
   void SetOutStream(std::ostream *p)  {out_stream_= p;}
+  void SetIndent(int i)  {indent_= i;}
 
   const std::string& FileName() const {return file_name_;}
   int LineNum() const {return line_num_;}

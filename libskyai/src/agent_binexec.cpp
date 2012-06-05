@@ -542,22 +542,6 @@ IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
 #undef IMPL_CMD_EXEC
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //===========================================================================================
 // class TBinWriter
 //===========================================================================================
@@ -814,12 +798,6 @@ IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
 #undef IMPL_CMD_EXEC
 
 
-
-
-
-
-
-
 //===========================================================================================
 
 
@@ -907,6 +885,20 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, va
       const boost::filesystem::path &current_dir, const std::string &file_name,
       TAgentParserInfoIn &in, TAgentParserInfoOut &out) */
 
+
+/*!\brief write the binary bin_stack into a stream os in the agent script format */
+bool WriteBinary (const TBinaryStack &bin_stack, std::ostream &os, int indent)
+{
+  TBinWriter writer;
+  writer.SetBinStack(&bin_stack);
+  writer.SetOutStream(&os);
+  writer.SetIndent(indent);
+
+  writer.Execute(true);
+
+  return !writer.Error();
+}
+//-------------------------------------------------------------------------------------------
 
 
 //-------------------------------------------------------------------------------------------
