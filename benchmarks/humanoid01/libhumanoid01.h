@@ -3,8 +3,9 @@
     \brief   benchmarks - motion learning task of a simulation humanoid robot
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Nov.04, 2010-
+    \date    Jun.07, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2009, 2010, 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -222,6 +223,231 @@ protected:
 
 };  // end of MHumanoidEnvironment
 //-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+class THumanoidUnivTaskConfigurations
+//===========================================================================================
+{
+public:
+
+  //! decide if sensing the robot state at each event; default is true, false is faster
+  TBool SensingAtEpisodeStart   ;
+  TBool SensingAtEpisodeEnd     ;
+  TBool SensingAtActionStart    ;
+  TBool SensingAtActionEnd      ;
+  TBool SensingAtTimeStepStart  ;
+  TBool SensingAtTimeStepEnd    ;
+
+  /*! user-defined functions; before calling each function,
+      memory.Reward is set to be 0 and memory
+      memory.EndOfEps is set to be false.
+      these functions should have no argument and no return. */
+  TString FEpisodeStart   ;
+  TString FEpisodeEnd     ;
+  TString FActionStart    ;
+  TString FActionEnd      ;
+  TString FTimeStepStart  ;
+  TString FTimeStepEnd    ;
+
+  //! constants used in user-defined functions
+  TInt          CI1,CI2;
+  TReal         CR1,CR2,CR3,CR4;
+  TBool         CB1,CB2;
+  TRealVector   CRV1,CRV2;
+
+
+  THumanoidUnivTaskConfigurations (var_space::TVariableMap &mmap) :
+      SensingAtEpisodeStart   (true),
+      SensingAtEpisodeEnd     (true),
+      SensingAtActionStart    (true),
+      SensingAtActionEnd      (true),
+      SensingAtTimeStepStart  (true),
+      SensingAtTimeStepEnd    (true),
+      CI1   (0),
+      CI2   (0),
+      CR1   (0.0),
+      CR2   (0.0),
+      CR3   (0.0),
+      CR4   (0.0),
+      CB1   (false),
+      CB2   (false)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( SensingAtEpisodeStart  );
+      ADD( SensingAtEpisodeEnd    );
+      ADD( SensingAtActionStart   );
+      ADD( SensingAtActionEnd     );
+      ADD( SensingAtTimeStepStart );
+      ADD( SensingAtTimeStepEnd   );
+      ADD( FEpisodeStart  );
+      ADD( FEpisodeEnd    );
+      ADD( FActionStart   );
+      ADD( FActionEnd     );
+      ADD( FTimeStepStart );
+      ADD( FTimeStepEnd   );
+      ADD( CI1 );
+      ADD( CI2 );
+      ADD( CR1 );
+      ADD( CR2 );
+      ADD( CR3 );
+      ADD( CR4 );
+      ADD( CB1 );
+      ADD( CB2 );
+      ADD( CRV1 );
+      ADD( CRV2 );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+class THumanoidUnivTaskMemory
+//===========================================================================================
+{
+public:
+
+  /*! the state of the robot is stored into following variables.
+      these variables are assumed to be used in user-defined functions,
+      and they are not saved into a file */
+  TRealVector  BasePose;
+  TRealVector  BaseVel;
+  TRealMatrix  BaseRot;
+  TBoolVector  ContactWithGround;
+  TBoolVector  ContactWithObject;
+
+  //! variable to store the reward; user-defined functions should assign to this variable
+  TReal        Reward;
+  //! variable to store the end-of-episode condition; user-defined functions should assign to this variable
+  TBool        EndOfEps;
+
+  //! temporary variables for user-defined functions
+  TInt         TmpI1,TmpI2;
+  TReal        TmpR1,TmpR2;
+  TBool        TmpB1,TmpB2;
+  TRealVector  TmpRV1,TmpRV2;
+
+  THumanoidUnivTaskMemory (var_space::TVariableMap &mmap)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      // ADD( TestC );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+//!\brief universal task module for humanoid
+class MHumanoidUnivTask
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface     TParent;
+  typedef MHumanoidUnivTask    TThis;
+  SKYAI_MODULE_NAMES(MHumanoidUnivTask)
+
+  MHumanoidUnivTask (const std::string &v_instance_name)
+    : TParent        (v_instance_name),   // mandatory
+      conf_          (TParent::param_box_config_map()),
+      mem_           (TParent::param_box_memory_map()),
+      slot_start_episode     (*this),
+      slot_finish_episode    (*this),
+      slot_start_action      (*this),
+      slot_finish_action     (*this),
+      slot_start_timestep    (*this),
+      slot_finish_timestep   (*this),
+      signal_reward          (*this),
+      signal_end_of_episode  (*this),
+      in_base_pose           (*this),
+      in_base_vel            (*this),
+      in_base_rot            (*this),
+      in_contact_with_ground (*this),
+      in_contact_with_object (*this)
+    {
+      add_slot_port   (slot_start_episode     );
+      add_slot_port   (slot_finish_episode    );
+      add_slot_port   (slot_start_action      );
+      add_slot_port   (slot_finish_action     );
+      add_slot_port   (slot_start_timestep    );
+      add_slot_port   (slot_finish_timestep   );
+      add_signal_port (signal_reward          );
+      add_signal_port (signal_end_of_episode  );
+      add_in_port     (in_base_pose           );
+      add_in_port     (in_base_vel            );
+      add_in_port     (in_base_rot            );
+      add_in_port     (in_contact_with_ground );
+      add_in_port     (in_contact_with_object );
+    }
+
+protected:
+
+  THumanoidUnivTaskConfigurations  conf_;
+  THumanoidUnivTaskMemory          mem_;
+
+  MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_finish_episode, void, (void), (), TThis);
+
+  MAKE_SLOT_PORT(slot_start_action, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_finish_action, void, (void), (), TThis);
+
+  MAKE_SLOT_PORT(slot_start_timestep, void, (const TReal &dt), (dt), TThis);
+  MAKE_SLOT_PORT(slot_finish_timestep, void, (const TReal &dt), (dt), TThis);
+
+  MAKE_SIGNAL_PORT(signal_reward, void (const TSingleReward &), TThis);
+  MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
+
+  MAKE_IN_PORT(in_base_pose          , const TRealVector& (void), TThis);
+  MAKE_IN_PORT(in_base_vel           , const TRealVector& (void), TThis);
+  MAKE_IN_PORT(in_base_rot           , const TRealMatrix& (void), TThis);
+  MAKE_IN_PORT(in_contact_with_ground, const TBoolVector& (void), TThis);
+  MAKE_IN_PORT(in_contact_with_object, const TBoolVector& (void), TThis);
+
+  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
+    x_return_type  get_##x_in x_arg_list const                                                  \
+      {                                                                                         \
+        if (in_##x_in.ConnectionSize()==0)                                                      \
+          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
+        return in_##x_in.GetFirst x_param_list;                                                 \
+      }
+
+  GET_FROM_IN_PORT(base_pose          , const TRealVector&, (void), ())
+  GET_FROM_IN_PORT(base_vel           , const TRealVector&, (void), ())
+  GET_FROM_IN_PORT(base_rot           , const TRealMatrix&, (void), ())
+  GET_FROM_IN_PORT(contact_with_ground, const TBoolVector&, (void), ())
+  GET_FROM_IN_PORT(contact_with_object, const TBoolVector&, (void), ())
+
+  #undef GET_FROM_IN_PORT
+
+  virtual void slot_start_episode_exec (void);
+  virtual void slot_finish_episode_exec (void);
+
+  virtual void slot_start_action_exec (void);
+  virtual void slot_finish_action_exec (void);
+
+  virtual void slot_start_timestep_exec (const TReal &dt);
+  virtual void slot_finish_timestep_exec (const TReal &dt);
+
+  void sense_from_inports()
+    {
+      mem_.BasePose          = get_base_pose();
+      mem_.BaseVel           = get_base_vel();
+      mem_.BaseRot           = get_base_rot();
+      mem_.ContactWithGround = get_contact_with_ground();
+      mem_.ContactWithObject = get_contact_with_object();
+    }
+
+};  // end of MHumanoidUnivTask
+//-------------------------------------------------------------------------------------------
+
 
 
 //===========================================================================================

@@ -3,8 +3,9 @@
     \brief   benchmarks - motion learning task of a simulation humanoid robot
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Nov.04, 2010-
+    \date    Jun.07, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2009, 2010, 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -24,6 +25,7 @@
 //-------------------------------------------------------------------------------------------
 #include "libhumanoid01.h"
 #include "detail/humanoid01.h"
+#include <lora/variable_literal.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -377,8 +379,59 @@ void MHumanoidEnvironment::set_global_config (void)
 }
 //-------------------------------------------------------------------------------------------
 
+
+//===========================================================================================
+// class MHumanoidUnivTask
+//===========================================================================================
+
+#define DEF_SLOT(x_event)   \
+    if(conf_.F##x_event!="")                        \
+    {                                               \
+      if(conf_.SensingAt##x_event)                  \
+        sense_from_inports();                       \
+      std::list<var_space::TLiteral> argv;          \
+      mem_.Reward= 0.0l;                            \
+      mem_.EndOfEps= false;                         \
+      if(!ExecuteFunction(conf_.F##x_event, argv))  \
+        lexit(df);                                  \
+      signal_reward.ExecAll(mem_.Reward);           \
+      if(mem_.EndOfEps)                             \
+        signal_end_of_episode.ExecAll();            \
+    }
+
+/*virtual*/void MHumanoidUnivTask::slot_start_episode_exec (void)
+{
+  DEF_SLOT(EpisodeStart)
+}
+/*virtual*/void MHumanoidUnivTask::slot_finish_episode_exec (void)
+{
+  DEF_SLOT(EpisodeEnd)
+}
+
+/*virtual*/void MHumanoidUnivTask::slot_start_action_exec (void)
+{
+  DEF_SLOT(ActionStart)
+}
+/*virtual*/void MHumanoidUnivTask::slot_finish_action_exec (void)
+{
+  DEF_SLOT(ActionEnd)
+}
+
+/*virtual*/void MHumanoidUnivTask::slot_start_timestep_exec (const TReal &dt)
+{
+  DEF_SLOT(TimeStepStart)
+}
+/*virtual*/void MHumanoidUnivTask::slot_finish_timestep_exec (const TReal &dt)
+{
+  DEF_SLOT(TimeStepEnd)
+}
+
+#undef DEF_SLOT
+
+
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MHumanoidEnvironment)
+SKYAI_ADD_MODULE(MHumanoidUnivTask)
 //-------------------------------------------------------------------------------------------
 
 MHumanoidEnvironment *ptr_environment(NULL);

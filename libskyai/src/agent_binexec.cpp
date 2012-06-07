@@ -934,9 +934,9 @@ bool TCompositeModuleGenerator::Create(TCompositeModule &instance, const std::st
   const TGeneratorInfo *pgenerator= Generator(cmodule_name);
   if (pgenerator==NULL)  {return false;}
 
-LDEBUG("----------------");
-agent_parser::PrintToStream(pgenerator->Binary);
-LDEBUG("----------------");
+// LDEBUG("----------------");
+// agent_parser::PrintToStream(pgenerator->Binary);
+// LDEBUG("----------------");
   pgenerator->Binary.GoFirst();
   if(!agent_parser::ExecuteBinary(pgenerator->Binary, instance, /*literal_table=*/NULL, /*ret_val=*/NULL, ignore_export))
   {
@@ -967,9 +967,9 @@ bool TFunctionManager::ExecuteFunction(
   for(std::list<var_space::TLiteral>::const_iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr,++param_itr)
     literal_table.AddLiteral(*param_itr, *itr);
 
-LDEBUG("----------------");
-agent_parser::PrintToStream(pfunction->Binary);
-LDEBUG("----------------");
+// LDEBUG("----------------");
+// agent_parser::PrintToStream(pfunction->Binary);
+// LDEBUG("----------------");
   pfunction->Binary.GoFirst();
   if(!agent_parser::ExecuteBinary(pfunction->Binary, context_cmodule, &literal_table, ret_val, ignore_export))
   {
