@@ -179,6 +179,7 @@ void TBinExecutor::inherit_module (bool ignore_export)
   CALL_CMD_EXEC( LINCLUDE  )
   CALL_CMD_EXEC( DUMP1     )
   CALL_CMD_EXEC( DUMP2     )
+  CALL_CMD_EXEC( PRINT     )
 
   CALL_CMD_EXEC( MODULE    )
   CALL_CMD_EXEC( REMOVE    )
@@ -252,6 +253,11 @@ IMPL_CMD_EXEC( DUMP2     ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into f
   LASSERT(!cmodule_stack_.empty());
   if (!DumpCModInfo(*(cmodule_stack_.back()), filename, str1, &str2))
     print_error("dump2: failed to dump info");
+}
+IMPL_CMD_EXEC( PRINT     ) // bin=[-]; pop a value(1), print 1 into std-out;
+{
+  var_space::TLiteral value= pop_literal();
+  std::cout << value << std::endl;
 }
 
 IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;
@@ -565,6 +571,7 @@ IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
   CALL_CMD_EXEC( LINCLUDE  )
   CALL_CMD_EXEC( DUMP1     )
   CALL_CMD_EXEC( DUMP2     )
+  CALL_CMD_EXEC( PRINT     )
 
   CALL_CMD_EXEC( MODULE    )
   CALL_CMD_EXEC( REMOVE    )
@@ -626,6 +633,11 @@ IMPL_CMD_EXEC( DUMP2     ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into f
 {
   std::string filename(pop_literal()), str2(pop_literal()), str1(pop_literal());
   out_to_stream()<<"dump2 "<<str1<<" "<<str2<<" "<<filename<<std::endl;
+}
+IMPL_CMD_EXEC( PRINT     ) // bin=[-]; pop a value(1), print 1 into std-out;
+{
+  std::string value(pop_literal());
+  out_to_stream()<<"print "<<value<<std::endl;
 }
 
 IMPL_CMD_EXEC( MODULE    ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;

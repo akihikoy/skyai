@@ -42,6 +42,7 @@ namespace cmd  // command
   DEF_CMD( LINCLUDE  , 0 ) // bin=[-]; pop two values(1,2; 1:str,2:id), add str to the lazy-include-list of id;
   DEF_CMD( DUMP1     , 1 ) // bin=[-]; pop two strings(1,2), dump 2 into file 1;
   DEF_CMD( DUMP2     , 2 ) // bin=[-]; pop three strings(1,2,3), dump 3,2 into file 1;
+  DEF_CMD( PRINT     , 5 ) // bin=[-]; pop a value(1), print 1 into std-out;
 
   DEF_CMD( MODULE    , 10 ) // bin=[-]; pop two identifiers(1,2), create module: type 2, id 1;
   DEF_CMD( REMOVE    , 11 ) // bin=[-]; pop an identifier(1), remove module: id 1;

@@ -102,6 +102,7 @@ void PrintLineToStream(int command, const TBinaryStack &bstack, std::ostream &os
   AS_IS( cmd::LINCLUDE  )
   AS_IS( cmd::DUMP1     )
   AS_IS( cmd::DUMP2     )
+  AS_IS( cmd::PRINT     )
 
   AS_IS( cmd::MODULE    )
   AS_IS( cmd::REMOVE    )
