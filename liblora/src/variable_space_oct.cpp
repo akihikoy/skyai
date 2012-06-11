@@ -260,15 +260,18 @@ void oct_vec_write_to_binary_generator (t_oct_vec *x, const TVariableMap &member
   }
 }
 
+//!\todo generic_member_exists_generator should be reimplemented so that this func returns if an element exists
 #define SET_FUNC_OBJECTS(x_oct_vec)  \
   o.f_direct_assign_ = boost::bind(oct_vec_direct_assign_generator<x_oct_vec>,&x,_1,_2);          \
                                                                                                   \
   o.f_set_member_ = boost::bind(oct_vec_set_member_generator<x_oct_vec>,&x,_1,_2,_3);             \
   o.f_get_member_ = boost::bind(oct_vec_get_member_generator<x_oct_vec>,&x,_1,_2);                \
+  o.f_member_exists_ = generic_member_exists_generator;                                           \
                                                                                                   \
   oct_vec_register_functions(x,o.SetMemberMap());                                                 \
                                                                                                   \
-  o.f_function_call_ = boost::bind(generic_function_call_generator,_1,_2,_3);                     \
+  o.f_function_call_ = generic_function_call_generator;                                           \
+  o.f_function_exists_ = generic_function_exists_generator;                                       \
                                                                                                   \
   o.f_push_      = boost::bind(oct_vec_push_generator<x_oct_vec>,&x);                             \
   o.f_get_begin_ = boost::bind(oct_get_begin_generator<x_oct_vec>,&x,_1,_2);                      \
@@ -709,10 +712,12 @@ void TVariable::generator<Matrix>::operator() (Matrix &x)
 
   o.f_set_member_ = boost::bind(oct_mat_set_member_generator,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(oct_mat_get_member_generator,&x,_1,_2);
+  o.f_member_exists_ = generic_member_exists_generator;  //!<\todo should be reimplemented so that this func returns if an element exists
 
   oct_mat_register_functions(x,o.SetMemberMap());
 
-  o.f_function_call_ = boost::bind(generic_function_call_generator,_1,_2,_3);
+  o.f_function_call_ = generic_function_call_generator;
+  o.f_function_exists_ = generic_function_exists_generator;
 
   o.f_push_      = boost::bind(oct_mat_push_generator,&x);
   o.f_get_begin_ = boost::bind(oct_get_begin_generator<Matrix>,&x,_1,_2);

@@ -38,3 +38,12 @@ blist= !cast<list<bool> >(cell.z) || !cast<list<bool> >((0,1,-1))
 
 // x= 2+func(a)
 // func(a)
+
+y=exp(1)
+y=sin(-1.57)
+y=fabs(sin(-1.57))
+y=pow(1.5,2)
+y=log(exp(3))
+y=log10(pow(10,5))
+y=round(exp(1))
+

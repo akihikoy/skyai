@@ -62,6 +62,7 @@ public:
   inline void SetMember (const TVariable &id, const TVariable &value);
   inline TExtVariable GetMember (const TVariable &id);
   inline void FunctionCall (const TIdentifier &id, TVariableList &argv);
+  inline bool FunctionExists(const TIdentifier &id) const;
   inline void DirectCall (TVariableList &argv);
   inline TExtVariable Push (void);
   inline void GetBegin (TExtForwardIterator &res);
@@ -163,6 +164,18 @@ inline void TExtVariable::FunctionCall (const TIdentifier &id, TVariableList &ar
                   return;
   default: LERROR("fatal! (internal error)"); lexit(df);
   }
+}
+inline bool TExtVariable::FunctionExists(const TIdentifier &id) const
+{
+  switch(kind_)
+  {
+  case kSingle :  return entity_.FunctionExists(id);
+  case kArray :   for (std::list<TVariable>::const_iterator itr(array_.begin()),last(array_.end()); itr!=last; ++itr)
+                    if(!itr->FunctionExists(id))  return false;
+                  return true;
+  default: LERROR("fatal! (internal error)"); lexit(df);
+  }
+  return false;
 }
 inline void TExtVariable::DirectCall (TVariableList &argv)
 {

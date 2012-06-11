@@ -48,12 +48,13 @@ namespace cmd  // command
   DEF_CMD( CONNECT   , 12 ) // bin=[-]; pop four identifiers(1,2,3,4), connect 4.3-2.1;
   DEF_CMD( DISCNCT   , 13 ) // bin=[-]; pop four identifiers(1,2,3,4), disconnect 4.3-2.1;
 
-  DEF_CMD( ASGN_GCNF , 100 ) // bin=[-]; start assigning to global config;
-  DEF_CMD( ASGN_CNF  , 101 ) // bin=[-]; pop an identifier, start assigning to its config;
-  DEF_CMD( ASGN_MEM  , 102 ) // bin=[-]; pop an identifier, start assigning to its memory;
-  DEF_CMD( ASGN_END  , 103 ) // bin=[-]; end assigning;
-  DEF_CMD( EDIT      , 104 ) // bin=[-]; pop an identifier, start editing it;
-  DEF_CMD( EDIT_END  , 105 ) // bin=[-]; end editing;
+  DEF_CMD( ASGN_GCNF , 100 ) // bin=[-]; start assigning to context module's config;
+  DEF_CMD( ASGN_GMEM , 101 ) // bin=[-]; start assigning to context module's memory;
+  DEF_CMD( ASGN_CNF  , 102 ) // bin=[-]; pop an identifier, start assigning to its config;
+  DEF_CMD( ASGN_MEM  , 103 ) // bin=[-]; pop an identifier, start assigning to its memory;
+  DEF_CMD( ASGN_END  , 104 ) // bin=[-]; end assigning;
+  DEF_CMD( EDIT      , 105 ) // bin=[-]; pop an identifier, start editing it;
+  DEF_CMD( EDIT_END  , 106 ) // bin=[-]; end editing;
 
   DEF_CMD( COMPOSITE , 1000 ) // bin=[-]; pop an identifier, start defining a composite module;
   DEF_CMD( CMP_END   , 1001 ) // bin=[-]; end defining the composite module;

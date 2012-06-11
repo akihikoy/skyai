@@ -121,16 +121,18 @@ void TBinExecutor::inherit_module (bool ignore_export)
 //! access to the member of value
 /*override*/var_space::TVariable TBinExecutor::member_access(const var_space::TLiteral &value, const var_space::TLiteral &member_c)
 {
-LDBGVAR(value);
-LDBGVAR(member_c);
+// LDBGVAR(value);
+// LDBGVAR(member_c);
   if(!value.IsIdentifier() || !member_c.IsIdentifier())
     return TParent::member_access(value,member_c);
 
   var_space::TIdentifier identifier(value.AsIdentifier());
   var_space::TIdentifier member(member_c.AsIdentifier());
 
-  if(identifier=="config")  // global config
+  if(identifier=="config")  // context module's config
     return cmodule_stack_.back()->ParamBoxConfig().GetMember(var_space::TVariable(member));
+  if(identifier=="memory")  // context module's memory
+    return cmodule_stack_.back()->ParamBoxMemory().GetMember(var_space::TVariable(member));
 
   if(member=="config")
     return cmodule_stack_.back()->SubModule(identifier).ParamBoxConfig();
@@ -184,6 +186,7 @@ LDBGVAR(member_c);
   CALL_CMD_EXEC( DISCNCT   )
 
   CALL_CMD_EXEC( ASGN_GCNF )
+  CALL_CMD_EXEC( ASGN_GMEM )
   CALL_CMD_EXEC( ASGN_CNF  )
   CALL_CMD_EXEC( ASGN_MEM  )
   CALL_CMD_EXEC( ASGN_END  )
@@ -284,12 +287,15 @@ IMPL_CMD_EXEC( DISCNCT   ) // bin=[-]; pop four identifiers(1,2,3,4), disconnect
   cmodule_stack_.back()->SubDisconnect(module1, port1,  module2, port2);
 }
 
-IMPL_CMD_EXEC( ASGN_GCNF ) // bin=[-]; start assigning to global config;
+IMPL_CMD_EXEC( ASGN_GCNF ) // bin=[-]; start assigning to context module's config;
 {
-  if(forbidden_in_composite("config(global)"))  return;
-
   LASSERT(!cmodule_stack_.empty());
   TParent::PushVariable(cmodule_stack_.back()->ParamBoxConfig());
+}
+IMPL_CMD_EXEC( ASGN_GMEM ) // bin=[-]; start assigning to context module's memory;
+{
+  LASSERT(!cmodule_stack_.empty());
+  TParent::PushVariable(cmodule_stack_.back()->ParamBoxMemory());
 }
 IMPL_CMD_EXEC( ASGN_CNF  ) // bin=[-]; pop an identifier, start assigning to its config;
 {
@@ -566,6 +572,7 @@ IMPL_CMD_EXEC( CTRL_END_IF ) // bin=[- value]; do nothing;
   CALL_CMD_EXEC( DISCNCT   )
 
   CALL_CMD_EXEC( ASGN_GCNF )
+  CALL_CMD_EXEC( ASGN_GMEM )
   CALL_CMD_EXEC( ASGN_CNF  )
   CALL_CMD_EXEC( ASGN_MEM  )
   CALL_CMD_EXEC( ASGN_END  )
@@ -642,9 +649,14 @@ IMPL_CMD_EXEC( DISCNCT   ) // bin=[-]; pop four identifiers(1,2,3,4), disconnect
   out_to_stream()<<"disconnect "<<module1<<"."<<port1<<" ,  "<<module2<<"."<<port2<<std::endl;
 }
 
-IMPL_CMD_EXEC( ASGN_GCNF ) // bin=[-]; start assigning to global config;
+IMPL_CMD_EXEC( ASGN_GCNF ) // bin=[-]; start assigning to context module's config;
 {
   out_to_stream()<<"config ={"<<std::endl;
+  indent_+=2;
+}
+IMPL_CMD_EXEC( ASGN_GMEM ) // bin=[-]; start assigning to context module's memory;
+{
+  out_to_stream()<<"memory ={"<<std::endl;
   indent_+=2;
 }
 IMPL_CMD_EXEC( ASGN_CNF  ) // bin=[-]; pop an identifier, start assigning to its config;

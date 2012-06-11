@@ -16,20 +16,25 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##-------------------------------------------------------------------------------------------
-TARGET_FLAG :=
+BASE_REL_DIR:=..
+include $(BASE_REL_DIR)/Makefile_preconf
+##-------------------------------------------------------------------------------------------
+USER_MAKE_TRG := execs
+EXECS :=  \
+	variable_binexec.out	\
+	variable_parser.out	\
+	variable_writer.out
+OBJS := $(EXECS:.out=.o)
+##-------------------------------------------------------------------------------------------
+USING_LORA_OCT:=true
+MAKING_LORA:=true
+include $(BASE_REL_DIR)/Makefile_body
+##-------------------------------------------------------------------------------------------
+execs : $(EXECS)
 
-all     : l s
-
-debug	: TARGET_FLAG :=debug
-debug	: all
-
-clean	: TARGET_FLAG :=clean
-clean	: all
-
-l :
-	@(set -e; make -f Makefile_l $(TARGET_FLAG))
-
-s :
-	@(set -e; make -f Makefile_s $(TARGET_FLAG))
-
-##------------------------------------------------------------------
+%.out : %.o $(LIBOBJS)
+	$(CXX) -o $@ $< $(LDFLAGS) $(LIBOBJS) $(LDLIBS)
+	@(echo "*************************************************")
+	@(echo "$@ is generated")
+	@(echo "*************************************************")
+##-------------------------------------------------------------------------------------------

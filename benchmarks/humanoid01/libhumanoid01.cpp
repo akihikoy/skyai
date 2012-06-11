@@ -390,6 +390,7 @@ void MHumanoidEnvironment::set_global_config (void)
       if(conf_.SensingAt##x_event)                  \
         sense_from_inports();                       \
       std::list<var_space::TLiteral> argv;          \
+      argv.push_back(var_space::LiteralId(InstanceName()));  \
       mem_.Reward= 0.0l;                            \
       mem_.EndOfEps= false;                         \
       if(!ExecuteFunction(conf_.F##x_event, argv))  \
@@ -408,20 +409,20 @@ void MHumanoidEnvironment::set_global_config (void)
   DEF_SLOT(EpisodeEnd)
 }
 
-/*virtual*/void MHumanoidUnivTask::slot_start_action_exec (void)
+/*virtual*/void MHumanoidUnivTask::slot_start_of_action_exec (void)
 {
   DEF_SLOT(ActionStart)
 }
-/*virtual*/void MHumanoidUnivTask::slot_finish_action_exec (void)
+/*virtual*/void MHumanoidUnivTask::slot_end_of_action_exec (void)
 {
   DEF_SLOT(ActionEnd)
 }
 
-/*virtual*/void MHumanoidUnivTask::slot_start_timestep_exec (const TReal &dt)
+/*virtual*/void MHumanoidUnivTask::slot_start_time_step_exec (const TReal &dt)
 {
   DEF_SLOT(TimeStepStart)
 }
-/*virtual*/void MHumanoidUnivTask::slot_finish_timestep_exec (const TReal &dt)
+/*virtual*/void MHumanoidUnivTask::slot_finish_time_step_exec (const TReal &dt)
 {
   DEF_SLOT(TimeStepEnd)
 }

@@ -83,3 +83,24 @@ else
     module  MMediator0_TRealVector  test
   }
 }
+
+// def test_func2()
+// {
+  // config ={
+      // Threshold = -1
+    // }
+// }
+// edit ngnet_nonzero
+// {
+  // config ={
+      // Threshold = 1.234
+    // }
+  // test_func2()
+// }
+ngnet_nonzero.config ={
+    Threshold= 10
+    Threshold= cast<real>(Threshold)*2
+    Threshold= cast<real>(ngnet_nonzero.config.Threshold)*2
+    // Threshold= cast<real>(config.Threshold)*2
+  }
+

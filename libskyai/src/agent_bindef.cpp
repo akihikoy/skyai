@@ -109,6 +109,7 @@ void PrintLineToStream(int command, const TBinaryStack &bstack, std::ostream &os
   AS_IS( cmd::DISCNCT   )
 
   AS_IS( cmd::ASGN_GCNF )
+  AS_IS( cmd::ASGN_GMEM )
   AS_IS( cmd::ASGN_CNF  )
   AS_IS( cmd::ASGN_MEM  )
   AS_IS( cmd::ASGN_END  )

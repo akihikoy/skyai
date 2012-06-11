@@ -125,6 +125,16 @@ void generic_function_call_generator (const TVariableMap &members, const TIdenti
     {VAR_SPACE_ERR_EXIT("does not have a function: "<<name);}
   return itr->second.DirectCall(argv);
 }
+bool generic_member_exists_generator (const TVariableMap &members, const TVariable &id)
+{
+  TVariableMap::const_iterator itr (members.find(id.PrimitiveGetAs<TIdentifier>()));
+  return itr!=members.end();
+}
+bool generic_function_exists_generator (const TVariableMap &members, const TIdentifier &name)
+{
+  TVariableMap::const_iterator itr (members.find(name));
+  return itr!=members.end();
+}
 //-------------------------------------------------------------------------------------------
 
 
@@ -185,6 +195,7 @@ void TVariable::VariableSpaceMode (void)
   f_direct_assign_   =  struct_direct_assign_generator;
   f_set_member_      =  struct_set_member_generator;
   f_get_member_      =  struct_get_member_generator;
+  f_member_exists_   =  generic_member_exists_generator;
   f_write_to_stream_ =  struct_write_to_stream_generator;
   f_write_to_binary_ =  struct_write_to_binary_generator;
 }

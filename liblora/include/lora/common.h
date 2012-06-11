@@ -61,7 +61,7 @@ static const TReal REAL_2PI (2.0l*REAL_PI);
 static const TReal DBL_TINY (1.0e-300l);
 static const TReal DBL_TINY_EXP (-700.0l);
 
-// NOTE: pow is overloaded as pow(float,int),pow(double,int),and so on. thus, don't use powl or powf
+// NOTE: pow is overloaded as pow(float,float),pow(double,double),and so on. thus, don't use powl or powf
 // NOTE: use std::pow instead of pow. the latter one calls pow in C-lib
 #define real_acos    std::acos
 #define real_asin    std::asin

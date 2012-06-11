@@ -242,13 +242,16 @@ public:
   /*! user-defined functions; before calling each function,
       memory.Reward is set to be 0 and memory
       memory.EndOfEps is set to be false.
-      these functions should have no argument and no return. */
+      these functions should have an argument storing the task module's id and no return. */
   TString FEpisodeStart   ;
   TString FEpisodeEnd     ;
   TString FActionStart    ;
   TString FActionEnd      ;
   TString FTimeStepStart  ;
   TString FTimeStepEnd    ;
+
+  //! forwarding the step cost given from the environment module
+  TBool   ForwardStepCost;
 
   //! constants used in user-defined functions
   TInt          CI1,CI2;
@@ -264,6 +267,7 @@ public:
       SensingAtActionEnd      (true),
       SensingAtTimeStepStart  (true),
       SensingAtTimeStepEnd    (true),
+      ForwardStepCost  (true),
       CI1   (0),
       CI2   (0),
       CR1   (0.0),
@@ -290,6 +294,7 @@ public:
       ADD( FActionEnd     );
       ADD( FTimeStepStart );
       ADD( FTimeStepEnd   );
+      ADD( ForwardStepCost );
       ADD( CI1 );
       ADD( CI2 );
       ADD( CR1 );
@@ -312,13 +317,12 @@ class THumanoidUnivTaskMemory
 public:
 
   /*! the state of the robot is stored into following variables.
-      these variables are assumed to be used in user-defined functions,
-      and they are not saved into a file */
+      these variables are assumed to be used in user-defined functions, */
   TRealVector  BasePose;
   TRealVector  BaseVel;
   TRealMatrix  BaseRot;
-  TBoolVector  ContactWithGround;
-  TBoolVector  ContactWithObject;
+  std::list<bool>  ContactWithGround;
+  std::list<bool>  ContactWithObject;
 
   //! variable to store the reward; user-defined functions should assign to this variable
   TReal        Reward;
@@ -332,20 +336,43 @@ public:
   TRealVector  TmpRV1,TmpRV2;
 
   THumanoidUnivTaskMemory (var_space::TVariableMap &mmap)
+    :
+      Reward    (0.0),
+      EndOfEps  (false),
+      TmpI1     (0),
+      TmpI2     (0),
+      TmpR1     (0.0),
+      TmpR2     (0.0),
+      TmpB1     (false),
+      TmpB2     (false)
     {
       Register(mmap);
     }
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      // ADD( TestC );
+      ADD( BasePose          );
+      ADD( BaseVel           );
+      ADD( BaseRot           );
+      ADD( ContactWithGround );
+      ADD( ContactWithObject );
+      ADD( Reward            );
+      ADD( EndOfEps          );
+      ADD( TmpI1             );
+      ADD( TmpI2             );
+      ADD( TmpR1             );
+      ADD( TmpR2             );
+      ADD( TmpB1             );
+      ADD( TmpB2             );
+      ADD( TmpRV1            );
+      ADD( TmpRV2            );
       #undef ADD
     }
 };
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-//!\brief universal task module for humanoid
+//!\brief universal task module for humanoid environment
 class MHumanoidUnivTask
     : public TModuleInterface
 //===========================================================================================
@@ -361,10 +388,11 @@ public:
       mem_           (TParent::param_box_memory_map()),
       slot_start_episode     (*this),
       slot_finish_episode    (*this),
-      slot_start_action      (*this),
-      slot_finish_action     (*this),
-      slot_start_timestep    (*this),
-      slot_finish_timestep   (*this),
+      slot_start_of_action   (*this),
+      slot_end_of_action     (*this),
+      slot_start_time_step   (*this),
+      slot_finish_time_step  (*this),
+      slot_step_cost         (*this),
       signal_reward          (*this),
       signal_end_of_episode  (*this),
       in_base_pose           (*this),
@@ -375,10 +403,11 @@ public:
     {
       add_slot_port   (slot_start_episode     );
       add_slot_port   (slot_finish_episode    );
-      add_slot_port   (slot_start_action      );
-      add_slot_port   (slot_finish_action     );
-      add_slot_port   (slot_start_timestep    );
-      add_slot_port   (slot_finish_timestep   );
+      add_slot_port   (slot_start_of_action   );
+      add_slot_port   (slot_end_of_action     );
+      add_slot_port   (slot_start_time_step   );
+      add_slot_port   (slot_finish_time_step  );
+      add_slot_port   (slot_step_cost         );
       add_signal_port (signal_reward          );
       add_signal_port (signal_end_of_episode  );
       add_in_port     (in_base_pose           );
@@ -396,11 +425,13 @@ protected:
   MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_finish_episode, void, (void), (), TThis);
 
-  MAKE_SLOT_PORT(slot_start_action, void, (void), (), TThis);
-  MAKE_SLOT_PORT(slot_finish_action, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_start_of_action, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_end_of_action, void, (void), (), TThis);
 
-  MAKE_SLOT_PORT(slot_start_timestep, void, (const TReal &dt), (dt), TThis);
-  MAKE_SLOT_PORT(slot_finish_timestep, void, (const TReal &dt), (dt), TThis);
+  MAKE_SLOT_PORT(slot_start_time_step, void, (const TReal &dt), (dt), TThis);
+  MAKE_SLOT_PORT(slot_finish_time_step, void, (const TReal &dt), (dt), TThis);
+
+  MAKE_SLOT_PORT(slot_step_cost, void, (const TSingleReward &c), (c), TThis);
 
   MAKE_SIGNAL_PORT(signal_reward, void (const TSingleReward &), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
@@ -411,38 +442,34 @@ protected:
   MAKE_IN_PORT(in_contact_with_ground, const TBoolVector& (void), TThis);
   MAKE_IN_PORT(in_contact_with_object, const TBoolVector& (void), TThis);
 
-  #define GET_FROM_IN_PORT(x_in,x_return_type,x_arg_list,x_param_list)                          \
-    x_return_type  get_##x_in x_arg_list const                                                  \
-      {                                                                                         \
-        if (in_##x_in.ConnectionSize()==0)                                                      \
-          {LERROR("in "<<ModuleUniqueCode()<<", in_" #x_in " must be connected."); lexit(df);}  \
-        return in_##x_in.GetFirst x_param_list;                                                 \
-      }
-
-  GET_FROM_IN_PORT(base_pose          , const TRealVector&, (void), ())
-  GET_FROM_IN_PORT(base_vel           , const TRealVector&, (void), ())
-  GET_FROM_IN_PORT(base_rot           , const TRealMatrix&, (void), ())
-  GET_FROM_IN_PORT(contact_with_ground, const TBoolVector&, (void), ())
-  GET_FROM_IN_PORT(contact_with_object, const TBoolVector&, (void), ())
-
-  #undef GET_FROM_IN_PORT
-
   virtual void slot_start_episode_exec (void);
   virtual void slot_finish_episode_exec (void);
 
-  virtual void slot_start_action_exec (void);
-  virtual void slot_finish_action_exec (void);
+  virtual void slot_start_of_action_exec (void);
+  virtual void slot_end_of_action_exec (void);
 
-  virtual void slot_start_timestep_exec (const TReal &dt);
-  virtual void slot_finish_timestep_exec (const TReal &dt);
+  virtual void slot_start_time_step_exec (const TReal &dt);
+  virtual void slot_finish_time_step_exec (const TReal &dt);
+
+  virtual void slot_step_cost_exec (const TSingleReward &c)
+    {
+      if(conf_.ForwardStepCost)  signal_reward.ExecAll(c);
+    }
+
+  template <typename t_container_dest, typename t_container_src>
+  static void copy_container(t_container_dest &dest, const t_container_src &src)
+    {
+      dest.resize(src.size());
+      std::copy(src.begin(),src.end(),dest.begin());
+    }
 
   void sense_from_inports()
     {
-      mem_.BasePose          = get_base_pose();
-      mem_.BaseVel           = get_base_vel();
-      mem_.BaseRot           = get_base_rot();
-      mem_.ContactWithGround = get_contact_with_ground();
-      mem_.ContactWithObject = get_contact_with_object();
+      if (in_base_pose          .ConnectionSize()!=0)  mem_.BasePose          = in_base_pose          .GetFirst();
+      if (in_base_vel           .ConnectionSize()!=0)  mem_.BaseVel           = in_base_vel           .GetFirst();
+      if (in_base_rot           .ConnectionSize()!=0)  mem_.BaseRot           = in_base_rot           .GetFirst();
+      if (in_contact_with_ground.ConnectionSize()!=0)  copy_container(mem_.ContactWithGround, in_contact_with_ground.GetFirst());
+      if (in_contact_with_object.ConnectionSize()!=0)  copy_container(mem_.ContactWithObject, in_contact_with_object.GetFirst());
     }
 
 };  // end of MHumanoidUnivTask

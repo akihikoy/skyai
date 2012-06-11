@@ -82,7 +82,7 @@ public:
       rule_t  statement_module, statement_remove, statement_connect, statement_disconnect;
       rule_t  statement_inherit, statement_inherit_prv;
       rule_t  statement_export, statement_export_config, statement_export_memory, statement_export_port;
-      rule_t  statement_assign_agent_config;
+      rule_t  statement_assign_context_config, statement_assign_context_memory;
       rule_t  statement_starting_with_identifier, statement_assign_config, statement_assign_memory;
       rule_t  statement_ctrl, statement_if;
       rule_t  statement_unexpected;
@@ -343,7 +343,6 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
     = (
       statement_composite
       | statement_linclude [SCMD(LINCLUDE)]
-      | statement_assign_agent_config
       | statement_return
       | statement_in_cmp
       );
@@ -367,6 +366,8 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       | statement_dump2 [SCMD(DUMP2)]
       | statement_destroy [SCMD(DESTROY)]
       | statement_ctrl
+      | statement_assign_context_config
+      | statement_assign_context_memory
       | statement_starting_with_identifier
       );
 
@@ -483,9 +484,15 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
           | (str_p("as") >> +blank_eol_p >> expr_identifier) [SCMD(EXPO_P_AS)]
           );
 
-  statement_assign_agent_config
+  statement_assign_context_config
     = str_p("config") >> op_eq >> *blank_eol_p
       >> op_brace_l [SCMD(ASGN_GCNF)]
+        >> var_statements >> *blank_eol_p
+          >> op_brace_r [SCMD(ASGN_END)];
+
+  statement_assign_context_memory
+    = str_p("memory") >> op_eq >> *blank_eol_p
+      >> op_brace_l [SCMD(ASGN_GMEM)]
         >> var_statements >> *blank_eol_p
           >> op_brace_r [SCMD(ASGN_END)];
 

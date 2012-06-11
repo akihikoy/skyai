@@ -47,6 +47,10 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 void generic_function_call_generator (const TVariableMap &members, const TIdentifier &name, TVariableList &argv);
+
+bool generic_member_exists_generator (const TVariableMap &members, const TVariable &id);
+
+bool generic_function_exists_generator (const TVariableMap &members, const TIdentifier &name);
 //-------------------------------------------------------------------------------------------
 
 
@@ -126,8 +130,10 @@ public:
       f_direct_assign_            =  rhs.f_direct_assign_              ;
       f_set_member_               =  rhs.f_set_member_                 ;
       f_get_member_               =  rhs.f_get_member_                 ;
+      f_member_exists_            =  rhs.f_member_exists_              ;
       f_direct_call_              =  rhs.f_direct_call_                ;
       f_function_call_            =  rhs.f_function_call_              ;
+      f_function_exists_          =  rhs.f_function_exists_            ;
       f_push_                     =  rhs.f_push_                       ;
       f_get_begin_                =  rhs.f_get_begin_                  ;
       f_get_end_                  =  rhs.f_get_end_                    ;
@@ -158,8 +164,10 @@ public:
       f_direct_assign_              .clear();
       f_set_member_                 .clear();
       f_get_member_                 .clear();
+      f_member_exists_              .clear();
       f_direct_call_                .clear();
       f_function_call_              .clear();
+      f_function_exists_            .clear();
       f_push_                       .clear();
       f_get_begin_                  .clear();
       f_get_end_                    .clear();
@@ -212,8 +220,10 @@ public:
   DEF_IFDEF(DirectAssign  , f_direct_assign_             )
   DEF_IFDEF(SetMember     , f_set_member_                )
   DEF_IFDEF(GetMember     , f_get_member_                )
+  DEF_IFDEF(MemberExists  , f_member_exists_             )
   DEF_IFDEF(DirectCall    , f_direct_call_               )
   DEF_IFDEF(FunctionCall  , f_function_call_             )
+  DEF_IFDEF(FunctionExists, f_function_exists_           )
   DEF_IFDEF(Push          , f_push_                      )
   DEF_IFDEF(GetBegin      , f_get_begin_                 )
   DEF_IFDEF(GetEnd        , f_get_end_                   )
@@ -225,9 +235,11 @@ public:
   inline void SetMember (const TVariable &id, const TVariable &value);
   inline TVariable GetMember (const TVariable &id);
   inline TVariable GetMember (const TVariable &id) const;
+  inline bool MemberExists (const TVariable &id) const;
   inline void FunctionCall (const TIdentifier &id, TVariableList &argv);
   inline void FunctionCall (const TIdentifier &id, TVariableList &argv) const;
     //!< \note this const attribute is nonsense (since this method is potentially modifiable the contents of the variable)
+  inline bool FunctionExists (const TIdentifier &id) const;
   inline void DirectCall (TVariableList &argv);
   inline void DirectCall (TVariableList &argv) const;
     //!< \note this const attribute is nonsense (since this method is potentially modifiable the contents of the variable)
@@ -295,11 +307,15 @@ protected:
 
   boost::function<TVariable(const TVariableMap &members, const TVariable &id)> f_get_member_;
 
+  boost::function<bool(const TVariableMap &members, const TVariable &id)> f_member_exists_;
+
   boost::function<void(TVariableList&)> f_direct_call_;
 
   /*!\brief call function identified by id with argv
       \note first element of argv should be a return */
   boost::function<void(const TVariableMap &members, const TIdentifier &id, TVariableList &argv)> f_function_call_;
+
+  boost::function<bool(const TVariableMap &members, const TIdentifier &id)> f_function_exists_;
 
   /*!\brief push (back) a new element and return its TVariable object
       \note the lifetime of the returned object is until another element is pushed / removed */
@@ -470,6 +486,12 @@ inline TVariable  TVariable::GetMember (const TVariable &id) const
   res.is_const_= true;
   return res;
 }
+inline bool  TVariable::MemberExists (const TVariable &id) const
+{
+  if (!f_member_exists_)  return false;
+    // {VAR_SPACE_ERR_EXIT("MemberExists is not defined");}
+  return f_member_exists_ (members_,id);
+}
 inline void  TVariable::FunctionCall (const TIdentifier &id, TVariableList &argv)
 {
   if (!f_function_call_)
@@ -481,6 +503,12 @@ inline void  TVariable::FunctionCall (const TIdentifier &id, TVariableList &argv
   if (!f_function_call_)
     {VAR_SPACE_ERR_EXIT("FunctionCall is not defined");}
   f_function_call_ (members_,id,argv);
+}
+inline bool  TVariable::FunctionExists (const TIdentifier &id) const
+{
+  if (!f_function_exists_)  return false;
+    // {VAR_SPACE_ERR_EXIT("FunctionExists is not defined");}
+  return f_function_exists_ (members_,id);
 }
 inline void  TVariable::DirectCall (TVariableList &argv)
 {

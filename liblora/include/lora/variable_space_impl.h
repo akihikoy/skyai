@@ -478,10 +478,12 @@ void TVariable::generator<std::vector<t_elem> >::operator() (std::vector<t_elem>
 
   o.f_set_member_ = boost::bind(vector_set_member_generator<t_elem>,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(vector_get_member_generator<t_elem>,&x,_1,_2);
+  o.f_member_exists_ = generic_member_exists_generator;  //!<\todo should be reimplemented so that this func returns if an element exists
 
   vector_register_functions(x,o.SetMemberMap());
 
-  o.f_function_call_ = boost::bind(generic_function_call_generator,_1,_2,_3);
+  o.f_function_call_ = generic_function_call_generator;
+  o.f_function_exists_ = generic_function_exists_generator;
 
   o.f_push_      = boost::bind(vector_push_generator<t_elem>,&x);
   o.f_get_begin_ = boost::bind(vector_get_begin_generator<t_elem>,&x,_1,_2);
@@ -820,10 +822,12 @@ void TVariable::generator<std::list<t_elem> >::operator() (std::list<t_elem> &x)
 
   o.f_set_member_ = boost::bind(list_set_member_generator<t_elem>,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(list_get_member_generator<t_elem>,&x,_1,_2);
+  o.f_member_exists_ = generic_member_exists_generator;  //!<\todo should be reimplemented so that this func returns if an element exists
 
   list_register_functions(x,o.SetMemberMap());
 
-  o.f_function_call_ = boost::bind(generic_function_call_generator,_1,_2,_3);
+  o.f_function_call_ = generic_function_call_generator;
+  o.f_function_exists_ = generic_function_exists_generator;
 
   o.f_push_      = boost::bind(list_push_generator<t_elem>,&x);
   o.f_get_begin_ = boost::bind(list_get_begin_generator<t_elem>,&x,_1,_2);
@@ -1050,10 +1054,12 @@ void TVariable::generator<std::map<t_key,t_elem> >::operator() (std::map<t_key,t
 
   o.f_set_member_ = boost::bind(map_set_member_generator<t_key,t_elem>,&x,_1,_2,_3);
   o.f_get_member_ = boost::bind(map_get_member_generator<t_key,t_elem>,&x,_1,_2);
+  o.f_member_exists_ = generic_member_exists_generator;  //!<\todo should be reimplemented so that this func returns if an element exists
 
   map_register_functions(x,o.SetMemberMap());
 
-  o.f_function_call_ = boost::bind(generic_function_call_generator,_1,_2,_3);
+  o.f_function_call_ = generic_function_call_generator;
+  o.f_function_exists_ = generic_function_exists_generator;
 
   o.f_get_begin_ = boost::bind(map_get_begin_generator<t_key,t_elem>,&x,_1,_2);
   o.f_get_end_   = boost::bind(map_get_end_generator<t_key,t_elem>,&x,_1,_2);

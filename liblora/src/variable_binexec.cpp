@@ -34,6 +34,125 @@ namespace var_space
 {
 
 
+//===========================================================================================
+// BuiltinFunctions
+//===========================================================================================
+
+//!\brief dummy type to use a built-in function class as a variable space
+struct TBuiltinFunctions {void *dummy;} BuiltinFunctionsInstance;
+// inline TBuiltinFunctions BuiltinFunctionsInstance()  {TBuiltinFunctions bf; return bf;}
+
+void register_builtin_functions (TVariableMap &mmap);
+
+// specialization of TBuiltinFunctions
+template<> struct TVariable::generator<TBuiltinFunctions>
+{
+  TVariable &o;
+  generator(TVariable &outer) : o(outer) {}
+  void operator() (TBuiltinFunctions &x)
+    {
+      o.is_null_ = false;
+      o.is_primitive_ = false;
+      o.f_function_call_ = generic_function_call_generator;
+      o.f_function_exists_ = generic_function_exists_generator;
+      register_builtin_functions(o.SetMemberMap());
+    }
+};
+
+static TVariable BuiltinFunctions(BuiltinFunctionsInstance);
+//-------------------------------------------------------------------------------------------
+
+class TBuiltinFunction : public TVariable
+{
+public:
+  TBuiltinFunction(const boost::function<void(TVariableList &)> &f)
+      : TVariable()
+    {
+      is_null_ = false;
+      is_primitive_ = false;
+      f_direct_call_ = f;
+    }
+private:
+  TBuiltinFunction ();
+  TBuiltinFunction (TBuiltinFunction &x);
+  TBuiltinFunction (const TBuiltinFunction &x);
+  TBuiltinFunction (TVariableSpace);
+  template <typename t_var>  TBuiltinFunction (t_var &x);
+};
+
+#define DEF_UNARY_FUNC(x_func)  \
+  static void builtin_function_##x_func (TVariableList &argv)               \
+  {                                                                         \
+    if (argv.size()!=2)                                                     \
+      {VAR_SPACE_ERR_EXIT("syntax of " #x_func " should be real(real)");}   \
+    TVariableList::const_iterator itr(argv.begin());                        \
+    ++itr; /*skip return value*/                                            \
+    pt_real arg1(itr->PrimitiveGetAs<pt_real>());                           \
+    argv.front().PrimitiveSetBy<pt_real>(real_##x_func(arg1));              \
+  }
+#define DEF_BINARY_FUNC(x_func)  \
+  static void builtin_function_##x_func (TVariableList &argv)               \
+  {                                                                         \
+    if (argv.size()!=3)                                                     \
+      {VAR_SPACE_ERR_EXIT("syntax of " #x_func " should be real(real,real)");} \
+    TVariableList::const_iterator itr(argv.begin());                        \
+    ++itr; /*skip return value*/                                            \
+    pt_real arg1(itr->PrimitiveGetAs<pt_real>());                           \
+    ++itr;                                                                  \
+    pt_real arg2(itr->PrimitiveGetAs<pt_real>());                           \
+    argv.front().PrimitiveSetBy<pt_real>(real_##x_func(arg1,arg2));         \
+  }
+DEF_UNARY_FUNC (acos  )
+DEF_UNARY_FUNC (asin  )
+DEF_UNARY_FUNC (atan  )
+DEF_BINARY_FUNC(atan2 )
+DEF_UNARY_FUNC (ceil  )
+DEF_UNARY_FUNC (cos   )
+DEF_UNARY_FUNC (cosh  )
+DEF_UNARY_FUNC (exp   )
+DEF_UNARY_FUNC (fabs  )
+DEF_UNARY_FUNC (floor )
+DEF_BINARY_FUNC(fmod  )
+DEF_UNARY_FUNC (log   )
+DEF_UNARY_FUNC (log10 )
+DEF_BINARY_FUNC(pow   )
+DEF_UNARY_FUNC (sin   )
+DEF_UNARY_FUNC (sinh  )
+DEF_UNARY_FUNC (sqrt  )
+DEF_UNARY_FUNC (tan   )
+DEF_UNARY_FUNC (tanh  )
+DEF_UNARY_FUNC (round )
+#undef DEF_UNARY_FUNC
+#undef DEF_BINARY_FUNC
+
+void register_builtin_functions (TVariableMap &mmap)
+{
+  #define ADD(x_func)  \
+    mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
+  ADD( acos   )
+  ADD( asin   )
+  ADD( atan   )
+  ADD( atan2  )
+  ADD( ceil   )
+  ADD( cos    )
+  ADD( cosh   )
+  ADD( exp    )
+  ADD( fabs   )
+  ADD( floor  )
+  ADD( fmod   )
+  ADD( log    )
+  ADD( log10  )
+  ADD( pow    )
+  ADD( sin    )
+  ADD( sinh   )
+  ADD( sqrt   )
+  ADD( tan    )
+  ADD( tanh   )
+  ADD( round  )
+  #undef ADD
+}
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 // class TExtVariable
@@ -137,18 +256,33 @@ void TExtForwardIterator::i_dereference_()
 //! call function of identifier func_id with arguments argv, store the return value into ret_val
 /*virtual*/bool TBinExecutor::function_call(const std::string &func_id, std::list<TLiteral> &argv, TLiteral &ret_val)
 {
-  if(variable_stack_.empty())  return false;
-  if(!variable_stack_.back().IfDefFunctionCall())  return false;
+  if(!variable_stack_.empty() && variable_stack_.back().FunctionExists(func_id))
+  {
+    TVariableList  argv_var;
+    argv_var.push_back(Variable(ret_val));
+    for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
+      argv_var.push_back(Variable(*itr));
 
-  TVariableList  argv_var;
-  argv_var.push_back(Variable(ret_val));
-  for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
-    argv_var.push_back(Variable(*itr));
+    // CONV_ERR_CATCHER_S
+    variable_stack_.back().FunctionCall(func_id, argv_var);
+    // CONV_ERR_CATCHER_E
+    return true;
+  }
+  else if(BuiltinFunctions.FunctionExists(func_id))
+  {
+    ret_val.Set(GetZero<pt_real>());
+    TVariableList  argv_var;
+    argv_var.push_back(Variable(ret_val));
+    for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
+      argv_var.push_back(Variable(*itr));
 
-  // CONV_ERR_CATCHER_S
-  variable_stack_.back().FunctionCall(func_id, argv_var);
-  // CONV_ERR_CATCHER_E
-  return true;
+    BuiltinFunctions.FunctionCall(func_id, argv_var);
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 //-------------------------------------------------------------------------------------------
 
