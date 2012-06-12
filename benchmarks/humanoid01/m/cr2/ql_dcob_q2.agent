@@ -1,7 +1,8 @@
 // agent file for crawling task using Q(lambda)-learning and DCOB-Q
 
 include "env"
-include "task_cr2"
+// include "task_cr2"
+include "task_cr2f"
 include_once "ql_da"
 include_once "dcob_q"
 

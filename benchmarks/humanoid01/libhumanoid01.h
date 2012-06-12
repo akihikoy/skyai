@@ -323,6 +323,7 @@ public:
   TRealMatrix  BaseRot;
   std::list<bool>  ContactWithGround;
   std::list<bool>  ContactWithObject;
+  TReal        TimeStep;
 
   //! variable to store the reward; user-defined functions should assign to this variable
   TReal        Reward;
@@ -337,12 +338,13 @@ public:
 
   THumanoidUnivTaskMemory (var_space::TVariableMap &mmap)
     :
-      Reward    (0.0),
+      TimeStep  (0.0l),
+      Reward    (0.0l),
       EndOfEps  (false),
       TmpI1     (0),
       TmpI2     (0),
-      TmpR1     (0.0),
-      TmpR2     (0.0),
+      TmpR1     (0.0l),
+      TmpR2     (0.0l),
       TmpB1     (false),
       TmpB2     (false)
     {
@@ -356,6 +358,7 @@ public:
       ADD( BaseRot           );
       ADD( ContactWithGround );
       ADD( ContactWithObject );
+      ADD( TimeStep          );
       ADD( Reward            );
       ADD( EndOfEps          );
       ADD( TmpI1             );

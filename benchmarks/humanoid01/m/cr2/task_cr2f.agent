@@ -1,4 +1,5 @@
 // Crawling task's agent file
+// using faster time-step
 include_once "cmn_task"
 
 def episode_start(task_id)
@@ -13,8 +14,8 @@ def action_start(task_id)
 def timestep_end(task_id)
 {
   task_id.memory ={
-      Reward= 0.01*(cast<real>(BaseVel[0])*cast<real>(BaseRot[(0,2)]) + cast<real>(BaseVel[1])*cast<real>(BaseRot[(1,2)]))
-      Reward= cast<real>(Reward) - 0.001*fabs(cast<real>(BaseVel[5]))
+      Reward= 0.1*(cast<real>(BaseVel[0])*cast<real>(BaseRot[(0,2)]) + cast<real>(BaseVel[1])*cast<real>(BaseRot[(1,2)]))
+      Reward= cast<real>(Reward) - 0.01*fabs(cast<real>(BaseVel[5]))
     }
   if(!cast<bool>(task_id.memory.TmpB1) && (cast<bool>(task_id.memory.ContactWithGround[0]) || cast<bool>(task_id.memory.ContactWithGround[1])))
   {
@@ -53,8 +54,8 @@ def make_task_cr2(task_id,env_id)
 
   // slot_finish_episode  and  slot_end_of_action are not connected
   connect env_id.signal_start_of_system_timestep , task_id.slot_start_time_step
-  connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
-  // connect env_id.signal_end_of_ctrl_timestep     , task_id.slot_finish_time_step
+  // connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  connect env_id.signal_end_of_ctrl_timestep     , task_id.slot_finish_time_step
   connect env_id.signal_reward                   , task_id.slot_step_cost
 
   // connect env_id.out_base_pose                   , task_id.in_base_pose

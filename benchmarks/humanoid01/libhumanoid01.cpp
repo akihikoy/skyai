@@ -384,9 +384,10 @@ void MHumanoidEnvironment::set_global_config (void)
 // class MHumanoidUnivTask
 //===========================================================================================
 
-#define DEF_SLOT(x_event)   \
+#define DEF_SLOT(x_event,x_time_step_assign)   \
     if(conf_.F##x_event!="")                        \
     {                                               \
+      x_time_step_assign                            \
       if(conf_.SensingAt##x_event)                  \
         sense_from_inports();                       \
       std::list<var_space::TLiteral> argv;          \
@@ -402,29 +403,29 @@ void MHumanoidEnvironment::set_global_config (void)
 
 /*virtual*/void MHumanoidUnivTask::slot_start_episode_exec (void)
 {
-  DEF_SLOT(EpisodeStart)
+  DEF_SLOT(EpisodeStart,)
 }
 /*virtual*/void MHumanoidUnivTask::slot_finish_episode_exec (void)
 {
-  DEF_SLOT(EpisodeEnd)
+  DEF_SLOT(EpisodeEnd,)
 }
 
 /*virtual*/void MHumanoidUnivTask::slot_start_of_action_exec (void)
 {
-  DEF_SLOT(ActionStart)
+  DEF_SLOT(ActionStart,)
 }
 /*virtual*/void MHumanoidUnivTask::slot_end_of_action_exec (void)
 {
-  DEF_SLOT(ActionEnd)
+  DEF_SLOT(ActionEnd,)
 }
 
 /*virtual*/void MHumanoidUnivTask::slot_start_time_step_exec (const TReal &dt)
 {
-  DEF_SLOT(TimeStepStart)
+  DEF_SLOT(TimeStepStart,mem_.TimeStep=dt;)
 }
 /*virtual*/void MHumanoidUnivTask::slot_finish_time_step_exec (const TReal &dt)
 {
-  DEF_SLOT(TimeStepEnd)
+  DEF_SLOT(TimeStepEnd,mem_.TimeStep=dt;)
 }
 
 #undef DEF_SLOT
