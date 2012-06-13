@@ -46,6 +46,8 @@ namespace cmd  // command
   DEF_CMD( LLISTS    , 10 ) // bin=[-]; start list-of-literals (in l-o-l, PUSH, PUSHL, VLIST{S,E} are available);
   DEF_CMD( POP       , 20 ) // bin=[-]; pop a value;
 
+  DEF_CMD( PRINT     , 50 ) // bin=[-]; pop a value(1), print 1 into std-out;
+
   DEF_CMD( M_ASGN_P  , 100 ) // bin=[-]; pop two values(1,2;2 shoud be an identifier), assign:2=1;
   DEF_CMD( M_ASGN_CS , 101 ) // bin=[-]; pop an identifier, start composite assign:id={..};
   DEF_CMD( E_ASGN_P  , 102 ) // bin=[-]; pop two values(1,2), elemental assign:[2]=1;

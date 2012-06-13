@@ -332,6 +332,8 @@ protected:
   DEF_CMD_EXEC( LLISTS    )
   DEF_CMD_EXEC( POP       )
 
+  DEF_CMD_EXEC( PRINT     )
+
   DEF_CMD_EXEC( M_ASGN_P  )
   DEF_CMD_EXEC( M_ASGN_CS )
   DEF_CMD_EXEC( E_ASGN_P  )
@@ -467,6 +469,8 @@ protected:
   DEF_CMD_EXEC( PUSH_EMPL )
   DEF_CMD_EXEC( LLISTS    )
   DEF_CMD_EXEC( POP       )
+
+  DEF_CMD_EXEC( PRINT     )
 
   DEF_CMD_EXEC( M_ASGN_P  )
   DEF_CMD_EXEC( M_ASGN_CS )

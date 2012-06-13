@@ -35,7 +35,7 @@ using namespace std;
 // using namespace boost;
 
 
-pt_string AnyPrimitiveIdentifier("any_primitive");
+pt_string AnyPrimitiveIdentifier("@");
 
 //-------------------------------------------------------------------------------------------
 

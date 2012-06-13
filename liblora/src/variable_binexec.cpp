@@ -35,31 +35,38 @@ namespace var_space
 
 
 //===========================================================================================
-// BuiltinFunctions
+// built-in functions
 //===========================================================================================
 
 //!\brief dummy type to use a built-in function class as a variable space
-struct TBuiltinFunctions {void *dummy;} BuiltinFunctionsInstance;
-// inline TBuiltinFunctions BuiltinFunctionsInstance()  {TBuiltinFunctions bf; return bf;}
+template<typename t_ret>
+struct TBuiltinFunctions {void *dummy;};
+TBuiltinFunctions<pt_real>  BuiltinFunctionsDummyReal;
+TBuiltinFunctions<pt_bool>  BuiltinFunctionsDummyBool;
+TBuiltinFunctions<std::list<TAnyPrimitive> >  BuiltinFunctionsDummyList;
 
+template<typename t_ret>
 void register_builtin_functions (TVariableMap &mmap);
 
 // specialization of TBuiltinFunctions
-template<> struct TVariable::generator<TBuiltinFunctions>
+template<typename t_ret>
+struct TVariable::generator<TBuiltinFunctions<t_ret> >
 {
   TVariable &o;
   generator(TVariable &outer) : o(outer) {}
-  void operator() (TBuiltinFunctions &x)
+  void operator() (TBuiltinFunctions<t_ret> &x)
     {
       o.is_null_ = false;
       o.is_primitive_ = false;
       o.f_function_call_ = generic_function_call_generator;
       o.f_function_exists_ = generic_function_exists_generator;
-      register_builtin_functions(o.SetMemberMap());
+      register_builtin_functions<t_ret>(o.SetMemberMap());
     }
 };
 
-static TVariable BuiltinFunctions(BuiltinFunctionsInstance);
+static TVariable BuiltinFunctionsReal(BuiltinFunctionsDummyReal);
+static TVariable BuiltinFunctionsBool(BuiltinFunctionsDummyBool);
+static TVariable BuiltinFunctionsList(BuiltinFunctionsDummyList);
 //-------------------------------------------------------------------------------------------
 
 class TBuiltinFunction : public TVariable
@@ -125,7 +132,8 @@ DEF_UNARY_FUNC (round )
 #undef DEF_UNARY_FUNC
 #undef DEF_BINARY_FUNC
 
-void register_builtin_functions (TVariableMap &mmap)
+template<>
+void register_builtin_functions<pt_real> (TVariableMap &mmap)
 {
   #define ADD(x_func)  \
     mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
@@ -149,6 +157,78 @@ void register_builtin_functions (TVariableMap &mmap)
   ADD( tan    )
   ADD( tanh   )
   ADD( round  )
+  #undef ADD
+}
+
+static void builtin_function_and (TVariableList &argv)
+{
+  if (argv.size()!=2)
+    {VAR_SPACE_ERR_EXIT("syntax of " "and" " should be bool(list<bool>)");}
+  TVariableList::iterator itr(argv.begin());
+  TVariable &res(*itr); ++itr;
+  TVariable &arg1(*itr);
+
+  TForwardIterator a1itr,a1last;
+  arg1.GetBegin(a1itr); arg1.GetEnd(a1last);
+  for(; a1itr!=a1last; ++a1itr)
+    if(!a1itr->PrimitiveGetAs<pt_bool>())
+    {
+      res.PrimitiveSetBy<pt_bool>(false);
+      return;
+    }
+  res.PrimitiveSetBy<pt_bool>(true);
+}
+
+static void builtin_function_or (TVariableList &argv)
+{
+  if (argv.size()!=2)
+    {VAR_SPACE_ERR_EXIT("syntax of " "or" " should be bool(list<bool>)");}
+  TVariableList::iterator itr(argv.begin());
+  TVariable &res(*itr); ++itr;
+  TVariable &arg1(*itr);
+
+  TForwardIterator a1itr,a1last;
+  arg1.GetBegin(a1itr); arg1.GetEnd(a1last);
+  for(; a1itr!=a1last; ++a1itr)
+    if(a1itr->PrimitiveGetAs<pt_bool>())
+    {
+      res.PrimitiveSetBy<pt_bool>(true);
+      return;
+    }
+  res.PrimitiveSetBy<pt_bool>(false);
+}
+
+template<>
+void register_builtin_functions<pt_bool> (TVariableMap &mmap)
+{
+  #define ADD(x_func)  \
+    mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
+  ADD( and   )
+  ADD( or    )
+  #undef ADD
+}
+
+static void builtin_function_shuffle (TVariableList &argv)
+{
+  if (argv.size()!=3)
+    {VAR_SPACE_ERR_EXIT("syntax of " "shuffle" " should be list(list,list)");}
+  TVariableList::iterator itr(argv.begin());
+  TVariable &res(*itr); ++itr;
+  TVariable &arg1(*itr); ++itr;
+  TVariable &arg2(*itr);
+
+  TForwardIterator a2itr,a2last;
+  arg2.GetBegin(a2itr); arg2.GetEnd(a2last);
+  for(; a2itr!=a2last; ++a2itr)
+    res.Push().DirectAssign( arg1.GetMember(*a2itr) );
+}
+
+template<>
+void register_builtin_functions<std::list<TAnyPrimitive> > (TVariableMap &mmap)
+{
+  #define ADD(x_func)  \
+    mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
+  ADD( shuffle )
   #undef ADD
 }
 //-------------------------------------------------------------------------------------------
@@ -268,7 +348,7 @@ void TExtForwardIterator::i_dereference_()
     // CONV_ERR_CATCHER_E
     return true;
   }
-  else if(BuiltinFunctions.FunctionExists(func_id))
+  else if(BuiltinFunctionsReal.FunctionExists(func_id))
   {
     ret_val.Set(GetZero<pt_real>());
     TVariableList  argv_var;
@@ -276,7 +356,29 @@ void TExtForwardIterator::i_dereference_()
     for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
       argv_var.push_back(Variable(*itr));
 
-    BuiltinFunctions.FunctionCall(func_id, argv_var);
+    BuiltinFunctionsReal.FunctionCall(func_id, argv_var);
+    return true;
+  }
+  else if(BuiltinFunctionsBool.FunctionExists(func_id))
+  {
+    ret_val.Set(GetZero<pt_bool>());
+    TVariableList  argv_var;
+    argv_var.push_back(Variable(ret_val));
+    for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
+      argv_var.push_back(Variable(*itr));
+
+    BuiltinFunctionsBool.FunctionCall(func_id, argv_var);
+    return true;
+  }
+  else if(BuiltinFunctionsList.FunctionExists(func_id))
+  {
+    ret_val= LiteralEmptyList();
+    TVariableList  argv_var;
+    argv_var.push_back(Variable(ret_val));
+    for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
+      argv_var.push_back(Variable(*itr));
+
+    BuiltinFunctionsList.FunctionCall(func_id, argv_var);
     return true;
   }
   else
@@ -347,6 +449,8 @@ void TExtForwardIterator::i_dereference_()
   CALL_CMD_EXEC( PUSH_EMPL )
   CALL_CMD_EXEC( LLISTS    )
   CALL_CMD_EXEC( POP       )
+
+  CALL_CMD_EXEC( PRINT     )
 
   CALL_CMD_EXEC( M_ASGN_P  )
   CALL_CMD_EXEC( M_ASGN_CS )
@@ -463,6 +567,12 @@ IMPL_CMD_EXEC( LLISTS    )  // bin=[-]; start list-of-literals (in l-o-l, PUSH, 
 IMPL_CMD_EXEC( POP       )  // bin=[-]; pop a value;
 {
   literal_stack_.pop_back();
+}
+
+IMPL_CMD_EXEC( PRINT     ) // bin=[-]; pop a value(1), print 1 into std-out;
+{
+  TLiteral value= pop_literal();
+  std::cout << value << std::endl;
 }
 
 IMPL_CMD_EXEC( M_ASGN_P  )  // bin=[-]; pop two values(1,2;2 shoud be an identifier), assign:2=1;
@@ -868,6 +978,8 @@ IMPL_CMD_EXEC( T_TO_LIST )  // bin=[-]; pop a type(1), push the list of it (list
   CALL_CMD_EXEC( LLISTS    )
   CALL_CMD_EXEC( POP       )
 
+  CALL_CMD_EXEC( PRINT     )
+
   CALL_CMD_EXEC( M_ASGN_P  )
   CALL_CMD_EXEC( M_ASGN_CS )
   CALL_CMD_EXEC( E_ASGN_P  )
@@ -958,6 +1070,12 @@ IMPL_CMD_EXEC( LLISTS    )  // bin=[-]; start list-of-literals (in l-o-l, PUSH, 
 IMPL_CMD_EXEC( POP       )  // bin=[-]; pop a value;
 {
   out_to_stream()<<pop_literal()<<std::endl;
+}
+
+IMPL_CMD_EXEC( PRINT     ) // bin=[-]; pop a value(1), print 1 into std-out;
+{
+  std::string value(pop_literal());
+  out_to_stream()<<"print "<<value<<std::endl;
 }
 
 IMPL_CMD_EXEC( M_ASGN_P  )  // bin=[-]; pop two values(1,2;2 shoud be an identifier), assign:2=1;

@@ -81,6 +81,7 @@ public:
       typedef boost::spirit::classic::rule<ScannerT> rule_t;
       rule_t  statements, statement, end_of_statement;
       rule_t  statement_std;
+      rule_t  statement_print;
       rule_t  statement_starting_with_identifier;
       rule_t  statement_primitive_assign;
       rule_t  statement_composite_assign;
@@ -349,11 +350,15 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 
   statement_std
     = (
-      statement_starting_with_identifier
+      statement_print [SCMD(PRINT)]
+      | statement_starting_with_identifier
       | statement_fill_all
       | statement_elemental_assign
       | statement_push
       );
+
+  statement_print
+    = str_p("print") >> +blank_eol_p >> expr_block;
 
   statement_starting_with_identifier
     = expr_identifier

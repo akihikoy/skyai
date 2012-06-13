@@ -47,3 +47,14 @@ y=log(exp(3))
 y=log10(pow(10,5))
 y=round(exp(1))
 
+print "----"
+print cast<real>(y)
+print cast<list<bool> >(blist)
+print and(cast<list<bool> >(blist))
+print or(cast<list<bool> >(blist))
+print "----"
+z=(1.5,2.5,3.5)
+print cast<list<real> >(z)
+print shuffle(cast<list<real> >(z),(2,0))
+print "----"
+

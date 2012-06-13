@@ -129,7 +129,6 @@ protected:
   DEF_CMD_EXEC( LINCLUDE  )
   DEF_CMD_EXEC( DUMP1     )
   DEF_CMD_EXEC( DUMP2     )
-  DEF_CMD_EXEC( PRINT     )
 
   DEF_CMD_EXEC( MODULE    )
   DEF_CMD_EXEC( REMOVE    )
@@ -210,7 +209,6 @@ protected:
   DEF_CMD_EXEC( LINCLUDE  )
   DEF_CMD_EXEC( DUMP1     )
   DEF_CMD_EXEC( DUMP2     )
-  DEF_CMD_EXEC( PRINT     )
 
   DEF_CMD_EXEC( MODULE    )
   DEF_CMD_EXEC( REMOVE    )

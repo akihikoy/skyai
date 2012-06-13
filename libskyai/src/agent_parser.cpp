@@ -77,7 +77,7 @@ public:
       rule_t  statements_in_edit, statement_in_edit;
       rule_t  statement_composite, statement_edit, statement_def, statement_return;
       rule_t  statement_include, statement_include_once, statement_linclude;
-      rule_t  statement_dump1, statement_dump2, statement_print;
+      rule_t  statement_dump1, statement_dump2;
       rule_t  statement_destroy;
       rule_t  statement_module, statement_remove, statement_connect, statement_disconnect;
       rule_t  statement_inherit, statement_inherit_prv;
@@ -95,7 +95,7 @@ public:
       const rule_t &end_of_line;
       const rule_t &expr_block;
       const rule_t &expr_identifier;
-      const rule_t &statement_function_call;
+      const rule_t &statement_print, &statement_function_call;
 
       rule_t  lcomment, blank_eol_p;
       rule_t  op_semicolon, op_comma, op_dot, op_eq, op_at;
@@ -258,6 +258,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
     end_of_line        (var_parser_def.end_of_line         ),
     expr_block         (var_parser_def.expr_block          ),
     expr_identifier    (var_parser_def.expr_identifier     ),
+    statement_print    (var_parser_def.statement_print     ),
     statement_function_call (var_parser_def.statement_function_call )
 {
   using namespace boost::spirit::classic;
@@ -364,7 +365,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       | statement_include_once [f_include_file_once]
       | statement_dump1 [SCMD(DUMP1)]
       | statement_dump2 [SCMD(DUMP2)]
-      | statement_print [SCMD(PRINT)]
+      | statement_print
       | statement_destroy [SCMD(DESTROY)]
       | statement_ctrl
       | statement_assign_context_config
@@ -416,9 +417,6 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   statement_dump2
     = str_p("dump2")
       >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string >> +blank_eol_p >> literal_string;
-
-  statement_print
-    = str_p("print") >> +blank_eol_p >> expr_block;
 
   statement_destroy
     = str_p("_destroy")

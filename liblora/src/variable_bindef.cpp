@@ -161,6 +161,8 @@ void PrintLineToStream(int command, const TBinaryStack &bstack, std::ostream &os
   AS_IS(cmd::LLISTS    )
   AS_IS(cmd::POP       )
 
+  AS_IS(cmd::PRINT     )
+
   AS_IS(cmd::M_ASGN_P  )
   AS_IS(cmd::M_ASGN_CS )
   AS_IS(cmd::E_ASGN_P  )
