@@ -350,7 +350,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 
   statement_std
     = (
-      statement_print [SCMD(PRINT)]
+      statement_print
       | statement_starting_with_identifier
       | statement_fill_all
       | statement_elemental_assign
@@ -358,7 +358,7 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
       );
 
   statement_print
-    = str_p("print") >> +blank_eol_p >> expr_block;
+    = str_p("print") >> +blank_eol_p >> expr_block [SCMD(PRINT)];
 
   statement_starting_with_identifier
     = expr_identifier

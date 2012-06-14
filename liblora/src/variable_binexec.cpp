@@ -132,6 +132,22 @@ DEF_UNARY_FUNC (round )
 #undef DEF_UNARY_FUNC
 #undef DEF_BINARY_FUNC
 
+static void builtin_function_norm (TVariableList &argv)
+{
+  if (argv.size()!=2)
+    {VAR_SPACE_ERR_EXIT("syntax of " "norm" " should be real(list<real>)");}
+  TVariableList::iterator itr(argv.begin());
+  TVariable &res(*itr); ++itr;
+  TVariable &arg1(*itr);
+
+  pt_real n;
+  TForwardIterator a1itr,a1last;
+  arg1.GetBegin(a1itr); arg1.GetEnd(a1last);
+  for(; a1itr!=a1last; ++a1itr)
+    n+= Square(a1itr->PrimitiveGetAs<pt_real>());
+  res.PrimitiveSetBy<pt_real>(real_sqrt(n));
+}
+
 template<>
 void register_builtin_functions<pt_real> (TVariableMap &mmap)
 {
@@ -157,6 +173,8 @@ void register_builtin_functions<pt_real> (TVariableMap &mmap)
   ADD( tan    )
   ADD( tanh   )
   ADD( round  )
+
+  ADD( norm   )
   #undef ADD
 }
 

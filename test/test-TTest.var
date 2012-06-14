@@ -56,5 +56,6 @@ print "----"
 z=(1.5,2.5,3.5)
 print cast<list<real> >(z)
 print shuffle(cast<list<real> >(z),(2,0))
+print norm(cast<list<real> >(z))
 print "----"
 

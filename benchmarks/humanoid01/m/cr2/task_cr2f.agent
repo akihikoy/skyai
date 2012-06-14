@@ -1,7 +1,5 @@
 // Crawling task's agent file
 // using faster time-step
-include_once "cmn_task"
-
 def episode_start(task_id)
 {
   task_id.memory ={TmpR1= 0.0;  TmpR2= 0.0;}  // sum-of-reward, total-time
