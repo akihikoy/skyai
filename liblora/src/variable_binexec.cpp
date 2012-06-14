@@ -140,7 +140,7 @@ static void builtin_function_norm (TVariableList &argv)
   TVariable &res(*itr); ++itr;
   TVariable &arg1(*itr);
 
-  pt_real n;
+  pt_real n(0.0l);
   TForwardIterator a1itr,a1last;
   arg1.GetBegin(a1itr); arg1.GetEnd(a1last);
   for(; a1itr!=a1last; ++a1itr)

@@ -58,4 +58,9 @@ print cast<list<real> >(z)
 print shuffle(cast<list<real> >(z),(2,0))
 print norm(cast<list<real> >(z))
 print "----"
+print "----"
+z=(-0.078,6.6e-12,1,2,3,4,5)
+print shuffle(cast<list<real> >(z),(0,1))
+print norm(shuffle(cast<list<real> >(z),(0,1)))
+print "----"
 
