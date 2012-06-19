@@ -1,20 +1,22 @@
 // Handstand task's agent file
-// using faster time-step
 def episode_start(task_id)
 {
-  task_id.memory ={TmpR2= 0.0;}  // sum-of-reward, total-time
+  task_id.memory ={TmpR2= 0.0;}  // total-time
 }
 def action_start(task_id)
 {
 }
 def timestep_end(task_id)
 {
+  // reward from height (z-position of the body link)
+  // reward only when the hands and the head contact with the ground
   if(and(shuffle(cast<list<bool> >(task_id.memory.ContactWithGround),(1,4,7))))
   {
     task_id.memory ={
         Reward= cast<real>(Reward) + 0.01*cast<real>(BasePose[2])
       }
   }
+  // if the body or the legs touch the ground, subtract the reward
   if(or(shuffle(cast<list<bool> >(task_id.memory.ContactWithGround),(0,8,9,10,11,12,13,14,15,16,17))))
   {
     task_id.memory ={
@@ -22,7 +24,7 @@ def timestep_end(task_id)
       }
   }
   task_id.memory ={
-      Reward= cast<real>(Reward) - 0.0001*norm(shuffle(cast<list<real> >(BaseVel),(0,1)))
+      Reward= cast<real>(Reward) - 0.0001*norm(shuffle(cast<list<real> >(BaseVel),(0,1)))  // penalty for xy-movement
       TmpR2= cast<real>(TmpR2) + cast<real>(TimeStep)  // update total-time
     }
   if(cast<real>(task_id.memory.TmpR2) > 5.0)
@@ -31,7 +33,7 @@ def timestep_end(task_id)
   }
 }
 
-def make_task_handstand(task_id,env_id)
+def make_task_hs2(task_id,env_id)
 {
   module  MHumanoidUnivTask task_id
 

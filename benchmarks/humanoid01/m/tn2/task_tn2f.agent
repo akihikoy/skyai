@@ -1,4 +1,4 @@
-// Crawling task's agent file
+// Turning task's agent file
 // using faster time-step
 def episode_start(task_id)
 {
@@ -6,20 +6,26 @@ def episode_start(task_id)
 }
 def action_start(task_id)
 {
-  task_id.memory ={TmpB1= false;}  // no falling down
-  // print task_id.memory.TmpB1
+  task_id.memory ={TmpB1= false;  TmpB2= false;}  // no falling down (body,head)
 }
 def timestep_end(task_id)
 {
   task_id.memory ={
-      Reward= 25.0*0.01*(cast<real>(BaseVel[0])*cast<real>(BaseRot[(0,2)]) + cast<real>(BaseVel[1])*cast<real>(BaseRot[(1,2)]))
-      Reward= cast<real>(Reward) - 25.0*0.001*fabs(cast<real>(BaseVel[5]))
+      Reward= 25.0*cast<real>(task_id.config.CR1)*(cast<real>(BaseVel[5]))
+      Reward= cast<real>(Reward) - 25.0*0.0001*norm(shuffle(cast<list<real> >(BaseVel),(0,1)))
     }
-  if(!cast<bool>(task_id.memory.TmpB1) && (cast<bool>(task_id.memory.ContactWithGround[0]) || cast<bool>(task_id.memory.ContactWithGround[1])))
+  if(!cast<bool>(task_id.memory.TmpB1) && cast<bool>(task_id.memory.ContactWithGround[0]))
   {
     task_id.memory ={
-        TmpB1= true  // fall down
+        TmpB1= true  // fall down (body)
         Reward= cast<real>(Reward) - 4.0  // falling-down penalty
+      }
+  }
+  if(!cast<bool>(task_id.memory.TmpB2) && cast<bool>(task_id.memory.ContactWithGround[1]))
+  {
+    task_id.memory ={
+        TmpB2= true  // fall down (head)
+        Reward= cast<real>(Reward) - 0.1  // falling-down penalty
       }
   }
   task_id.memory ={
@@ -32,8 +38,7 @@ def timestep_end(task_id)
   }
 }
 
-
-def make_task_cr2(task_id,env_id)
+def make_task_tn2(task_id,env_id)
 {
   module  MHumanoidUnivTask task_id
 
@@ -61,4 +66,15 @@ def make_task_cr2(task_id,env_id)
   connect env_id.out_base_rot                    , task_id.in_base_rot
   connect env_id.out_contact_with_ground         , task_id.in_contact_with_ground
   // connect env_id.out_contact_with_object         , task_id.in_contact_with_object
+}
+
+def make_task_tn2_l(task_id,env_id)
+{
+  make_task_tn2(task_id,env_id)
+  task_id.config= {CR1= 0.0005;}
+}
+def make_task_tn2_r(task_id,env_id)
+{
+  make_task_tn2(task_id,env_id)
+  task_id.config= {CR1= -0.0005;}
 }

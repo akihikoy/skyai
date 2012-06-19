@@ -6,6 +6,7 @@
 *.so
 *.so.*
 *.out
+*.out.*
 core
 core.[0-9]*
 
