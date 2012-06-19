@@ -1,18 +1,19 @@
-// agent file for handstand task using Q(lambda)-learning and DCOB-Q
+// agent file for crawling task using Q(lambda)-learning and DCOB-Q
 
 include "env"
-// include "task_handstand"
-// include "task_hs2"
-include "task_hs2f"
+// include "task_tn2"
+include "task_tn2f"
 include_once "ql_da"
 include_once "dcob_q"
 
-make_task_hs2(task,env)
+make_task_tn2_l(task,env)
 module MTDDiscAct behavior
 module MDCOB1Q dcob
 include "cmn_dcob"
 
 connect  dcob.out_extract_proportional , env.in_ngnet_extract_proportional
+
+include "dof4asym"
 
 /// parameter setting:
 
@@ -27,14 +28,11 @@ behavior.config={
 
 behavior.config={
     Tau = 1
-    TauDecreasingFactor = 0.01
-  }
-env.config={
-    // NGnetFileName = "m/ngnet.dat"
-    // NGnetFileName = "m/ngnet_q3.dat"
-    NGnetFileName = "m/ngnet_bq01.dat"
+    // TauDecreasingFactor = 0.004
   }
 
-// include "lying"
+include "lying"
 
-// include_once "log_state1"
+edit dcob {edit  bftrans {bftrans.config={UsingMaxNorm=true;};};}
+edit env  {ngnet.config={UsingMaxNorm=true;};}
+edit dcob {edit  bftrans {bftrans.config={AbbreviatingScale=0.5;};};}

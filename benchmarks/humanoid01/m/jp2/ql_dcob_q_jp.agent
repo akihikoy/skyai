@@ -1,13 +1,12 @@
-// agent file for handstand task using Q(lambda)-learning and DCOB-Q
+// agent file for jumping task using Q(lambda)-learning and DCOB-Q
 
 include "env"
-// include "task_handstand"
-// include "task_hs2"
-include "task_hs2f"
+// include "task_jp2"
+include "task_jp2f"
 include_once "ql_da"
 include_once "dcob_q"
 
-make_task_hs2(task,env)
+make_task_jp2(task,env)
 module MTDDiscAct behavior
 module MDCOB1Q dcob
 include "cmn_dcob"
@@ -26,15 +25,13 @@ behavior.config={
   }
 
 behavior.config={
-    Tau = 1
-    TauDecreasingFactor = 0.01
+    // Tau = 1
+    TauDecreasingFactor = 0.001
   }
 env.config={
     // NGnetFileName = "m/ngnet.dat"
     // NGnetFileName = "m/ngnet_q3.dat"
     NGnetFileName = "m/ngnet_bq01.dat"
   }
-
-// include "lying"
 
 // include_once "log_state1"

@@ -1,13 +1,11 @@
-// agent file for handstand task using Q(lambda)-learning and DCOB-Q
+// agent file for roll (forward) task using Q(lambda)-learning and DCOB-Q
 
 include "env"
-// include "task_handstand"
-// include "task_hs2"
-include "task_hs2f"
+include "task_rl2f"
 include_once "ql_da"
 include_once "dcob_q"
 
-make_task_hs2(task,env)
+make_task_rl2_f(task,env)
 module MTDDiscAct behavior
 module MDCOB1Q dcob
 include "cmn_dcob"
