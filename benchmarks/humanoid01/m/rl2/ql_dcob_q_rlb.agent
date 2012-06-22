@@ -1,6 +1,7 @@
 // agent file for roll (backward) task using Q(lambda)-learning and DCOB-Q
 
 include "env"
+// include "task_rl2"
 include "task_rl2f"
 include_once "ql_da"
 include_once "dcob_q"
@@ -24,8 +25,10 @@ behavior.config={
   }
 
 behavior.config={
-    Tau = 1
-    TauDecreasingFactor = 0.01
+    Tau = 5
+    TauDecreasingFactor = 0.004
+    // Tau = 1
+    // TauDecreasingFactor = 0.01
   }
 env.config={
     // NGnetFileName = "m/ngnet.dat"

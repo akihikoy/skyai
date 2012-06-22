@@ -1,7 +1,6 @@
 // agent file for handstand task using Q(lambda)-learning and DCOB-Q
 
 include "env"
-// include "task_handstand"
 // include "task_hs2"
 include "task_hs2f"
 include_once "ql_da"
@@ -26,8 +25,10 @@ behavior.config={
   }
 
 behavior.config={
+    // Tau = 5
+    TauDecreasingFactor = 0.004
     Tau = 1
-    TauDecreasingFactor = 0.01
+    // TauDecreasingFactor = 0.01
   }
 env.config={
     // NGnetFileName = "m/ngnet.dat"
