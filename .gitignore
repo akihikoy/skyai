@@ -22,3 +22,5 @@ liblora/docs/html
 libhmrl/docs/error-log.dat
 libhmrl/docs/html
 benchmarks/*/result
+tutorial/*/result
+

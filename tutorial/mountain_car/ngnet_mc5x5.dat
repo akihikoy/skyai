@@ -1,0 +1,476 @@
+  TGaussianUnit 0
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -1.19999999999999996
+      val 1 -1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 1
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.75
+      val 1 -1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 2
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.300000000000000044
+      val 1 -1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 3
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.149999999999999911
+      val 1 -1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 4
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.599999999999999867
+      val 1 -1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 5
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -1.19999999999999996
+      val 1 -0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 6
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.75
+      val 1 -0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 7
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.300000000000000044
+      val 1 -0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 8
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.149999999999999911
+      val 1 -0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 9
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.599999999999999867
+      val 1 -0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 10
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -1.19999999999999996
+      val 1 0
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 11
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.75
+      val 1 0
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 12
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.300000000000000044
+      val 1 0
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 13
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.149999999999999911
+      val 1 0
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 14
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.599999999999999867
+      val 1 0
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 15
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -1.19999999999999996
+      val 1 0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 16
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.75
+      val 1 0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 17
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.300000000000000044
+      val 1 0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 18
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.149999999999999911
+      val 1 0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 19
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.599999999999999867
+      val 1 0.75
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 20
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -1.19999999999999996
+      val 1 1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 21
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.75
+      val 1 1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 22
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 -0.300000000000000044
+      val 1 1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 23
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.149999999999999911
+      val 1 1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 24
+    Wt
+      rows 1
+      cols 4
+      row 0 0 0 0 0
+    end
+    mu
+      dim1 2
+      val 0 0.599999999999999867
+      val 1 1.5
+    end
+    invSigma
+      rows 2
+      cols 2
+      row 0 35.1165980795610437 0
+      row 1 0 12.6419753086419746
+    end
+    sig2 9.99999999999999909481e-13
+  end
+end

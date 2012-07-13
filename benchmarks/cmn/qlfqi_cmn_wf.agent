@@ -9,6 +9,7 @@ export   rwd_accumulator.slot_add  as  slot_add_to_reward
 // export   behavior.slot_finish_action  as_is
 // export   behavior.signal_end_of_action as_is
 export   behavior.slot_finish_episode  as_is
+export   behavior.slot_finish_episode_immediately  as_is
 export   logger_action_result.slot_newline_finished  as  signal_end_of_episode
 export   rl_in_feature.in_1  as  in_feature
 export   behavior.out_return_in_episode  as_is
@@ -27,6 +28,7 @@ connect  behavior_fqi.signal_avf_add_to_parameter      , avf_wire_fitting.slot_a
 export   behavior_fqi.signal_end_of_action as_is
 
 connect  behavior.slot_finish_episode_finished         , behavior_fqi.slot_finish_episode
+connect  behavior.slot_finish_episode_immediately_finished , behavior_fqi.slot_finish_episode
 
 /// I/O:
 connect  rwd_accumulator.out_last_accessed             , behavior_fqi.in_reward

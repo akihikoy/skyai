@@ -1,0 +1,63 @@
+include_once "ql_da"
+
+module MMountainCarTaskModule mountaincar_task
+module MTDDiscAct             behavior
+module MLCHolder_TRealVector  direct_action
+module MDiscretizer           action_discretizer
+module MBasisFunctionsNGnet   ngnet
+
+/// initialization process:
+connect  mountaincar_task.signal_initialization         , ngnet.slot_initialize
+connect  ngnet.slot_initialize_finished                 , action_discretizer.slot_initialize
+connect  action_discretizer.slot_initialize_finished    , behavior.slot_initialize
+/// start of episode process:
+connect  mountaincar_task.signal_start_of_episode       , behavior.slot_start_episode
+/// start of time step process:
+connect  mountaincar_task.signal_start_of_timestep      , direct_action.slot_start_time_step
+/// end of time step process:
+connect  mountaincar_task.signal_end_of_timestep        , direct_action.slot_finish_time_step
+/// learning signals:
+connect  behavior.signal_execute_action                 , action_discretizer.slot_in
+connect  action_discretizer.signal_out                  , direct_action.slot_execute_action
+connect  direct_action.signal_execute_command           , mountaincar_task.slot_execute_action
+connect  direct_action.signal_end_of_action             , behavior.slot_finish_action
+connect  mountaincar_task.signal_reward                 , behavior.slot_add_to_reward
+connect  mountaincar_task.signal_finish_episode         , behavior.slot_finish_episode_immediately
+/// I/O:
+connect  action_discretizer.out_set_size                , behavior.in_action_set_size
+connect  mountaincar_task.out_state                     , ngnet.in_x
+connect  ngnet.out_y                                    , behavior.in_feature
+connect  mountaincar_task.out_cont_time                 , behavior.in_cont_time
+
+mountaincar_task.config={
+    SleepUTime= 1000
+  }
+
+ngnet.config ={
+    NGnetFileName = "ngnet_mc5x5.dat"
+  }
+
+action_discretizer.config ={
+    Min = (-0.2, -0.2)
+    Max = ( 0.2,  0.2)
+    Division = (3, 3)
+  }
+direct_action.config ={Interval = 0.2;}
+
+behavior.config={
+    UsingEligibilityTrace = true
+    UsingReplacingTrace = true
+    Lambda = 0.9
+    GradientMax = 1.0e+100
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 1
+    TauDecreasingFactor = 0.05
+    TraceMax = 1.0
+
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }

@@ -1,0 +1,52 @@
+include_once "ql_dsda"
+
+module MMazeTaskModule  maze_task
+module MTDDiscStateAct  behavior
+
+/// initialization process:
+connect  maze_task.signal_initialization       , behavior.slot_initialize
+/// start of episode process:
+connect  maze_task.signal_start_of_episode     , behavior.slot_start_episode
+/// learning signals:
+connect  behavior.signal_execute_action        , maze_task.slot_execute_action
+connect  maze_task.signal_end_of_step          , behavior.slot_finish_action
+connect  maze_task.signal_reward               , behavior.slot_add_to_reward
+connect  maze_task.signal_finish_episode       , behavior.slot_finish_episode_immediately
+/// I/O:
+connect  maze_task.out_action_set_size         , behavior.in_action_set_size
+connect  maze_task.out_state_set_size          , behavior.in_state_set_size
+connect  maze_task.out_state                   , behavior.in_state
+connect  maze_task.out_time                    , behavior.in_cont_time
+
+maze_task.config={
+    Map={
+        []= (1,1,1,1,1,1,1,1,1,1)
+        []= (1,0,0,0,1,0,0,0,2,1)
+        []= (1,0,1,0,1,0,0,0,0,1)
+        []= (1,0,1,0,1,1,0,0,0,1)
+        []= (1,0,1,0,0,1,0,1,1,1)
+        []= (1,0,0,0,0,1,0,0,0,1)
+        []= (1,0,0,0,0,0,0,0,0,1)
+        []= (1,1,1,1,1,1,1,1,1,1)
+      }
+    StartX= 1
+    StartY= 3
+  }
+
+behavior.config={
+    UsingEligibilityTrace = true
+    UsingReplacingTrace = true
+    Lambda = 0.9
+    GradientMax = 1.0e+100
+
+    ActionSelection = "asBoltzman"
+    PolicyImprovement = "piExpReduction"
+    Tau = 1
+    TauDecreasingFactor = 0.05
+    TraceMax = 1.0
+
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }

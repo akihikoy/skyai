@@ -42,6 +42,7 @@ composite MLSPIDiscAct
   export   behavior.signal_end_of_action as_is
 
   export   behavior.slot_finish_episode  as_is
+  export   behavior.slot_finish_episode_immediately  as_is
 
   connect  behavior.signal_end_of_episode             , logger_eps_return.slot_log
   connect  logger_eps_return.slot_log_finished        , logger_action_result.slot_newline

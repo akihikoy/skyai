@@ -1,34 +1,33 @@
-// Fitted Q iteration modules for discrete action set
-// Using linear function approximator
-// Using MFittedQIterationSL_TContinuousState_TDiscreteAction
+// Q(lambda)-learning modules for discrete state set and discrete action set
+// Using table-lookup approximator and generic TD learner
 
-composite MFQIDiscAct
+def make_td_disc_state_act_module(td_module)
 {
-  module  MFittedQIterationSL_TContinuousState_TDiscreteAction  behavior
-  module  MAVFLinearDiscAction                                  avf_linear
-  module  MRemoveSignalArguments_TInt                           exec_action
-  module  MSimpleAccumulator_TReal                              rwd_accumulator
+  module  td_module                                  behavior
+  module  MAVFTable                                  avf_table
+  module  MRemoveSignalArguments_TInt                exec_action
+  module  MSimpleAccumulator_TReal                   rwd_accumulator
 
-  module  MHolder_TInt                                          holder_action
-  module  MSimpleDataLogger2_TInt_TReal                         logger_eps_return
-  module  MUniversalDataLogger                                  logger_action_result
+  module  MHolder_TInt                               holder_action
+  module  MSimpleDataLogger2_TInt_TReal              logger_eps_return
+  module  MUniversalDataLogger                       logger_action_result
 
   // interface modules:
   module  MForwarder0                                rl_slot_initialize
   module  MForwarder0                                rl_slot_start_episode
-  module  MMediator0_TRealVector                     rl_in_feature
+  module  MMediator0_TInt                            rl_in_state
   module  MMediator0_TReal                           rl_in_cont_time
 
   /// initialization process:
   export   rl_slot_initialize.slot_in  as  slot_initialize
-  connect  rl_slot_initialize.signal_out           , avf_linear.slot_initialize
+  connect  rl_slot_initialize.signal_out           , avf_table.slot_initialize
   connect  rl_slot_initialize.signal_out           , behavior.slot_initialize
   connect  rl_slot_initialize.signal_out           , logger_eps_return.slot_initialize
   connect  rl_slot_initialize.signal_out           , logger_action_result.slot_initialize
 
   /// start of episode process:
   export   rl_slot_start_episode.slot_in  as  slot_start_episode
-  connect  rl_slot_start_episode.signal_out        , avf_linear.slot_reset
+  connect  rl_slot_start_episode.signal_out        , avf_table.slot_reset
   connect  rl_slot_start_episode.signal_out        , behavior.slot_start_episode
 
   /// start of time step process:
@@ -40,11 +39,12 @@ composite MFQIDiscAct
   connect  behavior.signal_execute_action             , exec_action.slot_in
   connect  behavior.signal_execute_action             , holder_action.slot_1
   connect  exec_action.signal_out                     , rwd_accumulator.slot_reset
+  export   exec_action.signal_out  as  signal_start_of_action
 
   export   rwd_accumulator.slot_add  as  slot_add_to_reward
 
   export   behavior.slot_finish_action  as_is
-  connect  behavior.signal_avf_add_to_parameter       , avf_linear.slot_add_to_parameter
+  connect  behavior.signal_avf_add_to_parameter       , avf_table.slot_add_to_parameter
   connect  behavior.signal_end_of_action              , logger_action_result.slot_log
   export   behavior.signal_end_of_action as_is
 
@@ -58,19 +58,19 @@ composite MFQIDiscAct
   /// I/O:
   export   behavior.in_updatable  as_is
 
-  export   avf_linear.in_action_set_size  as_is
+  export   avf_table.in_action_set_size  as_is
+  export   avf_table.in_state_set_size  as_is
+  export   rwd_accumulator.out_sum  as  out_reward_in_action
   connect  rwd_accumulator.out_sum                    , behavior.in_reward
 
-  export   rl_in_feature.in_1  as  in_feature
-  connect  rl_in_feature.out_1                        , behavior.in_state
-  connect  rl_in_feature.out_1                        , avf_linear.in_feature
-  connect  behavior.out_episode_number                , avf_linear.in_episode_number
-  connect  avf_linear.out_evaluate                    , behavior.in_avf_evaluate
-  connect  avf_linear.out_greedy                      , behavior.in_avf_greedy
-  connect  avf_linear.out_select_action               , behavior.in_avf_select_action
-  connect  avf_linear.out_create_parameter            , behavior.in_avf_create_parameter
-  connect  avf_linear.out_zero_parameter              , behavior.in_avf_zero_parameter
-  export   avf_linear.in_action_availability  as  in_action_availability
+  export   rl_in_state.in_1  as  in_state
+  connect  rl_in_state.out_1                          , avf_table.in_state
+  connect  behavior.out_episode_number                , avf_table.in_episode_number
+  connect  avf_table.out_select_action                , behavior.in_avf_select_action
+  connect  avf_table.out_replacing_trace              , behavior.in_avf_replacing_trace
+  connect  avf_table.out_create_parameter             , behavior.in_avf_create_parameter
+  connect  avf_table.out_zero_parameter               , behavior.in_avf_zero_parameter
+  export   avf_table.in_action_availability  as  in_action_availability
 
   export   behavior.out_return_in_episode  as_is
 
@@ -84,7 +84,6 @@ composite MFQIDiscAct
   connect  behavior.out_td_error                      , logger_action_result.in_data_real
   connect  behavior.out_current_action_value          , logger_action_result.in_data_real
   connect  holder_action.out_1                        , logger_action_result.in_data_int
-
 
   /// parameter setting:
 
@@ -105,26 +104,27 @@ composite MFQIDiscAct
       PutBlankData = true
     }
 
-  export behavior.config.Alpha                       as_is
-  export behavior.config.AlphaDecreasingFactor       as_is
-  export behavior.config.AlphaMin                    as_is
-  export behavior.config.EliminateSampleByDeviation  as_is
-  export behavior.config.FQICycle                    as_is
-  export behavior.config.Gamma                       as_is
-  export behavior.config.LSMethodType                as_is
-  export behavior.config.MaxNumberOfQIteration       as_is
-  export behavior.config.MaxNumberOfSLIteration      as_is
-  export behavior.config.MinRewardDeviationRate      as_is
-  export behavior.config.NumberOfUsedSamples         as_is
-  export behavior.config.SameSampleThreshold         as_is
-  export behavior.config.SqErrGradientNormLimit      as_is
+  export behavior.config.Alpha                  as_is
+  export behavior.config.AlphaDecreasingFactor  as_is
+  export behavior.config.AlphaMin               as_is
+  export behavior.config.Gamma                  as_is
+  export behavior.config.GradientMax            as_is
+  export behavior.config.Lambda                 as_is
+  export behavior.config.LearningAlgorithm      as_is
+  export behavior.config.UsingEligibilityTrace  as_is
+  export behavior.config.UsingReplacingTrace    as_is
 
-  export avf_linear.config.ActionSelection      as_is
-  export avf_linear.config.Eps                  as_is
-  export avf_linear.config.EpsDecreasingFactor  as_is
-  export avf_linear.config.PolicyImprovement    as_is
-  export avf_linear.config.Tau                  as_is
-  export avf_linear.config.TauDecreasingFactor  as_is
-  export avf_linear.config.TauMin               as_is
-  export avf_linear.config.TraceMax             as_is
+  export avf_table.config.ActionSelection       as_is
+  export avf_table.config.Eps                   as_is
+  export avf_table.config.EpsDecreasingFactor   as_is
+  export avf_table.config.PolicyImprovement     as_is
+  export avf_table.config.Tau                   as_is
+  export avf_table.config.TauDecreasingFactor   as_is
+  export avf_table.config.TauMin                as_is
+  export avf_table.config.TraceMax              as_is
+}
+
+composite MTDDiscStateAct
+{
+  make_td_disc_state_act_module(MTDGenericFuncApprox_TDiscreteAction)
 }

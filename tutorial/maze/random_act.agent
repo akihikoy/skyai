@@ -1,0 +1,20 @@
+module MMazeTaskModule     maze_task
+module MRandomActionModule rand_action
+
+connect maze_task.signal_start_of_step ,  rand_action.slot_step
+connect rand_action.signal_action ,  maze_task.slot_execute_action
+
+maze_task.config={
+    Map={
+        []= (1,1,1,1,1,1,1,1,1,1)
+        []= (1,0,0,0,1,0,0,0,2,1)
+        []= (1,0,1,0,1,0,0,0,0,1)
+        []= (1,0,1,0,1,1,0,0,0,1)
+        []= (1,0,1,0,0,1,0,1,1,1)
+        []= (1,0,0,0,0,1,0,0,0,1)
+        []= (1,0,0,0,0,0,0,0,0,1)
+        []= (1,1,1,1,1,1,1,1,1,1)
+      }
+    StartX= 1
+    StartY= 3
+  }

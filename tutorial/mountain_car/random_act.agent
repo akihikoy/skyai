@@ -1,0 +1,9 @@
+module MMountainCarTaskModule  mountaincar_task
+module MRandomActionModule     rand_action
+
+connect mountaincar_task.signal_start_of_timestep ,  rand_action.slot_timestep
+connect rand_action.signal_action ,  mountaincar_task.slot_execute_action
+
+mountaincar_task.config={
+    SleepUTime= 1000
+  }

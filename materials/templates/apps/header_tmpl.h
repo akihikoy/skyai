@@ -1,10 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    utility.h
-    \brief   libskyai - utility functions
+/*! \file    FILE_NAME
+    \brief   skyai - certain application (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Jul.08, 2010
+    \date    GEN_DATE
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -22,57 +22,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_utility_h
-#define skyai_utility_h
+#ifndef app_DEF_GUARD
+#define app_DEF_GUARD
 //-------------------------------------------------------------------------------------------
-#include <iostream>
-#include <fstream>
-#include <lora/stl_fwd.h>
-#include <lora/small_classes.h>  // for TOptionParser
+#include <skyai/skyai.h>
 //-------------------------------------------------------------------------------------------
-namespace loco_rabbits
+namespace NAME_SPACE
 {
 //-------------------------------------------------------------------------------------------
-class TAgent;
-//-------------------------------------------------------------------------------------------
 
-
-/*!\brief Parse command line option for an instance of TAgent
-
-    usage:
-    \code
-    int main(int argc, char**argv)
-    {
-      TOptionParser option(argc,argv);
-      TAgent  agent;
-      if(!ParseCmdLineOption (agent, option))  return 0;
-      ...
-    }
-    \endcode
-*/
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream=std::cout,
-      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
-
-/*!\brief Parse command line option for an instance of TAgent
-
-    usage:
-    \code
-    int main(int argc, char**argv)
-    {
-      TOptionParser option(argc,argv);
-      TAgent  agent;
-      std::ofstream debug;
-      if(!ParseCmdLineOption (agent, option, debug))  return 0;
-      ...
-    }
-    \endcode
-*/
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream,
-      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
 
 
 //-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
+}  // end of NAME_SPACE
 //-------------------------------------------------------------------------------------------
-#endif // skyai_utility_h
+#endif // app_DEF_GUARD
 //-------------------------------------------------------------------------------------------

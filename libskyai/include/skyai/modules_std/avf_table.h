@@ -1,10 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    avf_linear_discaction.h
-    \brief   libskyai - linear function approximator module for action value function over discrete action space (header)
+/*! \file    avf_table.h
+    \brief   libskyai - table-lookup function approximator module for action value function over discrete state-action space (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Dec.20, 2009-
+    \date    Jul.12, 2012
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2012  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -22,111 +22,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#ifndef skyai_avf_linear_discaction_h
-#define skyai_avf_linear_discaction_h
+#ifndef skyai_avf_table_h
+#define skyai_avf_table_h
 //-------------------------------------------------------------------------------------------
 #include <skyai/interfaces/action_value_func.h>
 #include <skyai/modules_std/bits/discaction_selection.h>
+#include <skyai/modules_std/avf_linear_discaction.h>
 #include <lora/octave_str.h>
 #include <lora/variable_space_impl.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
-
-
-namespace avf_linear_discaction_detail
-{
-  enum TAVFLinearDAPolicyImprovement
-  {
-    piConst=0,    //!< not change the policy parameter
-    piExpReduction   //!< exponential reduction
-  };
-}
-ENUM_STR_MAP_BEGIN_NS(avf_linear_discaction_detail, TAVFLinearDAPolicyImprovement)
-  ENUM_STR_MAP_ADD_NS(avf_linear_discaction_detail, piConst           )
-  ENUM_STR_MAP_ADD_NS(avf_linear_discaction_detail, piExpReduction    )
-ENUM_STR_MAP_END_NS  (avf_linear_discaction_detail, TAVFLinearDAPolicyImprovement)
-SPECIALIZE_TVARIABLE_TO_ENUM(avf_linear_discaction_detail::TAVFLinearDAPolicyImprovement)
-
-
-//-------------------------------------------------------------------------------------------
-namespace avf_linear_discaction_detail
+namespace avf_table_detail
 {
 //-------------------------------------------------------------------------------------------
 
 
+#if 0
 //===========================================================================================
-//!\brief Configurations of MAVFLinearDiscAction
-class TAVFLinearDiscActionConfigurations
-//===========================================================================================
-{
-public:
-
-  // for stable learning:
-  TReal                 TraceMax;     /*!< (Used in replacing-trace) upper bound of each element of eligibility-trace */
-
-  // for action selection
-  disc_action::TActionSelection
-                        ActionSelection;
-  TAVFLinearDAPolicyImprovement
-                        PolicyImprovement;  /*!< policy improvement method.
-                                                \todo FIXME: it may be strange that the policy-improvement method
-                                                  is provided by an action value function??? */
-  TReal                 Eps;
-  TReal                 EpsDecreasingFactor;  //!< used with piExpReduction. larger is decreasing faster (becoming greedy). do not set a value greater than 1.
-  TReal                 Tau;
-  TReal                 TauMin;   //!< lower bound of Tau
-  TReal                 TauDecreasingFactor;  //!< used for piExpReduction. larger is decreasing faster (becoming greedy). do not set a value greater than 1.
-
-
-  TAVFLinearDiscActionConfigurations (var_space::TVariableMap &mmap)
-    :
-      TraceMax               (1.0l),
-      ActionSelection        (disc_action::asBoltzman),
-      PolicyImprovement      (piConst),
-      Eps                    (0.1l),
-      EpsDecreasingFactor    (0.004l),
-      Tau                    (1.0l),
-      TauMin                 (DBL_TINY),
-      TauDecreasingFactor    (0.002l)
-    {
-      Register(mmap);
-    }
-  void Register (var_space::TVariableMap &mmap)
-    {
-      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
-      ADD( TraceMax               );
-      ADD( ActionSelection        );
-      ADD( PolicyImprovement      );
-      ADD( Eps                    );
-      ADD( EpsDecreasingFactor    );
-      ADD( Tau                    );
-      ADD( TauMin                 );
-      ADD( TauDecreasingFactor    );
-      #undef ADD
-    }
-
-};
-//-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-class TAVFLinearDiscActionParameter : public TActionValueFuncParamInterface
+class TAVFTableParameter : public TActionValueFuncParamInterface
 //===========================================================================================
 {
 protected:
 public:
 
-  //! Theta[0,..,NA-1],  Theta[a][0,..,NK], NA: number of action, NK: number of basis functions
+  //! Theta[0,..,NA-1],  Theta[a][0,..,NK], NA: number of action, NK: number of state
   std::vector<TRealVector>  Theta;
 
-  /*!\todo  TODO: implement 'zero-or-not vector' which indicates Theta[X] is zero or not.
-          using this vector, parameter operations, such as Theta+=Y, can be calculated more quickly! */
+  TAVFTableParameter (void)  {}
 
-  TAVFLinearDiscActionParameter (void)  {}
-
-  TAVFLinearDiscActionParameter (var_space::TVariableMap &mmap)
+  TAVFTableParameter (var_space::TVariableMap &mmap)
     {
       Register(mmap);
     }
@@ -137,7 +63,7 @@ public:
       #undef ADD
     }
 
-  override ~TAVFLinearDiscActionParameter(void) {}
+  override ~TAVFTableParameter(void) {}
 
   //!\brief assign zero (but size is not changed)
   override void Zero (void);
@@ -159,65 +85,70 @@ public:
 
 
   /*!\brief initialize (all parameters are set to zero)
-    \param  [in]bfsize   number of the basis functions
+    \param  [in]state_set_size   size of the state set
     \param  [in]action_set_size  size of the action set */
-  virtual void Init (int bfsize, int action_set_size)
+  virtual void Init (int state_set_size, int action_set_size)
     {
       Theta.resize(action_set_size);
       for(std::vector<TRealVector>::iterator itr(Theta.begin()); itr!=Theta.end(); ++itr)
-        GenResize(*itr, bfsize);
+        GenResize(*itr, state_set_size);
 
       Zero();
     }
 
-  //!\brief number of the basis functions
-  int BFSize (void) const {if(Theta.size()>0) return Theta.front().length(); else return 0;}
+  //!\brief size of the state set
+  int StateSetSize (void) const {if(Theta.size()>0) return Theta.front().length(); else return 0;}
 
   //!\brief size of the action set
   int ActionSetSize (void) const {return Theta.size();}
 
   virtual int ParamSize (void) const
     {
-      int n= ActionSetSize() * BFSize();
+      int n= ActionSetSize() * StateSetSize();
       return n;
     }
 
 };
 //-------------------------------------------------------------------------------------------
+#endif
 
 
 
 //===========================================================================================
-/*!\brief linear-model module to approximate an action value function over a continuous state and a discrete action space
-    \note this AVF receives a feature vector (output of basis functions) as the state.
-          i.e. TState == TFeature */
-class MAVFLinearDiscAction
-    : public MActionValueFuncInterface <TRealVector, TDiscreteAction>
+/*!\brief table-lookup function approximator for an action value function over a discrete state and a discrete action space */
+class MAVFTable
+    : public MActionValueFuncInterface <TDiscreteState, TDiscreteAction>
 //===========================================================================================
 {
 public:
   typedef MActionValueFuncInterface <
-            TRealVector, TDiscreteAction>    TParent;
-  typedef MAVFLinearDiscAction               TThis;
-  SKYAI_MODULE_NAMES(MAVFLinearDiscAction)
+            TDiscreteState, TDiscreteAction> TParent;
+  typedef MAVFTable                          TThis;
+  SKYAI_MODULE_NAMES(MAVFTable)
 
-  MAVFLinearDiscAction (const std::string &v_instance_name)
+  typedef avf_linear_discaction_detail::TAVFLinearDiscActionConfigurations  TAVFTableConfigurations;
+  //! use MAVFLinearDiscAction's param class where BFSize==state-set-size, feature==disc state
+  typedef avf_linear_discaction_detail::TAVFLinearDiscActionParameter  TAVFTableParameter;
+
+  MAVFTable (const std::string &v_instance_name)
     : TParent           (v_instance_name),
       conf_             (TParent::param_box_config_map()),
       param_            (TParent::param_box_memory_map()),
       mutable_theta_    (&param_.Theta),
-      in_feature              (*this),
-      out_feature             (*this),
+      in_state                (*this),
+      out_state               (*this),
       in_episode_number       (*this),
+      in_state_set_size       (*this),
       in_action_set_size      (*this),
       in_action_availability  (*this),
       in_action_availability_s(*this),
       out_avtable             (*this),
       out_settable_avtable    (*this)
     {
-      add_in_port (in_feature);
-      add_out_port (out_feature);
+      add_in_port (in_state);
+      add_out_port (out_state);
       add_in_port (in_episode_number);
+      add_in_port (in_state_set_size);
       add_in_port (in_action_set_size);
       add_in_port (in_action_availability);
       add_in_port (in_action_availability_s);
@@ -225,28 +156,29 @@ public:
       add_out_port (out_settable_avtable);
     }
 
-  TAVFLinearDiscActionConfigurations& Config()  {return conf_;}
-  const TAVFLinearDiscActionConfigurations& Config() const {return conf_;}
+  TAVFTableConfigurations& Config()  {return conf_;}
+  const TAVFTableConfigurations& Config() const {return conf_;}
 
-  TAVFLinearDiscActionParameter& Param()  {return param_;}
-  const TAVFLinearDiscActionParameter& Param() const {return param_;}
+  TAVFTableParameter& Param()  {return param_;}
+  const TAVFTableParameter& Param() const {return param_;}
 
 protected:
 
-  TAVFLinearDiscActionConfigurations conf_;
-  // TAVFLinearDiscActionMemories param_;
-  TAVFLinearDiscActionParameter param_;
+  TAVFTableConfigurations  conf_;
+  TAVFTableParameter  param_;
 
   mutable TRealVectorSet *mutable_theta_;  // defined only for out_settable_avtable_get
 
 
-  //!\brief input a feature vector (output of basis functions) by this port
-  MAKE_IN_PORT(in_feature, const TRealVector& (void), TThis);
+  //!\brief input a state by this port
+  MAKE_IN_PORT(in_state, const TDiscreteState& (void), TThis);
 
-  //!\brief forward the in_feature
-  MAKE_OUT_PORT(out_feature, const TRealVector&, (void), (), TThis);
+  //!\brief forward the in_state
+  MAKE_OUT_PORT(out_state, const TDiscreteState&, (void), (), TThis);
 
   MAKE_IN_PORT(in_episode_number, const TInt& (void), TThis);
+
+  MAKE_IN_PORT(in_state_set_size, const TInt& (void), TThis);
 
   MAKE_IN_PORT(in_action_set_size, const TInt& (void), TThis);
 
@@ -282,7 +214,7 @@ protected:
   override TParameter* out_create_parameter_get (void) const;
   override void out_zero_parameter_get (TParameter &outerparam) const;
 
-  const TRealVector& out_feature_get(void) const {return get_feature();}
+  const TDiscreteState& out_state_get(void) const {return get_state();}
   const TRealVectorSet& out_avtable_get(void) const {return param_.Theta;}
   TRealVectorSet& out_settable_avtable_get(void) const {return *mutable_theta_;}
 
@@ -294,9 +226,11 @@ protected:
         return in_##x_in.GetFirst x_param_list;                                                 \
       }
 
-  GET_FROM_IN_PORT(feature, const TRealVector&, (void), ())
+  GET_FROM_IN_PORT(state, const TDiscreteState&, (void), ())
 
   GET_FROM_IN_PORT(episode_number, const TInt&, (void), ())
+
+  GET_FROM_IN_PORT(state_set_size, const TInt&, (void), ())
 
   GET_FROM_IN_PORT(action_set_size, const TInt&, (void), ())
 
@@ -305,29 +239,25 @@ protected:
 
   // temporary variables:
 
-  mutable TRealVector  next_feature;  //!< \todo when using in multi-thread mode, we must lock this variable
+  mutable TDiscreteState  next_state;  //!< \todo when using in multi-thread mode, we must lock this variable
   mutable TRealVector  nextQs;        //!< ditto
   mutable TRealVector  next_policy;   //!< ditto
 
 
   // internal functions:
 
-  //!\todo inefficient code:
-  int get_feature_dim (void) const  {return get_feature().length();}
-
   inline TReal get_eps () const;
   inline TReal get_tau () const;
 
-};  // end of MAVFLinearDiscAction
+};  // end of MAVFTable
 //-------------------------------------------------------------------------------------------
 
 
 
-
 //-------------------------------------------------------------------------------------------
-}  // end of avf_linear_discaction_detail
+}  // end of avf_table_detail
 //-------------------------------------------------------------------------------------------
-}  // end of namespace loco_rabbits
+}  // end of loco_rabbits
 //-------------------------------------------------------------------------------------------
-#endif // skyai_avf_linear_discaction_h
+#endif // skyai_avf_table_h
 //-------------------------------------------------------------------------------------------

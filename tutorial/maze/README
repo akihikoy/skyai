@@ -1,0 +1,5 @@
++ to execute script (random action):
+  ./maze.out -agent random_act
+
++ using Q-learning:
+  ./maze.out -path ../../benchmarks/cmn -agent ql -outdir result/rl1
