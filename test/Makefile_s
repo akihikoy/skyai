@@ -23,7 +23,8 @@ USER_MAKE_TRG := execs
 EXECS :=  \
 	agent_binexec.out	\
 	agent_parser.out	\
-	agent_writer.out
+	agent_writer.out	\
+	avf_plotter.out
 OBJS := $(EXECS:.out=.o)
 ##-------------------------------------------------------------------------------------------
 USING_SKYAI_ODE:=true

@@ -1,0 +1,52 @@
+  TGaussianUnit 0
+    Wt
+      rows 1
+      cols 3
+      row 0 0 0 0
+    end
+    mu
+      dim1 1
+      val 0 -1
+    end
+    invSigma
+      rows 1
+      cols 1
+      row 0 7.11111111111111072
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 1
+    Wt
+      rows 1
+      cols 3
+      row 0 0 0 0
+    end
+    mu
+      dim1 1
+      val 0 0
+    end
+    invSigma
+      rows 1
+      cols 1
+      row 0 7.11111111111111072
+    end
+    sig2 9.99999999999999909481e-13
+  end
+  TGaussianUnit 2
+    Wt
+      rows 1
+      cols 3
+      row 0 0 0 0
+    end
+    mu
+      dim1 1
+      val 0 1
+    end
+    invSigma
+      rows 1
+      cols 1
+      row 0 7.11111111111111072
+    end
+    sig2 9.99999999999999909481e-13
+  end
+end
