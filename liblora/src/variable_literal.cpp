@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/variable_literal.h>
 #include <lora/variable_bindef.h>
+#include <lora/string_impl.h>  // NumericalContainerToString
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
