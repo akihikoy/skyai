@@ -18,9 +18,18 @@
 ##-------------------------------------------------------------------------------------------
 ## for libskyai
 LIBSKYAI := $(SKYAI_BASE)/libskyai
+ifeq ($(USING_SKYAI_ALL),true)
+  USING_SKYAI:=true
+  USING_LORA_ODE:=true
+  USING_LORA_CV:=true
+endif
 ifeq ($(USING_SKYAI_ODE),true)
   USING_SKYAI:=true
   USING_LORA_ODE:=true
+endif
+ifeq ($(USING_SKYAI_CV),true)
+  USING_SKYAI:=true
+  USING_LORA_CV:=true
 endif
 ifeq ($(USING_SKYAI),true)
   USING_LORA_OCT:=true
@@ -38,6 +47,7 @@ endif
 ifeq ($(MAKING_SKYAI),true)
   MAKE_CMD_SKYAI:=make -C $(LIBSKYAI)/src
   MAKING_LORA:=true
+  MAKING_3RD:=true
 endif
 ##-------------------------------------------------------------------------------------------
 ## for liblora
@@ -63,8 +73,18 @@ ifeq ($(USING_LORA_ODE),true)
   endif
   MAKE_LORA_SUB+= ode
 endif
+ifeq ($(USING_LORA_CV),true)
+  USING_LORA:=true
+  USING_CV:=true
+  USING_MD:=true
+  ifeq ($(USING_SO),true)
+    LIBOBJS += $(LIBLORA)/lib/liblora_cv.so.$(SKYAI_SOVER)
+  else
+    LIBOBJS += $(LIBLORA)/lib/liblora_cv.a
+  endif
+  MAKE_LORA_SUB+= cv
+endif
 ifeq ($(USING_LORA),true)
-  USING_OCTAVE:=true
   LIBS   += -I$(LIBLORA)/include
   ifeq ($(USING_SO),true)
     LIBOBJS += $(LIBLORA)/lib/liblora.so.$(SKYAI_SOVER)
@@ -75,6 +95,24 @@ ifeq ($(USING_LORA),true)
 endif
 ifeq ($(MAKING_LORA),true)
   MAKE_CMD_LORA:=make -C $(LIBLORA)/src $(MAKE_LORA_SUB)
+  MAKING_3RD:=true
+endif
+##-------------------------------------------------------------------------------------------
+## for 3rdparty libraries
+LIB3RD_BASE:=$(SKYAI_BASE)/3rdparty
+MAKE_3RD_SUB:=
+ifeq ($(USING_MD),true)
+  LIB3RD_CFLAGS:=true
+  LIBOBJS += $(LIB3RD_BASE)/markerdetection/libmarkerdetection.a
+  MAKE_3RD_SUB+= md
+endif
+ifeq ($(LIB3RD_CFLAGS),true)
+  LIBS += -I$(LIB3RD_BASE)
+endif
+ifeq ($(MAKING_3RD),true)
+  ifneq ($(MAKE_3RD_SUB),"")
+    MAKE_CMD_3RD:=make -C $(LIB3RD_BASE) $(MAKE_3RD_SUB)
+  endif
 endif
 ##-------------------------------------------------------------------------------------------
 include $(SKYAI_BASE)/Makefile_libconf
@@ -83,6 +121,7 @@ all : extra_make $(ARC) $(EXEC) $(SO) $(USER_MAKE_TRG)
 ##-------------------------------------------------------------------------------------------
 ## extra make
 extra_make :
+	@(set -e; $(MAKE_CMD_3RD))
 	@(set -e; $(MAKE_CMD_LORA))
 	@(set -e; $(MAKE_CMD_SKYAI))
 ##-------------------------------------------------------------------------------------------

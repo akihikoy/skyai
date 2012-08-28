@@ -18,7 +18,7 @@
 ##-------------------------------------------------------------------------------------------
 TARGET_FLAG :=
 
-all     : std oct ode
+all     : std oct ode cv
 
 clean	: TARGET_FLAG :=clean
 clean	: all
@@ -31,5 +31,8 @@ oct :
 
 ode :
 	@(set -e; make -f Makefile_ode $(TARGET_FLAG))
+
+cv :
+	@(set -e; make -f Makefile_cv $(TARGET_FLAG))
 
 ##------------------------------------------------------------------

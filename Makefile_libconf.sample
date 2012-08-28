@@ -37,3 +37,9 @@ ifeq ($(USING_ODE),true)
   LDLIBS += -lSM -lICE -lGL -L/usr/X11R6/lib -lXext -lX11 -ldl -lGLU -lpthread
 endif
 ##-------------------------------------------------------------------------------------------
+## for OpenCV
+ifeq ($(USING_CV),true)
+  LIBS += `pkg-config opencv --cflags`
+  LDLIBS += `pkg-config opencv --libs`
+endif
+##-------------------------------------------------------------------------------------------

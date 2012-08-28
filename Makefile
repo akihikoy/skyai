@@ -34,6 +34,9 @@ lora_oct :
 lora_ode :
 	@(set -e; make -C liblora/src ode)
 
+lora_cv :
+	@(set -e; make -C liblora/src cv)
+
 skyai :
 	@(set -e; make -C libskyai/src $(TARGET_FLAG))
 

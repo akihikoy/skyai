@@ -18,21 +18,12 @@
 ##-------------------------------------------------------------------------------------------
 TARGET_FLAG :=
 
-all     : l lcv s
-
-debug	: TARGET_FLAG :=debug
-debug	: all
+all     : md
 
 clean	: TARGET_FLAG :=clean
 clean	: all
 
-l :
-	@(set -e; make -f Makefile_l $(TARGET_FLAG))
-
-lcv :
-	@(set -e; make -f Makefile_lcv $(TARGET_FLAG))
-
-s :
-	@(set -e; make -f Makefile_s $(TARGET_FLAG))
+md :
+	@(set -e; make -C markerdetection $(TARGET_FLAG))
 
 ##------------------------------------------------------------------
