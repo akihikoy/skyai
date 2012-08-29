@@ -34,10 +34,23 @@ using namespace loco_rabbits;
 
 int main(int argc, char**argv)
 {
+  int no_obs(0);
   marker_tracker::TMarkerTracker mtracker;
   mtracker.Initialize();
   while(mtracker.Step())
   {
+    if(mtracker.EstimatedObservation().c[0]<0 || mtracker.EstimatedObservation().c[0]>mtracker.ImageWidth()
+      || mtracker.EstimatedObservation().c[1]<0 || mtracker.EstimatedObservation().c[1]>mtracker.ImageHeight())
+    {
+      LMESSAGE("marker may be out of image!");
+    }
+    if(!mtracker.Observed())
+    {
+      ++no_obs;
+      LMESSAGE("no observation count: "<<no_obs);
+    }
+    else
+      no_obs= 0;
     int key = cv::waitKey (10);
     if (key == 'q' || key == 'Q')
       break;

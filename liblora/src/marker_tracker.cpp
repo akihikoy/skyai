@@ -395,14 +395,14 @@ bool TMarkerTracker::detect_marker(const cv::Mat &image, TObservation &o)
 
 void TMarkerTracker::generate_particle(TParticle &p)
 {
-  p.c= cv::Vec<double,3>(Rand(-1.0,1.0), Rand(-1.0,1.0), Rand(0.0,1.0));
+  p.c= cv::Vec<double,3>(Rand(-conf_.InitCX,conf_.InitCX), Rand(-conf_.InitCY,conf_.InitCY), Rand(conf_.InitCZ1,conf_.InitCZ2));
   cv::Vec<double,3> axis(Rand(-1.0,1.0), Rand(-1.0,1.0), Rand(-1.0,1.0));
   cv::normalize(axis,axis);
   Rodrigues(axis*static_cast<double>(Rand(-M_PI/2.0,M_PI/2.0))).copyTo(p.R);
   p.v= cv::Vec<double,3>(Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV));
   p.w= cv::Vec<double,3>(Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW));
-  p.l1= Rand(0.01,1.0);
-  p.l2= Rand(0.01,1.0);
+  p.l1= Rand(conf_.InitL11,conf_.InitL12);
+  p.l2= Rand(conf_.InitL21,conf_.InitL22);
   p.f= Rand(conf_.InitF1,conf_.InitF2);
 }
 //-------------------------------------------------------------------------------------------
@@ -601,7 +601,18 @@ bool TMarkerTracker::Initialize()
 
   cv::Mat current_frame;
   camera_ >> current_frame;
-  draw_image_.create(cv::Size(current_frame.cols, current_frame.rows), CV_8UC3);
+  if(current_frame.cols*current_frame.rows!=0)
+  {
+    image_width_= current_frame.cols;
+    image_height_= current_frame.rows;
+    draw_image_.create(cv::Size(current_frame.cols, current_frame.rows), CV_8UC3);
+  }
+  else
+  {
+    image_width_= 0;
+    image_height_= 0;
+    draw_image_.create(cv::Size(10, 10), CV_8UC3);
+  }
 
   if(conf_.DisplayResult)
     cv::namedWindow(conf_.WindowName,1);
@@ -615,23 +626,31 @@ bool TMarkerTracker::Step()
   cv::Mat current_frame;
   camera_ >> current_frame;
 
+  bool captured(true);
   if(current_frame.cols*current_frame.rows==0)
-    {LERROR("camera capture failed"); return false;}
+  {
+    LERROR("camera capture failed");
+    captured= false;
+  }
 
-  cv::resize (current_frame, draw_image_, cv::Size(), 1.0,1.0, CV_INTER_LINEAR);
+  if(captured)
+  {
+    image_width_= current_frame.cols;
+    image_height_= current_frame.rows;
+    cv::resize (current_frame, draw_image_, cv::Size(), 1.0,1.0, CV_INTER_LINEAR);
+  }
 
   //cv::Smooth( draw_image_, draw_image_, CV_GAUSSIAN, 3, 3 );
 
   // detecting marker
-  TObservation o;
-  bool observable= detect_marker(draw_image_,o);
+  observed_= (captured ? detect_marker(draw_image_,observation_) : false);
 
-  if(observable)
-    std::cout<<"observed: "<<o<<std::endl;
+  if(observed_ && conf_.PrintResult)
+    std::cout<<"observed: "<<observation_<<std::endl;
 
   // update particles:
-  if(observable)
-    update_particles(particles_, o);
+  if(observed_)
+    update_particles(particles_, observation_);
   else
     update_particles(particles_);
 
@@ -639,19 +658,19 @@ bool TMarkerTracker::Step()
   // TParticle est_state_= AverageParticles(particles_);
   est_state_= EstimateFromParticles(particles_);
   // TParticle est_state_= BestParticle(particles_);
-  std::cout<<"pest: "<<est_state_<<std::endl;
+  if(conf_.PrintResult) std::cout<<"pest: "<<est_state_<<std::endl;
   estimate_observation(est_state_, est_observation_);
-  std::cout<<"est: ("<<est_observation_.p[0][0]<<","<<est_observation_.p[0][1]<<")"<<std::endl;
+  if(conf_.PrintResult) std::cout<<"est: ("<<est_observation_.p[0][0]<<","<<est_observation_.p[0][1]<<")"<<std::endl;
 
   // best particle:
   TObservation best;
   TParticle pbest= BestParticle(particles_);
-  std::cout<<"pbest: "<<pbest<<std::endl;
+  if(conf_.PrintResult) std::cout<<"pbest: "<<pbest<<std::endl;
   estimate_observation(pbest, best);
-  std::cout<<"best: ("<<best.p[0][0]<<","<<best.p[0][1]<<")"<<std::endl;
+  if(conf_.PrintResult) std::cout<<"best: ("<<best.p[0][0]<<","<<best.p[0][1]<<")"<<std::endl;
 
 
-  if(conf_.DisplayResult)
+  if(conf_.DisplayResult && captured)
   {
     int skipper(0), nskip(particles_.size()/conf_.NumOfDisplayLines);
     for(std::vector<TParticleW>::const_iterator itr(particles_.begin()),last(particles_.end());itr!=last;++itr)
@@ -665,9 +684,9 @@ bool TMarkerTracker::Step()
         DrawLine(draw_image_, e.p[i][0], e.p[i][1], e.p[(i+1)%4][0], e.p[(i+1)%4][1], 0, (0==i?200:255), 255, 0.5);
     }
 
-    if(observable)
+    if(observed_)
       for(int i(0);i<4;++i)
-        DrawLine(draw_image_, o.p[i][0], o.p[i][1], o.p[(i+1)%4][0], o.p[(i+1)%4][1], (0==i?255:0), 255, 0, ((0==i||1==i)?10:2));
+        DrawLine(draw_image_, observation_.p[i][0], observation_.p[i][1], observation_.p[(i+1)%4][0], observation_.p[(i+1)%4][1], (0==i?255:0), 255, 0, ((0==i||1==i)?10:2));
 
     for(int i(0);i<4;++i)
       DrawLine(draw_image_, est_observation_.p[i][0], est_observation_.p[i][1], est_observation_.p[(i+1)%4][0], est_observation_.p[(i+1)%4][1], 0, (0==i?200:0), 255, ((0==i||1==i)?10:2));

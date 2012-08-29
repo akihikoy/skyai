@@ -45,8 +45,16 @@ struct TMarkerTrackerConfig
   int   NumOfParticles;
 
   double Dt;
+  double InitCX;
+  double InitCY;
+  double InitCZ1;
+  double InitCZ2;
   double InitV;
   double InitW;
+  double InitL11;
+  double InitL12;
+  double InitL21;
+  double InitL22;
   double InitF1;
   double InitF2;
 
@@ -68,6 +76,7 @@ struct TMarkerTrackerConfig
   double WeightSigma;
   double Epsilon;
 
+  bool  PrintResult;
   int   NumOfDisplayLines;
   bool  DisplayResult;
   std::string WindowName;
@@ -77,10 +86,16 @@ struct TMarkerTrackerConfig
       MarkerDetectionThreshold(0.8),
       NumOfParticles(10000),
       Dt(0.01),
+      InitCX(1.0),
+      InitCY(1.0),
+      InitCZ1(0.8),
+      InitCZ2(2.0),
       InitV(0.01),
       InitW(0.01),
-      // InitF1(0.01),
-      // InitF2(1.0),
+      InitL11(0.01),
+      InitL12(1.0),
+      InitL21(0.01),
+      InitL22(1.0),
       InitF1(0.8),
       InitF2(InitF1),
 
@@ -89,17 +104,8 @@ struct TMarkerTrackerConfig
       NoiseR(0.5*NOISE_CMN),
       NoiseV(2.0*NOISE_CMN),
       NoiseW(1.0*NOISE_CMN),
-
-      // NOISE_CMN(0.2),
-      // NoiseC(0.2*NOISE_CMN),
-      // NoiseR(0.1*NOISE_CMN),
-      // NoiseV(NOISE_CMN),
-      // NoiseW(0.5*NOISE_CMN),
-
       NoiseL1(0.001*NOISE_CMN),
       NoiseL2(0.001*NOISE_CMN),
-      // NoiseF(0.01*NOISE_CMN),
-
       NoiseF(0.0*NOISE_CMN),
       #undef NOISE_CMN
 
@@ -112,6 +118,7 @@ struct TMarkerTrackerConfig
       WeightSigma(10.0),
       Epsilon(1.0e-6),
 
+      PrintResult(true),
       NumOfDisplayLines(100),
       DisplayResult(true),
       WindowName("Marker Tracker")
@@ -199,8 +206,14 @@ public:
   bool Step();
   void Clear();
 
+  bool  Observed() const {return observed_;}
+  const TObservation& Observation() const {return observation_;}
+
   const TParticle& EstimatedState() const {return est_state_;}
   const TExtraObservation& EstimatedObservation() const {return est_observation_;}
+
+  int  ImageWidth() const {return image_width_;}
+  int  ImageHeight() const {return image_height_;}
 
 private:
 
@@ -208,8 +221,14 @@ private:
 
   std::vector<TParticleW>  particles_;
 
+  bool               observed_;
+  TObservation       observation_;
+
   TParticle          est_state_;
   TExtraObservation  est_observation_;
+
+  int  image_width_;
+  int  image_height_;
 
   cv::VideoCapture  camera_;
   cv::Mat template_image_;
