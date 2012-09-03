@@ -23,7 +23,8 @@ USER_MAKE_TRG := execs
 EXECS :=  \
 	variable_binexec.out	\
 	variable_parser.out	\
-	variable_writer.out
+	variable_writer.out	\
+	bioloid.out
 OBJS := $(EXECS:.out=.o)
 ##-------------------------------------------------------------------------------------------
 USING_LORA_OCT:=true

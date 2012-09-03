@@ -26,9 +26,11 @@
 #define libbioloid_h
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
+#include <skyai/modules_core/univ_task.h>
 #include <lora/bioloid.h>
 #include <lora/small_classes.h>
 #include <lora/variable_space_impl.h>
+#include <lora/marker_tracker.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -56,6 +58,7 @@ public:
   TBioloidEnvironmentConfigurations (var_space::TVariableMap &mmap)
     :
       SerialPort      ("/dev/ttyUSB0"),
+      DistanceSensorIndex (-1),
       InitSleepTime   (2.0l),
       TimeStep        (0.1l),
       UserPenalty     (-4.0l)
@@ -219,9 +222,9 @@ protected:
     {
       Setup();
 
-      tmp_distance_c_.resize(3);
-      tmp_old_distance_c_.resize(3);
-      tmp_distance_diff_c_.resize(3);
+      tmp_distance_c_.resize(3,0.0);
+      tmp_old_distance_c_.resize(3,0.0);
+      tmp_distance_diff_c_.resize(3,0.0);
       is_successful_= false;
       LMESSAGE("resetting robot..");
       TRealVector  target_angle(conf_.ActuatorIndexes.size(),0.0), observed_angle(conf_.ActuatorIndexes.size());
@@ -233,17 +236,23 @@ protected:
           *itr= (*itr)/180.0*M_PI;
         constrain_angles (target_angle);
         bioloid_.GoTo (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(target_angle));
-        bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_old_distance_c_(0));  // center sensor
-        bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_old_distance_c_(1));  // left sensor
-        bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_old_distance_c_(2));  // right sensor
+        if(conf_.DistanceSensorIndex>=0)
+        {
+          bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_old_distance_c_(0));  // center sensor
+          bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_old_distance_c_(1));  // left sensor
+          bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_old_distance_c_(2));  // right sensor
+        }
         usleep(10000);
         time= GetCurrentTime();
       }
       LMESSAGE("ok..");
 
-      bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
+      if(conf_.DistanceSensorIndex>=0)
+      {
+        bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
+      }
       tmp_distance_diff_c_(0)= 0.0;
       tmp_distance_diff_c_(1)= 0.0;
       tmp_distance_diff_c_(2)= 0.0;
@@ -288,13 +297,16 @@ protected:
   virtual void slot_finish_step_exec (void)
     {
       for(int i(0);i<3;++i)  tmp_old_distance_c_(i)= distance_lpf_()(i); // tmp_distance_c_(i);
-      bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
-      bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
-      distance_lpf_ (tmp_distance_c_);  // tmp_distance_c_(0)= distance_lpf_()(0);
-      for(int i(0);i<3;++i)  tmp_distance_diff_c_(i)= -1.0*(distance_lpf_()(i)-tmp_old_distance_c_(i));
-      distance_diff_lpf_ (tmp_distance_diff_c_);
+      if(conf_.DistanceSensorIndex>=0)
+      {
+        bioloid_.GetDistance(conf_.DistanceSensorIndex, 0,tmp_distance_c_(0));  // center sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,-1,tmp_distance_c_(1));  // left sensor
+        bioloid_.GetDistance(conf_.DistanceSensorIndex,+1,tmp_distance_c_(2));  // right sensor
+        distance_lpf_ (tmp_distance_c_);  // tmp_distance_c_(0)= distance_lpf_()(0);
+        for(int i(0);i<3;++i)  tmp_distance_diff_c_(i)= -1.0*(distance_lpf_()(i)-tmp_old_distance_c_(i));
+        distance_diff_lpf_ (tmp_distance_diff_c_);
 std::cout<<distance_lpf_()(0)<<"\t"<<distance_lpf_()(1)<<"\t"<<distance_lpf_()(2)<<std::endl;
+      }
 
       TSingleReward reward(0.0l);
       reward+= -0.15l*conf_.TimeStep;
@@ -557,6 +569,246 @@ protected:
     }
 
 };  // end of MMotionLearningTask
+//-------------------------------------------------------------------------------------------
+
+
+namespace var_space{
+  void Register (marker_tracker::TMarkerTrackerConfig &x, TVariableMap &mmap);
+}
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+//!\brief Marker tracker module
+class MMarkerTrackerModule
+    : public TModuleInterface
+//===========================================================================================
+{
+public:
+  typedef TModuleInterface       TParent;
+  typedef MMarkerTrackerModule   TThis;
+  SKYAI_MODULE_NAMES(MMarkerTrackerModule)
+
+  MMarkerTrackerModule (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      unobserved_count_ (0),
+      slot_initialization   (*this),
+      slot_step             (*this),
+      slot_finish           (*this),
+      out_unobserved_count  (*this),
+      out_pos               (*this),
+      out_rot               (*this),
+      out_vel               (*this)
+    {
+      var_space::Register(mtracker_.Config(),TParent::param_box_config_map());
+
+      add_slot_port (slot_initialization   );
+      add_slot_port (slot_step             );
+      add_slot_port (slot_finish           );
+      add_out_port  (out_unobserved_count  );
+      add_out_port  (out_pos               );
+      add_out_port  (out_rot               );
+      add_out_port  (out_vel               );
+    }
+
+protected:
+
+  marker_tracker::TMarkerTracker mtracker_;
+
+  int unobserved_count_;
+
+  mutable TRealVector tmp_pos_;
+  mutable TRealMatrix tmp_rot_;
+  mutable TRealVector tmp_vel_;
+
+  MAKE_SLOT_PORT(slot_initialization, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_step, void, (void), (), TThis);
+  MAKE_SLOT_PORT(slot_finish, void, (void), (), TThis);
+
+//   MAKE_SIGNAL_PORT(signal_signal1, const TOutType& (const TInType &), TThis);  // optional
+
+  //!\brief output number of consecutive observation failure
+  MAKE_OUT_PORT(out_unobserved_count, const TInt&, (void), (), TThis);
+
+  //!\brief output marker position
+  MAKE_OUT_PORT(out_pos, const TRealVector&, (void), (), TThis);
+  //!\brief output marker rotation matrix[3x3]
+  MAKE_OUT_PORT(out_rot, const TRealMatrix&, (void), (), TThis);
+  //!\brief output marker velocities (of position and rotation)
+  MAKE_OUT_PORT(out_vel, const TRealVector&, (void), (), TThis);
+
+//   MAKE_IN_PORT(in_in1, const TOutType& (const TInType &), TThis);              // optional
+
+  virtual void slot_initialization_exec (void)
+    {
+      mtracker_.Initialize();
+    }
+
+  virtual void slot_step_exec (void)
+    {
+      if(mtracker_.Step())
+      {
+        if(!mtracker_.Observed())
+          ++unobserved_count_;
+        else if(mtracker_.EstimatedObservation().C[0]<0 || mtracker_.EstimatedObservation().C[0]>mtracker_.ImageWidth()
+          || mtracker_.EstimatedObservation().C[1]<0 || mtracker_.EstimatedObservation().C[1]>mtracker_.ImageHeight())
+          ++unobserved_count_;
+        else
+          unobserved_count_= 0;
+      }
+      else
+        ++unobserved_count_;
+      if(unobserved_count_>0)
+        LMESSAGE("unobserved count: "<<unobserved_count_);
+    }
+
+  virtual void slot_finish_exec (void)
+    {
+      mtracker_.Clear();
+    }
+
+  virtual const TInt& out_unobserved_count_get (void) const
+    {
+      return unobserved_count_;
+    }
+
+  virtual const TRealVector& out_pos_get (void) const
+    {
+      tmp_pos_.resize(3);
+      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
+      std::copy(CVBegin(p.C),CVEnd(p.C),OctBegin(tmp_pos_));
+      return tmp_pos_;
+    }
+
+  virtual const TRealMatrix& out_rot_get (void) const
+    {
+      tmp_rot_.resize(3,3);
+      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
+      cv::Matx<double,3,3> Rt= p.R.t();
+      std::copy(CVBegin(Rt),CVEnd(Rt),OctBegin(tmp_rot_));
+      return tmp_rot_;
+    }
+
+  virtual const TRealVector& out_vel_get (void) const
+    {
+      tmp_vel_.resize(6);
+      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
+      std::copy(CVBegin(p.V),CVEnd(p.V),OctBegin(tmp_vel_));
+      std::copy(CVBegin(p.W),CVEnd(p.W),OctBegin(tmp_vel_)+3);
+      return tmp_vel_;
+    }
+
+
+};  // end of MMarkerTrackerModule
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+class TBioloidUnivTaskConfigurations
+//===========================================================================================
+{
+public:
+
+  //! forwarding the system reward given from the environment module
+  TBool   ForwardSystemReward;
+
+  TBioloidUnivTaskConfigurations (var_space::TVariableMap &mmap)
+    :
+      ForwardSystemReward  (false)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( ForwardSystemReward );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+class TBioloidUnivTaskMemory
+//===========================================================================================
+{
+public:
+
+  /*! the state of the robot is stored into following variables.
+      these variables are assumed to be used in user-defined functions, */
+  TRealVector  BasePos;
+  TRealVector  BaseVel;
+  TRealMatrix  BaseRot;
+  TInt         UnobservedCount;
+
+  TBioloidUnivTaskMemory (var_space::TVariableMap &mmap)
+    {
+      Register(mmap);
+    }
+  void Register (var_space::TVariableMap &mmap)
+    {
+      #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( BasePos           );
+      ADD( BaseVel           );
+      ADD( BaseRot           );
+      ADD( UnobservedCount   );
+      #undef ADD
+    }
+};
+//-------------------------------------------------------------------------------------------
+
+//===========================================================================================
+//!\brief universal task module for bioloid environment
+class MBioloidUnivTask
+    : public MUniversalContTimeTask
+//===========================================================================================
+{
+public:
+  typedef MUniversalContTimeTask  TParent;
+  typedef MBioloidUnivTask        TThis;
+  SKYAI_MODULE_NAMES(MBioloidUnivTask)
+
+  MBioloidUnivTask (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      bconf_         (TParent::param_box_config_map()),
+      bmem_          (TParent::param_box_memory_map()),
+      slot_system_reward     (*this),
+      in_base_pos            (*this),
+      in_base_vel            (*this),
+      in_base_rot            (*this),
+      in_unobserved_count    (*this)
+    {
+      add_slot_port   (slot_system_reward     );
+      add_in_port     (in_base_pos            );
+      add_in_port     (in_base_vel            );
+      add_in_port     (in_base_rot            );
+      add_in_port     (in_unobserved_count    );
+    }
+
+protected:
+
+  TBioloidUnivTaskConfigurations  bconf_;
+  TBioloidUnivTaskMemory          bmem_;
+
+  MAKE_SLOT_PORT(slot_system_reward, void, (const TSingleReward &r), (r), TThis);
+
+  MAKE_IN_PORT(in_base_pos        , const TRealVector& (void), TThis);
+  MAKE_IN_PORT(in_base_vel        , const TRealVector& (void), TThis);
+  MAKE_IN_PORT(in_base_rot        , const TRealMatrix& (void), TThis);
+  MAKE_IN_PORT(in_unobserved_count, const TInt& (void), TThis);
+
+  virtual void slot_system_reward_exec (const TSingleReward &r)
+    {
+      if(bconf_.ForwardSystemReward)  signal_reward.ExecAll(r);
+    }
+
+  override void sense_common()
+    {
+      if (in_base_pos        .ConnectionSize()!=0)  bmem_.BasePos          = in_base_pos        .GetFirst();
+      if (in_base_vel        .ConnectionSize()!=0)  bmem_.BaseVel          = in_base_vel        .GetFirst();
+      if (in_base_rot        .ConnectionSize()!=0)  bmem_.BaseRot          = in_base_rot        .GetFirst();
+      if (in_unobserved_count.ConnectionSize()!=0)  bmem_.UnobservedCount  = in_unobserved_count.GetFirst();
+    }
+
+};  // end of MBioloidUnivTask
 //-------------------------------------------------------------------------------------------
 
 

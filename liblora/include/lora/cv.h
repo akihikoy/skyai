@@ -26,7 +26,7 @@
 #define loco_rabbits_cv_h
 //-------------------------------------------------------------------------------------------
 #include <lora/common.h>
-#include <cv.h>
+#include <lora/cv_fwd.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -58,18 +58,18 @@ inline cv::Mat_<t_elem> GetWedge (const  cv::Vec<t_elem,3> &w)
 //-------------------------------------------------------------------------------------------
 
 template <typename t_elem>
-inline cv::Mat_<t_elem> Rodrigues (const cv::Vec<t_elem,3> &w, const TReal &epsilon=1.0e-6l)
+inline cv::Matx<t_elem,3,3> Rodrigues (const cv::Vec<t_elem,3> &w, const TReal &epsilon=1.0e-6l)
 {
   double th= norm(w);
-  if(th<epsilon)  return cv::Mat_<t_elem>::eye(3,3);
-  cv::Mat_<t_elem> w_wedge(3,3);
+  if(th<epsilon)  return cv::Matx<t_elem,3,3>::eye();
+  cv::Matx<t_elem,3,3> w_wedge(3,3);
   w_wedge= GetWedge(w *(1.0/th));
-  return cv::Mat_<t_elem>::eye(3,3) + w_wedge * std::sin(th) + w_wedge * w_wedge * (1.0-std::cos(th));
+  return cv::Matx<t_elem,3,3>::eye() + w_wedge * std::sin(th) + w_wedge * w_wedge * (1.0-std::cos(th));
 }
 //-------------------------------------------------------------------------------------------
 
 template <typename t_elem>
-inline cv::Vec<t_elem,3> InvRodrigues (const cv::Mat_<t_elem> &R, const TReal &epsilon=1.0e-6l)
+inline cv::Vec<t_elem,3> InvRodrigues (const cv::Matx<t_elem,3,3> &R, const TReal &epsilon=1.0e-6l)
 {
   double alpha= (R(0,0)+R(1,1)+R(2,2) - 1.0) / 2.0;;
 
@@ -89,9 +89,9 @@ inline cv::Vec<t_elem,3> InvRodrigues (const cv::Mat_<t_elem> &R, const TReal &e
 //-------------------------------------------------------------------------------------------
 
 template <typename t_elem>
-inline cv::Mat_<t_elem> AverageRotations (const cv::Mat_<t_elem> &R1, const cv::Mat_<t_elem> &R2, const t_elem &w2)
+inline cv::Matx<t_elem,3,3> AverageRotations (const cv::Matx<t_elem,3,3> &R1, const cv::Matx<t_elem,3,3> &R2, const t_elem &w2)
 {
-  cv::Vec<t_elem,3> w= InvRodrigues(cv::Mat_<double>(R2*R1.t()));
+  cv::Vec<t_elem,3> w= InvRodrigues(cv::Matx<t_elem,3,3>(R2*R1.t()));
   return Rodrigues(w2*w)*R1;
 }
 //-------------------------------------------------------------------------------------------

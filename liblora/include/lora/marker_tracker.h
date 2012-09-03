@@ -92,10 +92,10 @@ struct TMarkerTrackerConfig
       InitCZ2(2.0),
       InitV(0.01),
       InitW(0.01),
-      InitL11(0.01),
-      InitL12(1.0),
-      InitL21(0.01),
-      InitL22(1.0),
+      InitL11(1.0),
+      InitL12(InitL11),
+      InitL21(InitL11),
+      InitL22(InitL11),
       InitF1(0.8),
       InitF2(InitF1),
 
@@ -104,8 +104,8 @@ struct TMarkerTrackerConfig
       NoiseR(0.5*NOISE_CMN),
       NoiseV(2.0*NOISE_CMN),
       NoiseW(1.0*NOISE_CMN),
-      NoiseL1(0.001*NOISE_CMN),
-      NoiseL2(0.001*NOISE_CMN),
+      NoiseL1(0.0*NOISE_CMN),
+      NoiseL2(0.0*NOISE_CMN),
       NoiseF(0.0*NOISE_CMN),
       #undef NOISE_CMN
 
@@ -129,47 +129,31 @@ struct TMarkerTrackerConfig
 
 struct TParticle
 {
-  cv::Vec<double,3> c;
-  cv::Vec<double,9> r_;
-  cv::Mat_<double>  R;  // wrapper of r_
-  cv::Vec<double,3> v, w;
-  double l1,l2,f;
+  cv::Vec<double,3> C;  //!< center
+  cv::Matx<double,3,3>  R;  //!< rotation
+  cv::Vec<double,3> V, W;  //!< linear and angular velocity
+  double L1,L2,F;  //!< length-front, length-side, forcus
 
   TParticle() :
-      c(0.,0.,0.),
-      r_(0.,0.,0., 0.,0.,0., 0.,0.,0.),
-      R(3,3,r_.val),
-      v(0.,0.,0.),
-      w(0.,0.,0.),
-      l1(0.),
-      l2(0.),
-      f(0.)
+      C(0.,0.,0.),
+      R(0.,0.,0., 0.,0.,0., 0.,0.,0.),
+      V(0.,0.,0.),
+      W(0.,0.,0.),
+      L1(0.),
+      L2(0.),
+      F(0.)
     {}
 
   TParticle(const TParticle &p) :
-      c(p.c),
-      r_(p.r_),
-      R(3,3,r_.val),
-      v(p.v),
-      w(p.w),
-      l1(p.l1),
-      l2(p.l2),
-      f(p.f)
+      C(p.C),
+      R(p.R),
+      V(p.V),
+      W(p.W),
+      L1(p.L1),
+      L2(p.L2),
+      F(p.F)
     {}
 
-  const TParticle& operator=(const TParticle &rhs)
-    {
-#define XEQ(x_var) x_var= rhs.x_var;
-      XEQ(c)
-      XEQ(r_)
-      XEQ(v)
-      XEQ(w)
-      XEQ(l1)
-      XEQ(l2)
-      XEQ(f)
-#undef XEQ
-      return *this;
-    }
 };
 //-------------------------------------------------------------------------------------------
 
@@ -184,14 +168,14 @@ struct TParticleW
 
 struct TObservation
 {
-  cv::Vec<double,2> p[4];
+  cv::Vec<double,2> P[4];
 };
 //-------------------------------------------------------------------------------------------
 
 struct TExtraObservation : TObservation
 {
-  cv::Vec<double,2> c;  // center on image
-  cv::Vec<double,2> v;  // velocity on image
+  cv::Vec<double,2> C;  // center on image
+  cv::Vec<double,2> V;  // velocity on image
 };
 //-------------------------------------------------------------------------------------------
 
@@ -205,6 +189,9 @@ public:
   bool Initialize();
   bool Step();
   void Clear();
+
+  TMarkerTrackerConfig& Config()  {return conf_;}
+  const TMarkerTrackerConfig& Config() const {return conf_;}
 
   bool  Observed() const {return observed_;}
   const TObservation& Observation() const {return observation_;}
@@ -255,13 +242,13 @@ inline TParticle operator+(const TParticle &lhs, const TParticle &rhs)
 {
   TParticle res(lhs);
 #define XEQ(x_var) res.x_var+= rhs.x_var;
-  XEQ(c)
-  XEQ(r_)
-  XEQ(v)
-  XEQ(w)
-  XEQ(l1)
-  XEQ(l2)
-  XEQ(f)
+  XEQ(C)
+  XEQ(R)
+  XEQ(V)
+  XEQ(W)
+  XEQ(L1)
+  XEQ(L2)
+  XEQ(F)
 #undef XEQ
   return res;
 }
@@ -271,13 +258,13 @@ inline TParticle operator*(const TParticle &lhs, const double &rhs)
 {
   TParticle res(lhs);
 #define XEQ(x_var) res.x_var*= rhs;
-  XEQ(c)
-  XEQ(r_)
-  XEQ(v)
-  XEQ(w)
-  XEQ(l1)
-  XEQ(l2)
-  XEQ(f)
+  XEQ(C)
+  XEQ(R)
+  XEQ(V)
+  XEQ(W)
+  XEQ(L1)
+  XEQ(L2)
+  XEQ(F)
 #undef XEQ
   return res;
 }

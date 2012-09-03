@@ -52,7 +52,7 @@ namespace marker_tracker
 
 struct TTetragon
 {
-  Vector2f c[4];
+  Vector2f C[4];
 };
 //-------------------------------------------------------------------------------------------
 
@@ -115,31 +115,31 @@ void ARMarkerToClockwiseTetragon(const ARMarker &marker, TTetragon &t)
 {
   if(CheckClockwise(marker.c1,marker.c2,marker.c3)==1)
   {
-    t.c[0]= marker.c1;
-    t.c[1]= marker.c2;
-    t.c[2]= marker.c3;
-    t.c[3]= marker.c4;
+    t.C[0]= marker.c1;
+    t.C[1]= marker.c2;
+    t.C[2]= marker.c3;
+    t.C[3]= marker.c4;
   }
   else
   {
-    t.c[0]= marker.c1;
-    t.c[1]= marker.c4;
-    t.c[2]= marker.c3;
-    t.c[3]= marker.c2;
+    t.C[0]= marker.c1;
+    t.C[1]= marker.c4;
+    t.C[2]= marker.c3;
+    t.C[3]= marker.c2;
   }
 }
 //-------------------------------------------------------------------------------------------
 
 double CalcSimilarity(const TTetragon &marker, const cv::Mat &image, const cv::Mat &tmpl, int *direction=NULL)
 {
-  if(CheckClockwise(marker.c[0],marker.c[1],marker.c[2])!=1 || CheckClockwise(marker.c[0],marker.c[2],marker.c[3])!=1)
+  if(CheckClockwise(marker.C[0],marker.C[1],marker.C[2])!=1 || CheckClockwise(marker.C[0],marker.C[2],marker.C[3])!=1)
     return 0.0;
   cv::Point2f src[4];
   for(int i(0);i<4;++i)
   {
-    if(std::isinf(marker.c[i].x) || std::isinf(marker.c[i].y))
+    if(std::isinf(marker.C[i].x) || std::isinf(marker.C[i].y))
       return 0.0;
-    src[i]= cv::Point2f(marker.c[i].x,marker.c[i].y);
+    src[i]= cv::Point2f(marker.C[i].x,marker.C[i].y);
   }
   cv::Point2f dst[4];
   dst[0]= cv::Point2f(0,0);
@@ -178,7 +178,7 @@ double CalcSimilarity(const TTetragon &marker, const cv::Mat &image, const cv::M
 
 std::ostream& operator<<(std::ostream &lhs, const TParticle &rhs)
 {
-  lhs<<"c:"<<cv::Mat(rhs.c)<<" R v:"<<cv::Mat(rhs.v)<<" w:"<<cv::Mat(rhs.w)<<" l1:"<<rhs.l1<<" l2:"<<rhs.l2<<" f:"<<rhs.f;
+  lhs<<"C:"<<cv::Mat(rhs.C)<<" R V:"<<cv::Mat(rhs.V)<<" W:"<<cv::Mat(rhs.W)<<" L1:"<<rhs.L1<<" L2:"<<rhs.L2<<" F:"<<rhs.F;
   return lhs;
 }
 //-------------------------------------------------------------------------------------------
@@ -186,17 +186,17 @@ std::ostream& operator<<(std::ostream &lhs, const TParticle &rhs)
 std::ostream& PrintParticle(std::ostream &lhs, const TParticle &rhs)
 {
   int t(1);
-  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.c[i];
+  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.C[i];
   lhs<<" #"<<t; ++t;
-  for(int i(0);i<9;++i,++t)  lhs<<" "<<rhs.r_[i];
+  for(int i(0);i<9;++i,++t)  lhs<<" "<<rhs.R.val[i];
   lhs<<" #"<<t; ++t;
-  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.v[i];
+  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.V[i];
   lhs<<" #"<<t; ++t;
-  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.w[i];
+  for(int i(0);i<3;++i,++t)  lhs<<" "<<rhs.W[i];
   lhs<<" #"<<t; ++t;
-  lhs<<" "<<rhs.l1;
-  lhs<<" "<<rhs.l2;
-  lhs<<" "<<rhs.f;
+  lhs<<" "<<rhs.L1;
+  lhs<<" "<<rhs.L2;
+  lhs<<" "<<rhs.F;
   return lhs;
 }
 //-------------------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ std::ostream& operator<<(std::ostream &lhs, const TParticleW &rhs)
 
 std::ostream& operator<<(std::ostream &lhs, const TObservation &rhs)
 {
-  for(int i(0);i<4;++i)  lhs<<" "<<cv::Mat(rhs.p[i]);
+  for(int i(0);i<4;++i)  lhs<<" "<<cv::Mat(rhs.P[i]);
   return lhs;
 }
 //-------------------------------------------------------------------------------------------
@@ -268,7 +268,7 @@ void BestParticleIdx2(const std::vector<TParticleW> &particles, int &id1, int &i
 TParticle AverageParticles(const std::vector<TParticleW> &particles)
 {
   TParticle p;
-  cv::Mat_<double> R(cv::Mat_<double>::eye(3,3)), eye(R);
+  cv::Matx<double,3,3> R(cv::Matx<double,3,3>::eye()), eye(R);
   double weight(1.0);
   for(std::vector<TParticleW>::const_iterator itr(particles.begin()),last(particles.end());itr!=last;++itr)
   {
@@ -276,7 +276,7 @@ TParticle AverageParticles(const std::vector<TParticleW> &particles)
     R= AverageRotations(R, itr->P.R, weight);
     weight-= itr->W;
   }
-  R.copyTo(p.R);
+  p.R= R;
   return p;
 }
 //-------------------------------------------------------------------------------------------
@@ -288,7 +288,7 @@ TParticle EstimateFromParticles(const std::vector<TParticleW> &particles)
     p= p + itr->P * itr->W;
   int id1,id2;
   BestParticleIdx2(particles,id1,id2);
-  AverageRotations(particles[id1].P.R, particles[id2].P.R, 0.5).copyTo(p.R);
+  p.R= AverageRotations(particles[id1].P.R, particles[id2].P.R, 0.5);
   return p;
 }
 //-------------------------------------------------------------------------------------------
@@ -383,8 +383,8 @@ bool TMarkerTracker::detect_marker(const cv::Mat &image, TObservation &o)
     {
       for(int i(0);i<4;++i)
       {
-        o.p[i][0]= t.c[(i+d)%4].x;
-        o.p[i][1]= t.c[(i+d)%4].y;
+        o.P[i][0]= t.C[(i+d)%4].x;
+        o.P[i][1]= t.C[(i+d)%4].y;
       }
       maxs= s;
     }
@@ -395,15 +395,15 @@ bool TMarkerTracker::detect_marker(const cv::Mat &image, TObservation &o)
 
 void TMarkerTracker::generate_particle(TParticle &p)
 {
-  p.c= cv::Vec<double,3>(Rand(-conf_.InitCX,conf_.InitCX), Rand(-conf_.InitCY,conf_.InitCY), Rand(conf_.InitCZ1,conf_.InitCZ2));
+  p.C= cv::Vec<double,3>(Rand(-conf_.InitCX,conf_.InitCX), Rand(-conf_.InitCY,conf_.InitCY), Rand(conf_.InitCZ1,conf_.InitCZ2));
   cv::Vec<double,3> axis(Rand(-1.0,1.0), Rand(-1.0,1.0), Rand(-1.0,1.0));
   cv::normalize(axis,axis);
-  Rodrigues(axis*static_cast<double>(Rand(-M_PI/2.0,M_PI/2.0))).copyTo(p.R);
-  p.v= cv::Vec<double,3>(Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV));
-  p.w= cv::Vec<double,3>(Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW));
-  p.l1= Rand(conf_.InitL11,conf_.InitL12);
-  p.l2= Rand(conf_.InitL21,conf_.InitL22);
-  p.f= Rand(conf_.InitF1,conf_.InitF2);
+  p.R= Rodrigues(axis*static_cast<double>(Rand(-M_PI/2.0,M_PI/2.0)));
+  p.V= cv::Vec<double,3>(Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV), Rand(-conf_.InitV,conf_.InitV));
+  p.W= cv::Vec<double,3>(Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW), Rand(-conf_.InitW,conf_.InitW));
+  p.L1= Rand(conf_.InitL11,conf_.InitL12);
+  p.L2= Rand(conf_.InitL21,conf_.InitL22);
+  p.F= Rand(conf_.InitF1,conf_.InitF2);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -425,23 +425,23 @@ void TMarkerTracker::transition_model(const TParticle &curr, TParticle &next, bo
   next= curr;
 
   double sw(add_noise?1.0:0.0);
-  next.c= curr.c + curr.v*conf_.Dt + sw*conf_.NoiseC*NV3;
+  next.C= curr.C + curr.V*conf_.Dt + sw*conf_.NoiseC*NV3;
 
-  cv::Mat(Rodrigues(curr.w*conf_.Dt + sw*conf_.NoiseR*NV3)*curr.R).copyTo(next.R);
+  next.R= cv::Mat(Rodrigues(curr.W*conf_.Dt + sw*conf_.NoiseR*NV3)*curr.R);
 
-  next.v= curr.v + sw*conf_.NoiseV*NV3;
-  next.w= curr.w + sw*conf_.NoiseW*NV3;
-  next.l1= curr.l1 + sw*conf_.NoiseL1*NDRand();
-  next.l2= curr.l2 + sw*conf_.NoiseL2*NDRand();
-  next.f= curr.f + sw*conf_.NoiseF*NDRand();
+  next.V= curr.V + sw*conf_.NoiseV*NV3;
+  next.W= curr.W + sw*conf_.NoiseW*NV3;
+  next.L1= curr.L1 + sw*conf_.NoiseL1*NDRand();
+  next.L2= curr.L2 + sw*conf_.NoiseL2*NDRand();
+  next.F= curr.F + sw*conf_.NoiseF*NDRand();
 
-  if(next.l1<0.0)  next.l1= conf_.Epsilon;
-  if(next.l2<0.0)  next.l2= conf_.Epsilon;
-  if(next.f<0.0)  next.f= conf_.Epsilon;
+  if(next.L1<0.0)  next.L1= conf_.Epsilon;
+  if(next.L2<0.0)  next.L2= conf_.Epsilon;
+  if(next.F<0.0)   next.F=  conf_.Epsilon;
 
-  if(next.c[2]<next.f)  next.c[2]= next.f+conf_.Epsilon;
+  if(next.C[2]<next.F)  next.C[2]= next.F+conf_.Epsilon;
 
-  if(conf_.L1EqL2)  next.l2= next.l1;
+  if(conf_.L1EqL2)  next.L2= next.L1;
 #undef NV3
 }
 //-------------------------------------------------------------------------------------------
@@ -449,22 +449,22 @@ void TMarkerTracker::transition_model(const TParticle &curr, TParticle &next, bo
 void TMarkerTracker::estimate_observation(const TParticle &p, TObservation &o)
 {
   cv::Vec<double,3> lp[4], wp;
-  lp[0]= cv::Vec<double,3>(-p.l1/2.0, -p.l2/2.0, 0.0);
-  lp[1]= cv::Vec<double,3>(+p.l1/2.0, -p.l2/2.0, 0.0);
-  lp[2]= cv::Vec<double,3>(+p.l1/2.0, +p.l2/2.0, 0.0);
-  lp[3]= cv::Vec<double,3>(-p.l1/2.0, +p.l2/2.0, 0.0);
+  lp[0]= cv::Vec<double,3>(-p.L1/2.0, -p.L2/2.0, 0.0);
+  lp[1]= cv::Vec<double,3>(+p.L1/2.0, -p.L2/2.0, 0.0);
+  lp[2]= cv::Vec<double,3>(+p.L1/2.0, +p.L2/2.0, 0.0);
+  lp[3]= cv::Vec<double,3>(-p.L1/2.0, +p.L2/2.0, 0.0);
   for(int i(0);i<4;++i)
   {
-    cv::Mat(cv::Mat(p.c) + p.R * cv::Mat(lp[i])).copyTo(wp);
+    wp= cv::Mat(p.C + p.R * lp[i]);
     if(wp[2]<conf_.Epsilon)
     {
-      o.p[i][0]= 0.0;
-      o.p[i][1]= 0.0;
+      o.P[i][0]= 0.0;
+      o.P[i][1]= 0.0;
     }
     else
     {
-      o.p[i][0]= conf_.ScaleX * wp[0] * p.f / wp[2] + 0.5*conf_.Width;
-      o.p[i][1]= conf_.ScaleY * wp[1] * p.f / wp[2] + 0.5*conf_.Height;
+      o.P[i][0]= conf_.ScaleX * wp[0] * p.F / wp[2] + 0.5*conf_.Width;
+      o.P[i][1]= conf_.ScaleY * wp[1] * p.F / wp[2] + 0.5*conf_.Height;
     }
   }
 }
@@ -473,19 +473,19 @@ void TMarkerTracker::estimate_observation(const TParticle &p, TObservation &o)
 void TMarkerTracker::estimate_observation(const TParticle &p, TExtraObservation &o)
 {
   estimate_observation(p, reinterpret_cast<TObservation&>(o));
-  if(p.c[2]<conf_.Epsilon)
+  if(p.C[2]<conf_.Epsilon)
   {
-    o.c[0]= 0.0;
-    o.c[1]= 0.0;
-    o.v[0]= 0.0;
-    o.v[1]= 0.0;
+    o.C[0]= 0.0;
+    o.C[1]= 0.0;
+    o.V[0]= 0.0;
+    o.V[1]= 0.0;
   }
   else
   {
-    o.c[0]= conf_.ScaleX * p.c[0] * p.f / p.c[2] + 0.5*conf_.Width;
-    o.c[1]= conf_.ScaleY * p.c[1] * p.f / p.c[2] + 0.5*conf_.Height;
-    o.v[0]= conf_.ScaleX * p.v[0] * p.f / p.c[2];
-    o.v[1]= conf_.ScaleY * p.v[1] * p.f / p.c[2];
+    o.C[0]= conf_.ScaleX * p.C[0] * p.F / p.C[2] + 0.5*conf_.Width;
+    o.C[1]= conf_.ScaleY * p.C[1] * p.F / p.C[2] + 0.5*conf_.Height;
+    o.V[0]= conf_.ScaleX * p.V[0] * p.F / p.C[2];
+    o.V[1]= conf_.ScaleY * p.V[1] * p.F / p.C[2];
   }
 
 }
@@ -497,20 +497,20 @@ double TMarkerTracker::compute_weight(const TParticle &p, const TObservation &o)
   estimate_observation(p,est);
   double w(conf_.Epsilon);
 
-  if(CheckClockwise(ToVector2f(est.p[0]),ToVector2f(est.p[1]),ToVector2f(est.p[2]))==1)
+  if(CheckClockwise(ToVector2f(est.P[0]),ToVector2f(est.P[1]),ToVector2f(est.P[2]))==1)
   {
-    // for(int i(0);i<4;++i)  w+= Square((o.p[i][0]-est.p[i][0])/conf_.ScaleX)+Square((o.p[i][1]-est.p[i][1])/conf_.ScaleY);
+    // for(int i(0);i<4;++i)  w+= Square((o.P[i][0]-est.P[i][0])/conf_.ScaleX)+Square((o.P[i][1]-est.P[i][1])/conf_.ScaleY);
     // w= real_exp(-0.5*conf_.WeightSigma*(w))+conf_.Epsilon;
 
     // bool correct(true);
     // for(int i(0);i<4 && correct;++i)
     // {
-    //   double d= Square((o.p[i][0]-est.p[i][0])/conf_.ScaleX)+Square((o.p[i][1]-est.p[i][1])/conf_.ScaleY);
+    //   double d= Square((o.P[i][0]-est.P[i][0])/conf_.ScaleX)+Square((o.P[i][1]-est.P[i][1])/conf_.ScaleY);
     //   double d2;
     //   for(int j(0);j<4 && correct;++j)
     //     if(i!=j)
     //     {
-    //       d2= Square((o.p[j][0]-est.p[i][0])/conf_.ScaleX)+Square((o.p[j][1]-est.p[i][1])/conf_.ScaleY);
+    //       d2= Square((o.P[j][0]-est.P[i][0])/conf_.ScaleX)+Square((o.P[j][1]-est.P[i][1])/conf_.ScaleY);
     //       if(d>d2) correct= false;
     //     }
     //   w+= d;
@@ -520,13 +520,13 @@ double TMarkerTracker::compute_weight(const TParticle &p, const TObservation &o)
 
     for(int i(0);i<4;++i)
     {
-      double d= Square((o.p[i][0]-est.p[i][0])/conf_.ScaleX)+Square((o.p[i][1]-est.p[i][1])/conf_.ScaleY);
+      double d= Square((o.P[i][0]-est.P[i][0])/conf_.ScaleX)+Square((o.P[i][1]-est.P[i][1])/conf_.ScaleY);
       double d2;
       bool correct(true);
       for(int j(0);j<4 && correct;++j)
         if(i!=j)
         {
-          d2= Square((o.p[j][0]-est.p[i][0])/conf_.ScaleX)+Square((o.p[j][1]-est.p[i][1])/conf_.ScaleY);
+          d2= Square((o.P[j][0]-est.P[i][0])/conf_.ScaleX)+Square((o.P[j][1]-est.P[i][1])/conf_.ScaleY);
           if(d>d2) correct= false;
         }
       if(correct)  w+= d;
@@ -660,14 +660,14 @@ bool TMarkerTracker::Step()
   // TParticle est_state_= BestParticle(particles_);
   if(conf_.PrintResult) std::cout<<"pest: "<<est_state_<<std::endl;
   estimate_observation(est_state_, est_observation_);
-  if(conf_.PrintResult) std::cout<<"est: ("<<est_observation_.p[0][0]<<","<<est_observation_.p[0][1]<<")"<<std::endl;
+  if(conf_.PrintResult) std::cout<<"est: ("<<est_observation_.P[0][0]<<","<<est_observation_.P[0][1]<<")"<<std::endl;
 
   // best particle:
   TObservation best;
   TParticle pbest= BestParticle(particles_);
   if(conf_.PrintResult) std::cout<<"pbest: "<<pbest<<std::endl;
   estimate_observation(pbest, best);
-  if(conf_.PrintResult) std::cout<<"best: ("<<best.p[0][0]<<","<<best.p[0][1]<<")"<<std::endl;
+  if(conf_.PrintResult) std::cout<<"best: ("<<best.P[0][0]<<","<<best.P[0][1]<<")"<<std::endl;
 
 
   if(conf_.DisplayResult && captured)
@@ -681,19 +681,19 @@ bool TMarkerTracker::Step()
       TObservation e;
       estimate_observation(itr->P, e);
       for(int i(0);i<4;++i)
-        DrawLine(draw_image_, e.p[i][0], e.p[i][1], e.p[(i+1)%4][0], e.p[(i+1)%4][1], 0, (0==i?200:255), 255, 0.5);
+        DrawLine(draw_image_, e.P[i][0], e.P[i][1], e.P[(i+1)%4][0], e.P[(i+1)%4][1], 0, (0==i?200:255), 255, 0.5);
     }
 
     if(observed_)
       for(int i(0);i<4;++i)
-        DrawLine(draw_image_, observation_.p[i][0], observation_.p[i][1], observation_.p[(i+1)%4][0], observation_.p[(i+1)%4][1], (0==i?255:0), 255, 0, ((0==i||1==i)?10:2));
+        DrawLine(draw_image_, observation_.P[i][0], observation_.P[i][1], observation_.P[(i+1)%4][0], observation_.P[(i+1)%4][1], (0==i?255:0), 255, 0, ((0==i||1==i)?10:2));
 
     for(int i(0);i<4;++i)
-      DrawLine(draw_image_, est_observation_.p[i][0], est_observation_.p[i][1], est_observation_.p[(i+1)%4][0], est_observation_.p[(i+1)%4][1], 0, (0==i?200:0), 255, ((0==i||1==i)?10:2));
-    DrawArrow(draw_image_, est_observation_.c[0], est_observation_.c[1], est_observation_.c[0]+est_observation_.v[0], est_observation_.c[1]+est_observation_.v[1], 0.1*est_observation_.v[0], 0.1*est_observation_.v[1], 0, 0, 255, 2);
+      DrawLine(draw_image_, est_observation_.P[i][0], est_observation_.P[i][1], est_observation_.P[(i+1)%4][0], est_observation_.P[(i+1)%4][1], 0, (0==i?200:0), 255, ((0==i||1==i)?10:2));
+    DrawArrow(draw_image_, est_observation_.C[0], est_observation_.C[1], est_observation_.C[0]+est_observation_.V[0], est_observation_.C[1]+est_observation_.V[1], 0.1*est_observation_.V[0], 0.1*est_observation_.V[1], 0, 0, 255, 2);
 
     for(int i(0);i<4;++i)
-      DrawLine(draw_image_, best.p[i][0], best.p[i][1], best.p[(i+1)%4][0], best.p[(i+1)%4][1], 255, 0, (0==i?200:0), ((0==i||1==i)?10:2));
+      DrawLine(draw_image_, best.P[i][0], best.P[i][1], best.P[(i+1)%4][0], best.P[(i+1)%4][1], 255, 0, (0==i?200:0), ((0==i||1==i)?10:2));
 
     cv::imshow(conf_.WindowName, draw_image_);
   }
@@ -706,7 +706,7 @@ bool TMarkerTracker::Step()
 
 // cerr<<"P[0]:"<<particles_[0].P<<endl;
 // TObservation e0;estimate_observation(particles_[0].P, e0);
-// cerr<<"e0: ("<<e0.p[0][0]<<","<<e0.p[0][1]<<")"<<endl;
+// cerr<<"e0: ("<<e0.P[0][0]<<","<<e0.P[0][1]<<")"<<endl;
 
 
   return true;

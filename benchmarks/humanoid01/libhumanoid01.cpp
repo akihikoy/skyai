@@ -4,6 +4,7 @@
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Nov.04, 2010-
     \date    Jun.07, 2012
+    \date    Aug.31, 2012
 
     Copyright (C) 2009, 2010, 2012  Akihiko Yamaguchi
 
@@ -378,57 +379,6 @@ void MHumanoidEnvironment::set_global_config (void)
   return tmp_contact_with_object_;
 }
 //-------------------------------------------------------------------------------------------
-
-
-//===========================================================================================
-// class MHumanoidUnivTask
-//===========================================================================================
-
-#define DEF_SLOT(x_event,x_time_step_assign)   \
-    if(conf_.F##x_event!="")                        \
-    {                                               \
-      x_time_step_assign                            \
-      if(conf_.SensingAt##x_event)                  \
-        sense_from_inports();                       \
-      std::list<var_space::TLiteral> argv;          \
-      argv.push_back(var_space::LiteralId(InstanceName()));  \
-      mem_.Reward= 0.0l;                            \
-      mem_.EndOfEps= false;                         \
-      if(!ExecuteFunction(conf_.F##x_event, argv))  \
-        lexit(df);                                  \
-      signal_reward.ExecAll(mem_.Reward);           \
-      if(mem_.EndOfEps)                             \
-        signal_end_of_episode.ExecAll();            \
-    }
-
-/*virtual*/void MHumanoidUnivTask::slot_start_episode_exec (void)
-{
-  DEF_SLOT(EpisodeStart,)
-}
-/*virtual*/void MHumanoidUnivTask::slot_finish_episode_exec (void)
-{
-  DEF_SLOT(EpisodeEnd,)
-}
-
-/*virtual*/void MHumanoidUnivTask::slot_start_of_action_exec (void)
-{
-  DEF_SLOT(ActionStart,)
-}
-/*virtual*/void MHumanoidUnivTask::slot_end_of_action_exec (void)
-{
-  DEF_SLOT(ActionEnd,)
-}
-
-/*virtual*/void MHumanoidUnivTask::slot_start_time_step_exec (const TReal &dt)
-{
-  DEF_SLOT(TimeStepStart,mem_.TimeStep=dt;)
-}
-/*virtual*/void MHumanoidUnivTask::slot_finish_time_step_exec (const TReal &dt)
-{
-  DEF_SLOT(TimeStepEnd,mem_.TimeStep=dt;)
-}
-
-#undef DEF_SLOT
 
 
 //-------------------------------------------------------------------------------------------

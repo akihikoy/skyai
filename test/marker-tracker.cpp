@@ -39,8 +39,8 @@ int main(int argc, char**argv)
   mtracker.Initialize();
   while(mtracker.Step())
   {
-    if(mtracker.EstimatedObservation().c[0]<0 || mtracker.EstimatedObservation().c[0]>mtracker.ImageWidth()
-      || mtracker.EstimatedObservation().c[1]<0 || mtracker.EstimatedObservation().c[1]>mtracker.ImageHeight())
+    if(mtracker.EstimatedObservation().C[0]<0 || mtracker.EstimatedObservation().C[0]>mtracker.ImageWidth()
+      || mtracker.EstimatedObservation().C[1]<0 || mtracker.EstimatedObservation().C[1]>mtracker.ImageHeight())
     {
       LMESSAGE("marker may be out of image!");
     }

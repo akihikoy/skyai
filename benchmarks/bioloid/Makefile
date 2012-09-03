@@ -26,7 +26,7 @@ OBJS := \
       $(patsubst %.c,%.o,$(wildcard *.c)) \
       $(patsubst %.cpp,%.o,$(wildcard *.cpp)) #
 ##-------------------------------------------------------------------------------------------
-USING_SKYAI:=true
+USING_SKYAI_CV:=true
 MAKING_SKYAI:=true
 include $(BASE_REL_DIR)/Makefile_body
 ##-------------------------------------------------------------------------------------------

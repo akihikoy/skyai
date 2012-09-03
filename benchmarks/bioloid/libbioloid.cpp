@@ -29,10 +29,61 @@ namespace loco_rabbits
 using namespace std;
 // using namespace boost;
 
+namespace var_space{
+  void Register (marker_tracker::TMarkerTrackerConfig &x, TVariableMap &mmap)
+  {
+    #define ADD(x_member)  AddToVarMap(mmap, #x_member, x.x_member)
+    ADD( MarkerFileName                );
+    ADD( MarkerDetectionThreshold      );
+
+    ADD( NumOfParticles                );
+
+    ADD( Dt                            );
+    ADD( InitCX                        );
+    ADD( InitCY                        );
+    ADD( InitCZ1                       );
+    ADD( InitCZ2                       );
+    ADD( InitV                         );
+    ADD( InitW                         );
+    ADD( InitL11                       );
+    ADD( InitL12                       );
+    ADD( InitL21                       );
+    ADD( InitL22                       );
+    ADD( InitF1                        );
+    ADD( InitF2                        );
+
+    ADD( NoiseC                        );
+    ADD( NoiseR                        );
+    ADD( NoiseV                        );
+    ADD( NoiseW                        );
+
+    ADD( NoiseL1                       );
+    ADD( NoiseL2                       );
+    ADD( NoiseF                        );
+
+    ADD( L1EqL2                        );
+
+    ADD( ScaleX                        );
+    ADD( ScaleY                        );
+    ADD( Width                         );
+    ADD( Height                        );
+    ADD( WeightSigma                   );
+    ADD( Epsilon                       );
+
+    ADD( PrintResult                   );
+    ADD( NumOfDisplayLines             );
+    ADD( DisplayResult                 );
+    ADD( WindowName                    );
+    #undef ADD
+  }
+}
+//-------------------------------------------------------------------------------------------
+
 
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MBioloidEnvironment)
 SKYAI_ADD_MODULE(MMotionLearningTask)
+SKYAI_ADD_MODULE(MMarkerTrackerModule)
 //-------------------------------------------------------------------------------------------
 
 
