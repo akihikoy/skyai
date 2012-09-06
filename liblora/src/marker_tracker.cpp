@@ -615,7 +615,10 @@ bool TMarkerTracker::Initialize()
   }
 
   if(conf_.DisplayResult)
+  {
     cv::namedWindow(conf_.WindowName,1);
+    cv_key_ = cv::waitKey (conf_.WaitKeyDelay);
+  }
 
   return true;
 }
@@ -696,6 +699,7 @@ bool TMarkerTracker::Step()
       DrawLine(draw_image_, best.P[i][0], best.P[i][1], best.P[(i+1)%4][0], best.P[(i+1)%4][1], 255, 0, (0==i?200:0), ((0==i||1==i)?10:2));
 
     cv::imshow(conf_.WindowName, draw_image_);
+    cv_key_ = cv::waitKey (conf_.WaitKeyDelay);
   }
 
   // static ofstream ofs_pest("res/pest.dat");

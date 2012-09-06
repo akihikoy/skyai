@@ -579,16 +579,16 @@ namespace var_space{
 
 //===========================================================================================
 //!\brief Marker tracker module
-class MMarkerTrackerModule
+class MMarkerTracker
     : public TModuleInterface
 //===========================================================================================
 {
 public:
-  typedef TModuleInterface       TParent;
-  typedef MMarkerTrackerModule   TThis;
-  SKYAI_MODULE_NAMES(MMarkerTrackerModule)
+  typedef TModuleInterface   TParent;
+  typedef MMarkerTracker     TThis;
+  SKYAI_MODULE_NAMES(MMarkerTracker)
 
-  MMarkerTrackerModule (const std::string &v_instance_name)
+  MMarkerTracker (const std::string &v_instance_name)
     : TParent        (v_instance_name),
       unobserved_count_ (0),
       slot_initialization   (*this),
@@ -624,8 +624,6 @@ protected:
   MAKE_SLOT_PORT(slot_step, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_finish, void, (void), (), TThis);
 
-//   MAKE_SIGNAL_PORT(signal_signal1, const TOutType& (const TInType &), TThis);  // optional
-
   //!\brief output number of consecutive observation failure
   MAKE_OUT_PORT(out_unobserved_count, const TInt&, (void), (), TThis);
 
@@ -636,7 +634,6 @@ protected:
   //!\brief output marker velocities (of position and rotation)
   MAKE_OUT_PORT(out_vel, const TRealVector&, (void), (), TThis);
 
-//   MAKE_IN_PORT(in_in1, const TOutType& (const TInType &), TThis);              // optional
 
   virtual void slot_initialization_exec (void)
     {
@@ -698,7 +695,7 @@ protected:
     }
 
 
-};  // end of MMarkerTrackerModule
+};  // end of MMarkerTracker
 //-------------------------------------------------------------------------------------------
 
 
@@ -713,7 +710,7 @@ public:
 
   TBioloidUnivTaskConfigurations (var_space::TVariableMap &mmap)
     :
-      ForwardSystemReward  (false)
+      ForwardSystemReward  (true)
     {
       Register(mmap);
     }

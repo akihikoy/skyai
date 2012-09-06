@@ -1,4 +1,4 @@
-// agent file for motion learning task of manoi01
+// agent file for motion learning task of bioloid
 
 include_once "task_crawling"
 include_once "ql_da"

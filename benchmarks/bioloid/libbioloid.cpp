@@ -73,6 +73,7 @@ namespace var_space{
     ADD( PrintResult                   );
     ADD( NumOfDisplayLines             );
     ADD( DisplayResult                 );
+    ADD( WaitKeyDelay                  );
     ADD( WindowName                    );
     #undef ADD
   }
@@ -83,7 +84,8 @@ namespace var_space{
 //-------------------------------------------------------------------------------------------
 SKYAI_ADD_MODULE(MBioloidEnvironment)
 SKYAI_ADD_MODULE(MMotionLearningTask)
-SKYAI_ADD_MODULE(MMarkerTrackerModule)
+SKYAI_ADD_MODULE(MMarkerTracker)
+SKYAI_ADD_MODULE(MBioloidUnivTask)
 //-------------------------------------------------------------------------------------------
 
 

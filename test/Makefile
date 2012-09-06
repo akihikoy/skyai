@@ -18,7 +18,7 @@
 ##-------------------------------------------------------------------------------------------
 TARGET_FLAG :=
 
-all     : l lcv s
+all     : l lcv s sb
 
 debug	: TARGET_FLAG :=debug
 debug	: all
@@ -34,5 +34,8 @@ lcv :
 
 s :
 	@(set -e; make -f Makefile_s $(TARGET_FLAG))
+
+sb :
+	@(set -e; make -f Makefile_sb $(TARGET_FLAG))
 
 ##------------------------------------------------------------------

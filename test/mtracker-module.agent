@@ -1,0 +1,9 @@
+module MTestMarkerTracker test_mt
+module MMarkerTracker mtracker
+
+connect test_mt.signal_initialization ,  mtracker.slot_initialization
+connect test_mt.signal_step ,  mtracker.slot_step
+
+test_mt.config ={
+    SleepTime= 0
+  }

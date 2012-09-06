@@ -1,16 +1,18 @@
-// agent file for motion learning task of bioloid
-// for 5-DoF
+// agent file for crawling task of bioloid using Q(lambda)-learning and DCOB-Q
 
-include_once "task_crawling"
+include "env_mt"
+include "task_mtcr"
 include_once "ql_da"
 
+make_task_mtcr(task,env,mtracker)
 module MTDDiscAct behavior
+include "cmn_dcob"
 
-include_once "cmn_dcob.1"
-include_once "cmn_da_param"
+connect  dcob.out_extract_proportional , env.in_ngnet_extract_proportional
 
 /// parameter setting:
 
+include "cmn_da_param"
 include_once "ks1"
 
 dcob.config ={
@@ -34,4 +36,3 @@ dcob.config ={
         [@]= 0
       }
   }
-

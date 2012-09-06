@@ -51,8 +51,7 @@ int main(int argc, char**argv)
     }
     else
       no_obs= 0;
-    int key = cv::waitKey (10);
-    if (key == 'q' || key == 'Q')
+    if (mtracker.Key() == 'q' || mtracker.Key() == 'Q')
       break;
   }
   return 0;

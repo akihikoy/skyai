@@ -12,7 +12,7 @@ core.[0-9]*
 
 trash
 frame
-test
+#test
 tst
 Makefile_libconf
 Makefile_preconf
@@ -22,5 +22,5 @@ liblora/docs/html
 libhmrl/docs/error-log.dat
 libhmrl/docs/html
 benchmarks/*/result
+test/res
 tutorial/*/result
-

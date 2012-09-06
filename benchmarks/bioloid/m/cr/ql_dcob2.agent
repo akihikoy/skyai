@@ -1,4 +1,4 @@
-// agent file for motion learning task of manoi01
+// agent file for motion learning task of bioloid
 // for 2-DoF
 
 include_once "task_crawling"
@@ -6,7 +6,7 @@ include_once "ql_da"
 
 module MTDDiscAct behavior
 
-include_once "cmn_dcob"
+include_once "cmn_dcob.1"
 include_once "cmn_da_param"
 
 /// parameter setting:

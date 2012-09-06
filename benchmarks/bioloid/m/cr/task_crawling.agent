@@ -1,6 +1,6 @@
 // crawling task definition
 
-include_once "env"
+include_once "env_old"
 
 module  MMotionLearningTask          task
 module  MSimpleAccumulator_TReal     sum_reward

@@ -1,0 +1,10 @@
+include "env"
+
+module MBioloidLearningEnvironment env
+
+// aggregate reward signal and eoe signal:
+module  MForwarder1_TReal  cmn_signal_reward
+module  MForwarder0        cmn_signal_end_of_episode
+
+connect  env.signal_reward  , cmn_signal_reward.slot_in
+connect  env.signal_end_of_episode  , cmn_signal_end_of_episode.slot_in

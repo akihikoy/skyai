@@ -7,6 +7,7 @@ behavior.config={
     UsingReplacingTrace = true
     Alpha = 0.3
     AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
     Gamma = 0.9
     Lambda = 0.9
     GradientMax = 1.0e+100

@@ -79,6 +79,7 @@ struct TMarkerTrackerConfig
   bool  PrintResult;
   int   NumOfDisplayLines;
   bool  DisplayResult;
+  int   WaitKeyDelay;
   std::string WindowName;
 
   TMarkerTrackerConfig() :
@@ -121,6 +122,7 @@ struct TMarkerTrackerConfig
       PrintResult(true),
       NumOfDisplayLines(100),
       DisplayResult(true),
+      WaitKeyDelay(5),
       WindowName("Marker Tracker")
     {
     }
@@ -202,6 +204,8 @@ public:
   int  ImageWidth() const {return image_width_;}
   int  ImageHeight() const {return image_height_;}
 
+  int  Key() const {return cv_key_;}
+
 private:
 
   TMarkerTrackerConfig conf_;
@@ -220,6 +224,8 @@ private:
   cv::VideoCapture  camera_;
   cv::Mat template_image_;
   cv::Mat draw_image_;
+
+  int cv_key_;
 
   Buffer *buffer_;
   EdgelDetector *edgel_detector_;
