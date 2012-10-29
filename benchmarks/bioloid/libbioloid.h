@@ -32,6 +32,8 @@
 #include <lora/small_classes.h>
 #include <lora/variable_space_impl.h>
 #include <lora/marker_tracker.h>
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -616,7 +618,9 @@ public:
 
   MMarkerTracker (const std::string &v_instance_name)
     : TParent        (v_instance_name),
-      unobserved_count_ (0),
+      thread_unobserved_count_(0),
+      thread_               (NULL),
+      thread_running_       (false),
       slot_initialization   (*this),
       slot_step             (*this),
       slot_finish           (*this),
@@ -625,6 +629,7 @@ public:
       out_rot               (*this),
       out_vel               (*this)
     {
+      mtracker_.Config().PrintResult= false;
       var_space::Register(mtracker_.Config(),TParent::param_box_config_map());
 
       add_slot_port (slot_initialization   );
@@ -636,15 +641,25 @@ public:
       add_out_port  (out_vel               );
     }
 
+  ~MMarkerTracker()
+    {
+      clear_thread();
+    }
+
 protected:
 
   marker_tracker::TMarkerTracker mtracker_;
 
-  int unobserved_count_;
+  int thread_unobserved_count_;
 
-  mutable TRealVector tmp_pos_;
-  mutable TRealMatrix tmp_rot_;
-  mutable TRealVector tmp_vel_;
+  mutable TRealVector thread_pos_;
+  mutable TRealMatrix thread_rot_;
+  mutable TRealVector thread_vel_;
+
+  boost::thread *thread_;
+  mutable boost::mutex mutex_;
+  bool thread_running_;
+
 
   MAKE_SLOT_PORT(slot_initialization, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_step, void, (void), (), TThis);
@@ -663,63 +678,119 @@ protected:
 
   virtual void slot_initialization_exec (void)
     {
-      mtracker_.Initialize();
+      initialize_mtracker();
     }
 
   virtual void slot_step_exec (void)
     {
-      if(mtracker_.Step())
-      {
-        if(!mtracker_.Observed())
-          ++unobserved_count_;
-        else if(mtracker_.EstimatedObservation().C[0]<0 || mtracker_.EstimatedObservation().C[0]>mtracker_.ImageWidth()
-          || mtracker_.EstimatedObservation().C[1]<0 || mtracker_.EstimatedObservation().C[1]>mtracker_.ImageHeight())
-          ++unobserved_count_;
-        else
-          unobserved_count_= 0;
-      }
-      else
-        ++unobserved_count_;
-      if(unobserved_count_>0)
-        LMESSAGE("unobserved count: "<<unobserved_count_);
+      boost::mutex::scoped_lock lock(mutex_);
+      if(thread_unobserved_count_>0)
+        LMESSAGE("unobserved count: "<<thread_unobserved_count_);
     }
 
   virtual void slot_finish_exec (void)
     {
+      clear_thread();
       mtracker_.Clear();
     }
 
   virtual const TInt& out_unobserved_count_get (void) const
     {
-      return unobserved_count_;
+      boost::mutex::scoped_lock lock(mutex_);
+      return thread_unobserved_count_;
     }
 
   virtual const TRealVector& out_pos_get (void) const
     {
-      tmp_pos_.resize(3);
-      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
-      std::copy(CVBegin(p.C),CVEnd(p.C),OctBegin(tmp_pos_));
-      return tmp_pos_;
+      boost::mutex::scoped_lock lock(mutex_);
+      return thread_pos_;
     }
 
   virtual const TRealMatrix& out_rot_get (void) const
     {
-      tmp_rot_.resize(3,3);
-      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
-      cv::Matx<double,3,3> Rt= p.R.t();
-      std::copy(CVBegin(Rt),CVEnd(Rt),OctBegin(tmp_rot_));
-      return tmp_rot_;
+      boost::mutex::scoped_lock lock(mutex_);
+      return thread_rot_;
     }
 
   virtual const TRealVector& out_vel_get (void) const
     {
-      tmp_vel_.resize(6);
-      const marker_tracker::TParticle &p(mtracker_.EstimatedState());
-      std::copy(CVBegin(p.V),CVEnd(p.V),OctBegin(tmp_vel_));
-      std::copy(CVBegin(p.W),CVEnd(p.W),OctBegin(tmp_vel_)+3);
-      return tmp_vel_;
+      boost::mutex::scoped_lock lock(mutex_);
+      return thread_vel_;
     }
 
+  void initialize_mtracker()
+    {
+      clear_thread();
+      mtracker_.Initialize();
+      LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+
+      thread_running_= true;
+      thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
+    }
+
+  void clear_thread()
+    {
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        thread_running_= false;
+      }
+      if(thread_)
+      {
+        thread_->join();
+        delete thread_;
+      }
+      thread_= NULL;
+    }
+
+  void run()
+    {
+      bool running(thread_running_);
+      int unobserved_count(0);
+      while(running)
+      {
+        if(mtracker_.Step())
+        {
+          if(!mtracker_.Observed())
+            ++unobserved_count;
+          else if(mtracker_.EstimatedObservation().C[0]<0 || mtracker_.EstimatedObservation().C[0]>mtracker_.ImageWidth()
+            || mtracker_.EstimatedObservation().C[1]<0 || mtracker_.EstimatedObservation().C[1]>mtracker_.ImageHeight())
+            ++unobserved_count;
+          else
+            unobserved_count= 0;
+        }
+        else
+          ++unobserved_count;
+
+        {
+          // locked copy process
+          boost::mutex::scoped_lock lock(mutex_);
+          running= thread_running_;
+          thread_unobserved_count_= unobserved_count;
+
+          const marker_tracker::TParticle &p(mtracker_.EstimatedState());
+
+          thread_pos_.resize(3);
+          std::copy(CVBegin(p.C),CVEnd(p.C),OctBegin(thread_pos_));
+
+          thread_rot_.resize(3,3);
+          cv::Matx<double,3,3> Rt= p.R.t();
+          std::copy(CVBegin(Rt),CVEnd(Rt),OctBegin(thread_rot_));
+
+          thread_vel_.resize(6);
+          std::copy(CVBegin(p.V),CVEnd(p.V),OctBegin(thread_vel_));
+          std::copy(CVBegin(p.W),CVEnd(p.W),OctBegin(thread_vel_)+3);
+        }
+
+        if((mtracker_.Key()&0xFF) =='R')
+        {
+          LMESSAGE("resetting marker-tracker..");
+          mtracker_.Initialize();
+          LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+        }
+
+        usleep(1000);
+      }
+    }
 
 };  // end of MMarkerTracker
 //-------------------------------------------------------------------------------------------

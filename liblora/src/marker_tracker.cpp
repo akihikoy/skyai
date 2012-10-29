@@ -728,6 +728,7 @@ void TMarkerTracker::Clear()
   edgel_detector_= NULL;
 
   cv::destroyWindow(conf_.WindowName);
+  camera_.release();
 }
 //-------------------------------------------------------------------------------------------
 
