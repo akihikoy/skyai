@@ -14,7 +14,7 @@ env.config ={
   }
 
 mtracker.config ={
-    MarkerFileName= "marker.png"
+    MarkerFileName= "m/marker.png"
   }
 
 // print env.config.DistanceSensorIndex

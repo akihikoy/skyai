@@ -27,6 +27,7 @@ OBJS := $(EXECS:.out=.o)
 ## for libbioloid
 LIBBIOLOID := $(SKYAI_BASE)/benchmarks/bioloid
 LIBOBJS := $(LIBBIOLOID)/libbioloid.o
+LDLIBS+=-lboost_thread
 ##-------------------------------------------------------------------------------------------
 USING_SKYAI_CV:=true
 MAKING_SKYAI:=true
