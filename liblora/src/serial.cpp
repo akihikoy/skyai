@@ -23,14 +23,13 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <lora/serial.h>
-#include <lora/string.h>
 //-------------------------------------------------------------------------------------------
-#include<cerrno>
-#include<cstdio>
-#include<unistd.h>
-#include<fcntl.h>
-
+#include <cerrno>
+#include <cstdio>
 #include <iostream>
+#include <sstream>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -64,7 +63,7 @@ using namespace std;
 // class TSerialCom : public TComBase
 //===========================================================================================
 
-override bool TSerialCom::Open(void)
+/*override*/bool TSerialCom::Open(void)
 {
   errno=0;
   if((fd = open(s_tty.c_str(), O_RDWR)) < 0)
@@ -106,7 +105,7 @@ override bool TSerialCom::Open(void)
 }
 //-------------------------------------------------------------------------------------------
 
-override bool TSerialCom::Close()
+/*override*/bool TSerialCom::Close()
 {
   if(fd != -1)
   {
@@ -118,7 +117,7 @@ override bool TSerialCom::Close()
 }
 //-------------------------------------------------------------------------------------------
 
-override int TSerialCom::Write(const void *buff,size_t size)
+/*override*/int TSerialCom::Write(const void *buff,size_t size)
 {
   errno=0;
   int res=write(fd, buff, size);
@@ -129,7 +128,7 @@ override int TSerialCom::Write(const void *buff,size_t size)
 }
 //-------------------------------------------------------------------------------------------
 
-override int TSerialCom::Read(void *buff,size_t size)
+/*override*/int TSerialCom::Read(void *buff,size_t size)
 {
   errno=0;
   int res;
@@ -139,6 +138,12 @@ override int TSerialCom::Read(void *buff,size_t size)
     perror("read");
   // cerr<<"dbg: TSerialCom::Read res= "<<res<<endl;
   return res;
+}
+//-------------------------------------------------------------------------------------------
+
+/*override*/void TSerialCom::Clear()
+{
+  tcflush(fd, TCIFLUSH);
 }
 //-------------------------------------------------------------------------------------------
 
@@ -208,7 +213,7 @@ FT_STATUS TUSBSerial::iFT_OpenEx(PVOID pArg1, DWORD Flags, FT_HANDLE *pHandle)
 }
 //-------------------------------------------------------------------------------------------
 
-override bool TUSBSerial::Open(void)
+/*override*/bool TUSBSerial::Open(void)
 {
   FT_STATUS  ftStatus;
   ftStatus = iFT_Open(device_num, &handle);
@@ -238,7 +243,7 @@ override bool TUSBSerial::Open(void)
 }
 //-------------------------------------------------------------------------------------------
 
-override bool TUSBSerial::Close(void)
+/*override*/bool TUSBSerial::Close(void)
 {
   is_opened= false;
   FT_STATUS ftStatus = FT_Close(handle);
@@ -251,7 +256,7 @@ override bool TUSBSerial::Close(void)
 }
 //-------------------------------------------------------------------------------------------
 
-override int TUSBSerial::Write(const void *buff, size_t size)
+/*override*/int TUSBSerial::Write(const void *buff, size_t size)
 {
   DWORD dwBytesWritten(0);
   FT_STATUS ftStatus = FT_Write(handle, const_cast<void*>(buff), size, &dwBytesWritten);
@@ -264,7 +269,7 @@ override int TUSBSerial::Write(const void *buff, size_t size)
 }
 //-------------------------------------------------------------------------------------------
 
-override int TUSBSerial::Read(void *buff, size_t size)
+/*override*/int TUSBSerial::Read(void *buff, size_t size)
 {
   DWORD dwBytesRead(0);
   FT_STATUS ftStatus = FT_Read(handle, buff, size, &dwBytesRead);
@@ -310,7 +315,9 @@ std::ostream& operator<< (std::ostream &lhs, const PrintVector &rhs)
 
 TStringWriteStream& TStringWriteStream::operator<< (const int &i)
 {
-  return operator<<(ConvertToStr(i).c_str());
+  stringstream ss;
+  ss<<i;
+  return operator<<(ss.str().c_str());
 }
 //-------------------------------------------------------------------------------------------
 
@@ -319,4 +326,3 @@ TStringWriteStream& TStringWriteStream::operator<< (const int &i)
 }  // end of namespace serial
 }  // end of namespace loco_rabbits
 //-------------------------------------------------------------------------------------------
-

@@ -28,6 +28,7 @@
 #include <skyai/skyai.h>
 #include <skyai/modules_core/univ_task.h>
 #include <lora/bioloid.h>
+#include <lora/sys.h>
 #include <lora/small_classes.h>
 #include <lora/variable_space_impl.h>
 #include <lora/marker_tracker.h>
@@ -36,6 +37,16 @@ namespace loco_rabbits
 {
 //-------------------------------------------------------------------------------------------
 
+enum TBioloidControllerKind
+  {
+    bckCM5=0,
+    bckUSB2Dynamixel
+  };
+ENUM_STR_MAP_BEGIN(TBioloidControllerKind)
+  ENUM_STR_MAP_ADD(bckCM5            )
+  ENUM_STR_MAP_ADD(bckUSB2Dynamixel  )
+ENUM_STR_MAP_END  (TBioloidControllerKind)
+SPECIALIZE_TVARIABLE_TO_ENUM(TBioloidControllerKind)
 
 //===========================================================================================
 class TBioloidEnvironmentConfigurations
@@ -43,7 +54,8 @@ class TBioloidEnvironmentConfigurations
 {
 public:
 
-  TString           SerialPort;
+  TString                 SerialPort;
+  TBioloidControllerKind  BioloidControllerKind;  //!< use bckCM5 for CM-5 (or CM-500)
   TIntVector        ActuatorIndexes;
   TIntVector        SensingAngleIndexes;
   TInt              DistanceSensorIndex;
@@ -57,7 +69,8 @@ public:
 
   TBioloidEnvironmentConfigurations (var_space::TVariableMap &mmap)
     :
-      SerialPort      ("/dev/ttyUSB0"),
+      SerialPort            ("/dev/ttyUSB0"),
+      BioloidControllerKind (bckUSB2Dynamixel),
       DistanceSensorIndex (-1),
       InitSleepTime   (2.0l),
       TimeStep        (0.1l),
@@ -160,8 +173,21 @@ public:
   void Setup ()
     {
       LMESSAGE("setup robot..");
-      bioloid_.Connect(conf_.SerialPort.c_str());
-      bioloid_.TossMode();
+      switch(conf_.BioloidControllerKind)
+      {
+      case bckCM5:
+        LMESSAGE("using CM5 controller.");
+        bioloid_.Connect(conf_.SerialPort.c_str());
+        bioloid_.TossMode();
+        break;
+      case bckUSB2Dynamixel:
+        LMESSAGE("using USB2Dynamixel controller.");
+        bioloid_.ConnectBS(conf_.SerialPort.c_str());
+        break;
+      default:
+        LERROR("Invalid BioloidControllerKind: "<<static_cast<int>(conf_.BioloidControllerKind));
+        lexit(df);
+      }
 
       LMESSAGE("start experiment..");
     }
