@@ -10,6 +10,7 @@
 core
 core.[0-9]*
 
+build
 trash
 frame
 #test

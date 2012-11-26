@@ -7,8 +7,8 @@ Copyright (C) 2009, 2010, 2011, 2012  Akihiko Yamaguchi
 \section Overview
 --------
 
-SkyAI (pronounced /skaI aI/) is a highly modularized Reinforcement
-Learning library for real and simulation robots to learn behaviors.
+SkyAI is a highly modularized Reinforcement Learning library for real
+and simulation robots to learn behaviors.
 Our ultimate goal is to develop an artificial intelligence (AI)
 program with which the robots can learn to behave as their users wish.
 

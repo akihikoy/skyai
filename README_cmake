@@ -1,0 +1,47 @@
+* Installation using CMake
+Note: using CMake is tentative.
+
+** Requirements
+- CMake
+- cmake-gui, ccmake, etc. (option)
+
+** Installation
+In SkyAI's base directory, execute commands as follows:
+$ mkdir build
+$ cd build
+$ ccmake ..
+
+Here, you can use some alternatives of cmake.  cmake-gui is a good alternative for beginners.
+
+[Case of using ccmake]
+- Run Configure (press c key).
+- (Read message, then press e key).
+- Change variables:
+  BUILD_*: Default values are OK.
+  CMAKE_INSTALL_PREFIX: /home/your-account/local  (recommended).
+  ODE_BUILD_DIR or ODE_INSTALL_DIR: If you built ODE without installation (without executing "make install"), specify the build path (path to the base directory of ODE) in ODE_BUILD_DIR; in this case, keep ODE_INSTALL_DIR blank.  Otherwise, specify the install directory (/usr, /usr/local, etc.) in ODE_INSTALL_DIR.
+- Run Generate (press g key).
+- (Exit ccmake).
+
+Make the project:
+$ make
+
+# If you want to install the project, execute:
+# $ make install
+# but, this is optional; you can use the program without this process; see "Using SkyAI on the build directory" to use.
+# After executing "make install", the programs and the supplementary files are installed into CMAKE_INSTALL_PREFIX.  See "Using SkyAI on the install directory" to use.
+
+** Using SkyAI on the build directory
+Go to the build directory, then execute:
+$ cd benchmarks
+$ cd maze2d
+$ ./maze2d.out -path ../cmn,m -agent ql_da1
+The other usages are written in skyai.org.
+
+** Using SkyAI on the install directory
+Go to the binary directory (CMAKE_INSTALL_PREFIX/bin), then execute:
+$ cd skyai
+$ cd maze2d
+$ ./maze2d.out -path ../cmn,m -agent ql_da1
+The other usages are written in skyai.org.
+
