@@ -39,6 +39,8 @@ namespace marker_tracker
 
 struct TMarkerTrackerConfig
 {
+  int   CameraDeviceID;
+
   std::string MarkerFileName;
   double MarkerDetectionThreshold;
 
@@ -83,6 +85,7 @@ struct TMarkerTrackerConfig
   std::string WindowName;
 
   TMarkerTrackerConfig() :
+      CameraDeviceID(0),
       MarkerFileName("marker.png"),
       MarkerDetectionThreshold(0.8),
       NumOfParticles(10000),

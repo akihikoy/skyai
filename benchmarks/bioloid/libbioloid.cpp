@@ -33,6 +33,8 @@ namespace var_space{
   void Register (marker_tracker::TMarkerTrackerConfig &x, TVariableMap &mmap)
   {
     #define ADD(x_member)  AddToVarMap(mmap, #x_member, x.x_member)
+    ADD( CameraDeviceID                );
+
     ADD( MarkerFileName                );
     ADD( MarkerDetectionThreshold      );
 

@@ -576,7 +576,7 @@ bool TMarkerTracker::Initialize()
 
   generate_particles(particles_, conf_.NumOfParticles);
 
-  camera_.open(0);
+  camera_.open(conf_.CameraDeviceID);
   if(!camera_.isOpened())
   {
     LERROR("no camera!");
