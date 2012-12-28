@@ -4,8 +4,8 @@ link_directories (${SKYAI_LIBRARY_DIRS})
 
 add_library (maze2d SHARED libmaze2d.cpp)
 
-add_executable (maze2d.out maze2d.cpp)
-target_link_libraries (maze2d.out maze2d ${SKYAI_LIBRARIES})
+add_library (maze2d_main SHARED maze2d.cpp)
+target_link_libraries (maze2d_main maze2d ${SKYAI_LIBRARIES})
 
 execute_process (COMMAND
     ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/m
@@ -13,6 +13,6 @@ execute_process (COMMAND
   )
 
 install (TARGETS maze2d LIBRARY DESTINATION lib/skyai)
-install (TARGETS maze2d.out DESTINATION bin/skyai/maze2d)
+install (TARGETS maze2d_main LIBRARY DESTINATION lib/skyai)
 install (DIRECTORY m/ DESTINATION bin/skyai/maze2d/m
     FILES_MATCHING PATTERN "*.agent" PATTERN "*.dat")

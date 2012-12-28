@@ -1,0 +1,14 @@
+add_path "../libskyai"
+add_path "../benchmarks/cmn"
+load "libskyai_mstd"
+load "libskyai_mcore"
+
+include "ql_da"
+
+module MTDDiscAct behavior
+module MTestX test
+
+// connect test.signal_start , behavior.slot_initialize
+
+dump1 "lib_list" ""
+// dump1 "agent" ""

@@ -43,3 +43,11 @@ include_directories(${SKYAI_INCLUDE_DIRS})
 link_directories (${SKYAI_LIBRARY_DIRS})
 add_skyai_executable(mtracker-module bioloid)
 
+
+use_skyai(oct)
+set(SKYAI_LIBRARY_DIRS ${SKYAI_LIBRARY_DIRS} ${SKYAI_LIBRARY_DIR})
+include_directories(${SKYAI_INCLUDE_DIRS})
+link_directories (${SKYAI_LIBRARY_DIRS})
+add_skyai_executable(load-lib skyai)
+# NOTE: libskyai is linked, but libskyai_mcore and libskyai_mstd are not linked
+

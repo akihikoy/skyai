@@ -109,9 +109,10 @@ private:
 
   TMap  module_generators_;
 
-  TModuleManager() {};
+  TModuleManager() {}
   TModuleManager(const TModuleManager&);
-  ~TModuleManager() {};
+  ~TModuleManager() {}
+  const TModuleManager& operator=(const TModuleManager&);
 
   static TModuleManager& instance()
     {

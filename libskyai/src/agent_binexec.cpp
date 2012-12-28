@@ -25,6 +25,7 @@
 #include <skyai/agent_binexec.h>
 #include <skyai/agent_writer.h>
 #include <skyai/agent_parser.h>
+#include <lora/sys.h>  // DLOpen
 //-------------------------------------------------------------------------------------------
 #include <boost/bind.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -42,6 +43,50 @@ inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_p
 //===========================================================================================
 // class TBinExecutor
 //===========================================================================================
+
+bool TBinExecutor::OnAddPath (const std::string &dir_name)
+{
+  using namespace boost::filesystem;
+  if (path_list_==NULL)
+  {
+    print_error("add_path: failed because path-list is not assigned to the TBinExecutor's instance");
+    return false;
+  }
+  boost::filesystem::path absolute_dir;
+  if(!search_file(dir_name,absolute_dir))
+    path_list_->push_back (complete(path(dir_name,native)));
+  else
+    path_list_->push_back (absolute_dir);
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TBinExecutor::OnLoadLibrary (const std::string &file_name)
+{
+  boost::filesystem::path absolute_path;
+  if (!search_library_file(file_name,absolute_path))
+  {
+    print_error("load: failed because the library not found");
+    return false;
+  }
+  if (DLOpen(absolute_path.file_string().c_str())==NULL)
+  {
+    print_error("load: failed to load: "+absolute_path.file_string());
+    return false;
+  }
+  LMESSAGE("loaded library: "<<absolute_path.file_string());
+  if (lib_list_)
+  {
+    lib_list_->push_back(file_name);
+  }
+  else
+  {
+    print_error("load: failed because mod-list is not assigned to the TBinExecutor's instance");
+    return false;
+  }
+  return true;
+}
+//-------------------------------------------------------------------------------------------
 
 bool TBinExecutor::OnInclude (const std::string &file_name, std::string &abs_file_name, bool once)
 {
@@ -61,27 +106,30 @@ bool TBinExecutor::OnInclude (const std::string &file_name, std::string &abs_fil
 }
 //-------------------------------------------------------------------------------------------
 
-bool TBinExecutor::search_agent_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path) const
+bool TBinExecutor::search_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension) const
 {
   using namespace boost::filesystem;
   if (file_path.is_complete())
   {
     if (exists((absolute_path= file_path)))  return true;
-    if (exists((absolute_path= file_path.parent_path()/(file_path.filename()+"."SKYAI_DEFAULT_AGENT_SCRIPT_EXT))))  return true;
+    if (extension && exists((absolute_path= file_path.parent_path()/(file_path.filename()+extension))))  return true;
     return false;
   }
 
   if (exists((absolute_path= current_dir_/file_path)))  return true;
-  if (exists((absolute_path= current_dir_/file_path+"."SKYAI_DEFAULT_AGENT_SCRIPT_EXT)))  return true;
+  if (extension && exists((absolute_path= current_dir_/file_path+extension)))  return true;
 
   if (path_list_==NULL)  return false;
 
   path  tmp_path(file_path);
   for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
     if (exists((absolute_path= *ditr/tmp_path)))  return true;
-  tmp_path= file_path+"."SKYAI_DEFAULT_AGENT_SCRIPT_EXT;
-  for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
-    if (exists((absolute_path= *ditr/tmp_path)))  return true;
+  if (extension)
+  {
+    tmp_path= file_path+extension;
+    for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
+      if (exists((absolute_path= *ditr/tmp_path)))  return true;
+  }
   return false;
 }
 //-------------------------------------------------------------------------------------------
@@ -847,12 +895,15 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std:
   executor.SetIncludedList(included_list);
   executor.SetIgnoreExport(false);
 
-  executor.SetPathList(cmodule.Agent().PathListPtr());
+  executor.SetPathList(&cmodule.Agent().PathList());
+  executor.SetLibList(&cmodule.Agent().LibList());
   executor.SetCmpModuleGenerator(&cmodule.Agent().CompositeModuleGenerator());
   executor.SetFunctionManager(&cmodule.Agent().FunctionManager());
 
   TParserCallbacks callbacks;
   callbacks.OnEndOfLine= boost::bind(&partially_execute,&executor,&bin_stack,_1,_2,_3);
+  callbacks.OnAddPath= boost::bind(&TBinExecutor::OnAddPath,&executor,_1);
+  callbacks.OnLoadLibrary= boost::bind(&TBinExecutor::OnLoadLibrary,&executor,_1);
   callbacks.OnInclude= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,false);
   callbacks.OnIncludeOnce= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,true);
   if(ParseFile(file_path.file_string(),bin_stack,callbacks))
@@ -879,7 +930,8 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, va
   executor.SetIncludedList(NULL);
   executor.SetIgnoreExport(ignore_export);
 
-  executor.SetPathList(cmodule.Agent().PathListPtr());
+  executor.SetPathList(&cmodule.Agent().PathList());
+  executor.SetLibList(&cmodule.Agent().LibList());
   executor.SetCmpModuleGenerator(&cmodule.Agent().CompositeModuleGenerator());
   executor.SetFunctionManager(&cmodule.Agent().FunctionManager());
 

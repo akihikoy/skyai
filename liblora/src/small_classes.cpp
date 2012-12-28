@@ -60,6 +60,7 @@ using namespace std;
 //-------------------------------------------------------------------------------------------
 
 TOptionParser::TOptionParser (int argc, const char *const*const argv)
+  : argc_(argc), argv_(argv)
 {
   stringstream ss;
   SaveArguments (argc, argv, ss);
@@ -73,6 +74,7 @@ TOptionParser::TOptionParser (int argc, const char *const*const argv)
         strings like "x x" or 'y y' are recognized as a single word
   \note backslash \\ escapes a following letter */
 TOptionParser::TOptionParser (const std::string &argline)
+  : argc_(0), argv_(NULL)
 {
   cmd_line= argline;
 
@@ -129,6 +131,7 @@ TOptionParser::TOptionParser (const std::string &argline)
     *ptr= itr->c_str();
   parse_from_arglist (argc, argv);
   delete[] argv; argv=NULL;
+  argc_= argc;
 }
 //-------------------------------------------------------------------------------------------
 

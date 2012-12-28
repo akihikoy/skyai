@@ -64,6 +64,10 @@ static const char * const SKYAI_EXT_STORAGE_DIR ("ext_sto");
     so that "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT can indicate ".agent" */
 #define SKYAI_DEFAULT_AGENT_SCRIPT_EXT  "agent"
 //-------------------------------------------------------------------------------------------
+#ifndef SKYAI_DEFAULT_LIBRARY_EXT
+#define SKYAI_DEFAULT_LIBRARY_EXT "so"
+#endif
+//-------------------------------------------------------------------------------------------
 
 class  TPortInterface;
 class  TModuleInterface;
@@ -79,6 +83,7 @@ ENUM_STR_MAP_BEGIN(TPortKind)
   ENUM_STR_MAP_ADD(pkSignal  )
   ENUM_STR_MAP_ADD(pkSlot    )
 ENUM_STR_MAP_END  (TPortKind)
+//-------------------------------------------------------------------------------------------
 
 struct TPortInfo
 {
@@ -1016,7 +1021,11 @@ public:
 
   std::list<boost::filesystem::path>*  PathListPtr()  {return path_list_;}
   const std::list<boost::filesystem::path>*  PathListPtr() const {return path_list_;}
+  std::list<boost::filesystem::path>&  PathList()  {return SetPathList();}
   std::list<boost::filesystem::path>&  SetPathList();
+
+  std::list<std::string>&  LibList()  {return lib_list_;}
+  const std::list<std::string>&  LibList() const {return lib_list_;}
 
 
   TCompositeModuleGenerator& CompositeModuleGenerator()  {return cmp_module_generator_;}
@@ -1080,6 +1089,7 @@ protected:
 
   boost::filesystem::path  *current_dir_;
   std::list<boost::filesystem::path>  *path_list_;
+  std::list<std::string>              lib_list_;
 
 };
 //-------------------------------------------------------------------------------------------

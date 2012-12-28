@@ -17,6 +17,12 @@ include_directories(${SKYAI_INCLUDE_DIRS})
 add_library (skyai_mstd SHARED ${skyai_mstd_srcs})
 install (TARGETS skyai_mstd LIBRARY DESTINATION lib/skyai)
 ##------------------------------------------------------------------
+use_skyai(skyai)
+include_directories(${SKYAI_INCLUDE_DIRS})
+add_executable (general_agent.out src/execs/general_agent.cpp)
+target_link_libraries (general_agent.out ${SKYAI_LIBRARIES})
+install (TARGETS general_agent.out DESTINATION bin/skyai)
+##------------------------------------------------------------------
 install (DIRECTORY include/ DESTINATION include/skyai
     FILES_MATCHING PATTERN "*.h")
 ##------------------------------------------------------------------

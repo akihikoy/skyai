@@ -219,8 +219,6 @@ function(use_skyai)
     set(L_LIBRARIES
         ${L_LIBRARIES}
         skyai
-        skyai_mcore
-        skyai_mstd
       )
   endif()
 
