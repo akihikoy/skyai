@@ -41,8 +41,7 @@ int main(int argc,char**argv)
 
   TAgent  agent;
   std::ofstream debug;
-  std::list<std::string> included_list;
-  if (!ParseCmdLineOption(agent, option, debug, &included_list,/*agent_option_required=*/true))  return 0;
+  if (!ParseCmdLineOption(agent, option, debug))  return 0;
 
   // agent.SaveToFile (agent.GetDataFileName("after.agent"),"after-");
   agent.SaveToFile (boost::filesystem::complete("after.agent").file_string(),"after-");

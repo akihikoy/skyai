@@ -678,7 +678,12 @@ protected:
 
   virtual void slot_initialization_exec (void)
     {
+      clear_thread();
+
       initialize_mtracker();
+
+      thread_running_= true;
+      thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
     }
 
   virtual void slot_step_exec (void)
@@ -720,12 +725,14 @@ protected:
 
   void initialize_mtracker()
     {
-      clear_thread();
+      const std::string tmp_file_name(mtracker_.Config().MarkerFileName);
+      std::string  marker_file_name(Agent().SearchFileName(mtracker_.Config().MarkerFileName));
+      if (marker_file_name=="")
+        {LERROR("Marker file "<<mtracker_.Config().MarkerFileName<<" does not exist!"); lexit(df);}
+      mtracker_.Config().MarkerFileName= marker_file_name;
       mtracker_.Initialize();
+      mtracker_.Config().MarkerFileName= tmp_file_name;
       LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
-
-      thread_running_= true;
-      thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
     }
 
   void clear_thread()
@@ -784,7 +791,7 @@ protected:
         if((mtracker_.Key()&0xFF) =='R')
         {
           LMESSAGE("resetting marker-tracker..");
-          mtracker_.Initialize();
+          initialize_mtracker();
           LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
         }
 

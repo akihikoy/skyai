@@ -1,0 +1,21 @@
+// environment with marker tracker
+include "env"
+
+module MBioloidLearningEnvironment env
+module MMarkerTracker mtracker
+module MRemoveSignalArguments_TReal    start_of_timestep
+
+connect env.signal_initialization ,  mtracker.slot_initialization
+connect env.signal_start_of_timestep ,  start_of_timestep.slot_in
+connect start_of_timestep.signal_out ,  mtracker.slot_step
+
+env.config ={
+    DistanceSensorIndex= -1
+  }
+
+mtracker.config ={
+    CameraDeviceID= 0
+    MarkerFileName= "bioloid/marker.png"
+  }
+
+// print env.config.DistanceSensorIndex

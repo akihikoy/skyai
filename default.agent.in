@@ -1,0 +1,7 @@
+// default agent file for install dir
+add_path "${CMAKE_INSTALL_PREFIX}/lib/skyai"
+add_path "${CMAKE_INSTALL_PREFIX}/share/skyai/agents"
+add_path "${CMAKE_INSTALL_PREFIX}/share/skyai/agents/cmn"
+
+load "libskyai_mcore"
+load "libskyai_mstd"

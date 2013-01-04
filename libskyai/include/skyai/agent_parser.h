@@ -56,7 +56,9 @@ struct TParserCallbacks
   TGetFilePath   OnIncludeOnce;  //!< this callback should assign "" to abs_file_name if file_name is already loaded
 };
 
-bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks());
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks(), bool no_msg=false);
+
+bool ParseScript (const std::string &script, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name="-", bool no_msg=false);
 
 
 //-------------------------------------------------------------------------------------------

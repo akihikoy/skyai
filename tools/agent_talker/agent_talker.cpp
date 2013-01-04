@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
+#define USING_GNU_READLINE  //! TODO: should be put in skyai_config.h
+//-------------------------------------------------------------------------------------------
 #include <skyai/utility.h>
 #include <skyai/skyai.h>
 #include <lora/small_classes.h>
@@ -52,11 +54,7 @@ void readline_str(std::string &line, const std::string &prompt=">> ")
 }
 //-------------------------------------------------------------------------------------------
 using namespace std;
-// using namespace boost;
 using namespace loco_rabbits;
-//-------------------------------------------------------------------------------------------
-// #define print(var) PrintContainer((var), #var"= ")
-// #define print(var) std::cout<<#var"= "<<(var)<<std::endl
 //-------------------------------------------------------------------------------------------
 
 int main(int argc, char**argv)
@@ -65,8 +63,9 @@ int main(int argc, char**argv)
 
   TAgent  agent;
   std::ofstream debug;
-  std::list<std::string> included_list;
-  if (!ParseCmdLineOption (agent, option, debug, &included_list,/*agent_option_required=*/false))  return 0;
+  if (!ParseCmdLineOption (agent, option, debug))  return 0;
+
+  exitlv::ChangeDefault(exitlv::th);
 
   string script;
   while (true)
@@ -95,10 +94,17 @@ int main(int argc, char**argv)
       }
       if (line=="exit" || line=="quit" || line=="q")  break;
     }
-    if (script!="")
+    try
     {
-      agent.ExecuteScript(script, agent.Modules(), &included_list, /*file_name=*/"stdin");
-      script= "";
+      if (script!="")
+      {
+        agent.ExecuteScript(script, agent.Modules(), /*ignore_export=*/false, /*file_name=*/"stdin");
+        script= "";
+      }
+    }
+    catch(...)
+    {
+      std::cerr<<"(exception trapped. continue...)"<<std::endl;
     }
   }
 

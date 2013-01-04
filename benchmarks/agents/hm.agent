@@ -1,0 +1,3 @@
+add_path "humanoid01"
+load "libhumanoid01"
+load "libhumanoid01_main"

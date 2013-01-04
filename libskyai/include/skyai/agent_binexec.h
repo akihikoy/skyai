@@ -266,7 +266,9 @@ protected:
 //===========================================================================================
 
 /*!\brief load modules, connections, configurations from the file [file_name] */
-bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std::list<std::string> *included_list=NULL);
+bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule);
+
+bool ExecuteScript (const std::string &script, TCompositeModule &cmodule, bool ignore_export, const std::string &file_name="-");
 
 bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, var_space::TLiteralTable *literal_table=NULL, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 

@@ -676,8 +676,8 @@ public:
   bool WriteToBinary (TBinaryStack &bstack, bool ext_sto_available=false) const;
     // defined in agent_writer.cpp
 
-  //! see comments of TAgent::LoadFromFile
-  bool LoadFromFile (const std::string &file_name, std::list<std::string> *included_list=NULL);
+  /*!\brief load modules, connections, configurations from the file [file_name] (native path format) */
+  bool LoadFromFile (const std::string &file_name);
     // defined in agent_binexec.cpp
 
 
@@ -1002,10 +1002,8 @@ public:
     {modules_.ForEachSubConnection(f);}
 
 
-  /*!\brief load modules, connections, configurations from the file [filename] (native path format)
-      \param [in,out]included_list  :  included full-path (native) list
-      \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
-  bool LoadFromFile (const std::string &filename, std::list<std::string> *included_list=NULL);
+  /*!\brief load modules, connections, configurations from the file [filename] (native path format) */
+  bool LoadFromFile (const std::string &file_name);
     // defined in agent_binexec.cpp
 
   /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
@@ -1027,6 +1025,9 @@ public:
   std::list<std::string>&  LibList()  {return lib_list_;}
   const std::list<std::string>&  LibList() const {return lib_list_;}
 
+  std::list<std::string>&  IncludedList()  {return included_list_;}
+  const std::list<std::string>&  IncludedList() const {return included_list_;}
+
 
   TCompositeModuleGenerator& CompositeModuleGenerator()  {return cmp_module_generator_;}
   const TCompositeModuleGenerator& CompositeModuleGenerator() const {return cmp_module_generator_;}
@@ -1038,8 +1039,8 @@ public:
           TCompositeModule &context_cmodule, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 
   bool ExecuteScript(
-          const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list=NULL,
-          const std::string &file_name="-", int start_line_num=1, bool ignore_export=false);
+          const std::string &script, TCompositeModule &context_cmodule,
+          bool ignore_export=false, const std::string &file_name="-");
     // defined in agent_binexec.cpp
 
   /*!\brief search filename from the path-list, return the native path
@@ -1087,9 +1088,10 @@ protected:
   TCompositeModuleGenerator  cmp_module_generator_;
   TFunctionManager           function_manager_;
 
-  boost::filesystem::path  *current_dir_;
+  boost::filesystem::path             *current_dir_;
   std::list<boost::filesystem::path>  *path_list_;
-  std::list<std::string>              lib_list_;
+  std::list<std::string>              lib_list_;  //!< loaded libraries
+  std::list<std::string>              included_list_;  //!< included agent scripts
 
 };
 //-------------------------------------------------------------------------------------------

@@ -107,6 +107,10 @@ bool DirectoryExists (const std::string &dirname);
 bool CreateDirectory (const std::string &dirname, mode_t mode=0755);
 //-------------------------------------------------------------------------------------------
 
+/*! \brief Get the executable's absolute-path */
+std::string GetExecutablePath ();
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 class TKBHit

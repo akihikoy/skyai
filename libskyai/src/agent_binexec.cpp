@@ -869,9 +869,31 @@ static void partially_execute(TBinExecutor *executor, TBinaryStack *bin_stack, c
 }
 //-------------------------------------------------------------------------------------------
 
+
+void parse_and_execute_setup (TBinExecutor &executor, TBinaryStack &bin_stack, TParserCallbacks &callbacks, TCompositeModule &cmodule)
+{
+  executor.PushCmpModule(cmodule);
+  executor.SetBinStack(&bin_stack);
+  executor.SetLiteralTable(NULL);
+
+  executor.SetIncludedList(&cmodule.Agent().IncludedList());
+
+  executor.SetPathList(&cmodule.Agent().PathList());
+  executor.SetLibList(&cmodule.Agent().LibList());
+  executor.SetCmpModuleGenerator(&cmodule.Agent().CompositeModuleGenerator());
+  executor.SetFunctionManager(&cmodule.Agent().FunctionManager());
+
+  callbacks.OnEndOfLine= boost::bind(&partially_execute,&executor,&bin_stack,_1,_2,_3);
+  callbacks.OnAddPath= boost::bind(&TBinExecutor::OnAddPath,&executor,_1);
+  callbacks.OnLoadLibrary= boost::bind(&TBinExecutor::OnLoadLibrary,&executor,_1);
+  callbacks.OnInclude= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,false);
+  callbacks.OnIncludeOnce= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,true);
+}
+//-------------------------------------------------------------------------------------------
+
 //===========================================================================================
 /*!\brief load modules, connections, configurations from the file [file_name] */
-bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std::list<std::string> *included_list)
+bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule)
 //===========================================================================================
 {
   boost::filesystem::path file_path
@@ -880,33 +902,41 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std:
   if (boost::filesystem::exists(file_path) && boost::filesystem::is_empty(file_path))  // if file is empty...
     return true;
 
-  if (included_list!=NULL && std::find(included_list->begin(),included_list->end(),file_path.file_string())==included_list->end())
-    included_list->push_back(file_path.file_string());
+  std::list<std::string> &included_list(cmodule.Agent().IncludedList());
+  if (std::find(included_list.begin(),included_list.end(),file_path.file_string())==included_list.end())
+    included_list.push_back(file_path.file_string());
 
   TBinExecutor executor;
-
   TBinaryStack bin_stack;
+  TParserCallbacks callbacks;
 
-  executor.PushCmpModule(cmodule);
-  executor.SetBinStack(&bin_stack);
-  executor.SetLiteralTable(NULL);
-
+  parse_and_execute_setup(executor, bin_stack, callbacks, cmodule);
   executor.SetCurrentDir(file_path.parent_path());
-  executor.SetIncludedList(included_list);
   executor.SetIgnoreExport(false);
 
-  executor.SetPathList(&cmodule.Agent().PathList());
-  executor.SetLibList(&cmodule.Agent().LibList());
-  executor.SetCmpModuleGenerator(&cmodule.Agent().CompositeModuleGenerator());
-  executor.SetFunctionManager(&cmodule.Agent().FunctionManager());
-
-  TParserCallbacks callbacks;
-  callbacks.OnEndOfLine= boost::bind(&partially_execute,&executor,&bin_stack,_1,_2,_3);
-  callbacks.OnAddPath= boost::bind(&TBinExecutor::OnAddPath,&executor,_1);
-  callbacks.OnLoadLibrary= boost::bind(&TBinExecutor::OnLoadLibrary,&executor,_1);
-  callbacks.OnInclude= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,false);
-  callbacks.OnIncludeOnce= boost::bind(&TBinExecutor::OnInclude,&executor,_1,_2,true);
   if(ParseFile(file_path.file_string(),bin_stack,callbacks))
+  {
+    partially_execute(&executor,&bin_stack,file_name,-1,false);
+      //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
+    executor.PopCmpModule();
+    LASSERT(executor.CmpModuleStackSize()==0);
+    return !executor.Error();
+  }
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+
+bool ExecuteScript (const std::string &script, TCompositeModule &cmodule, bool ignore_export, const std::string &file_name)
+{
+  TBinExecutor executor;
+  TBinaryStack bin_stack;
+  TParserCallbacks callbacks;
+
+  parse_and_execute_setup(executor, bin_stack, callbacks, cmodule);
+  executor.SetCurrentDir(cmodule.Agent().CurrentDir());
+  executor.SetIgnoreExport(ignore_export);
+
+  if(ParseScript(script, bin_stack, callbacks, file_name))
   {
     partially_execute(&executor,&bin_stack,file_name,-1,false);
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
@@ -927,7 +957,7 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, va
   executor.SetLiteralTable(literal_table);
 
   executor.SetCurrentDir(cmodule.Agent().CurrentDir());
-  executor.SetIncludedList(NULL);
+  executor.SetIncludedList(&cmodule.Agent().IncludedList());
   executor.SetIgnoreExport(ignore_export);
 
   executor.SetPathList(&cmodule.Agent().PathList());
@@ -943,12 +973,6 @@ bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, va
   return !executor.Error();
 }
 //-------------------------------------------------------------------------------------------
-
-
-/*FIXME bool ExecuteScript(const std::string &exec_script,
-      const boost::filesystem::path &current_dir, const std::string &file_name,
-      TAgentParserInfoIn &in, TAgentParserInfoOut &out) */
-
 
 /*!\brief write the binary bin_stack into a stream os in the agent script format */
 bool WriteBinary (const TBinaryStack &bin_stack, std::ostream &os, int indent)
@@ -972,21 +996,19 @@ bool WriteBinary (const TBinaryStack &bin_stack, std::ostream &os, int indent)
 
 
 //===========================================================================================
-bool TCompositeModule::LoadFromFile(const std::string &file_name, std::list<std::string> *included_list)
+bool TCompositeModule::LoadFromFile(const std::string &file_name)
 //===========================================================================================
 {
-  return agent_parser::LoadFromFile(file_name, *this, included_list);
+  return agent_parser::LoadFromFile(file_name, *this);
 }
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-/*!\brief load modules, connections, configurations from the file [filename] (native path format)
-    \param [in,out]included_list  :  included full-path (native) list
-    \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
-bool TAgent::LoadFromFile (const std::string &file_name, std::list<std::string> *included_list)
+/*!\brief load modules, connections, configurations from the file [filename] (native path format) */
+bool TAgent::LoadFromFile (const std::string &file_name)
 //===========================================================================================
 {
-  return agent_parser::LoadFromFile(file_name, Modules(), included_list);
+  return agent_parser::LoadFromFile(file_name, Modules());
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1048,26 +1070,13 @@ bool TFunctionManager::ExecuteFunction(
 
 //===========================================================================================
 bool TAgent::ExecuteScript(
-        const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list,
-        const std::string &file_name, int start_line_num, bool ignore_export)
+        const std::string &script, TCompositeModule &context_cmodule,
+        bool ignore_export, const std::string &file_name)
 //===========================================================================================
 {
-return true;
-  // TAgentParserInfoIn  in(context_cmodule);
-  // TAgentParserInfoOut out;
-  // TAgentParseMode parse_mode;
-  // parse_mode.NoExport= ignore_export;
-  // in.ParseMode          = parse_mode;
-  // in.StartLineNum       = start_line_num;
-  // in.PathList           = path_list_;
-  // in.IncludedList       = included_list;
-  // in.CmpModuleGenerator = &cmp_module_generator_;
-  // in.FunctionManager    = &function_manager_;
-
-  // return loco_rabbits::ExecuteScript(exec_script,  boost::filesystem::current_path(), file_name, in, out);
+  return agent_parser::ExecuteScript(script, context_cmodule, ignore_export, file_name);
 }
 //-------------------------------------------------------------------------------------------
-
 
 
 //-------------------------------------------------------------------------------------------

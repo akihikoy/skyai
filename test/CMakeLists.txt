@@ -1,3 +1,5 @@
+# CMakeLists.txt for test codes
+
 # usage: add_skyai_executable(file_prefix [extra_libs])
 function(add_skyai_executable file_prefix)
   add_executable (${file_prefix}.out ${file_prefix}.cpp)
@@ -41,7 +43,7 @@ endif()
 use_skyai(skyai cv)
 include_directories(${SKYAI_INCLUDE_DIRS})
 link_directories (${SKYAI_LIBRARY_DIRS})
-add_skyai_executable(mtracker-module bioloid)
+add_skyai_executable(mtracker-module)
 
 
 use_skyai(oct)
