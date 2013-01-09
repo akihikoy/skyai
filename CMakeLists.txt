@@ -37,9 +37,13 @@ set (BUILD_SKYAI ON CACHE BOOL "Build libskyai")
 set (BUILD_BENCHMARKS ON CACHE BOOL "Build benchmarks")
 set (BUILD_TOOLS ON CACHE BOOL "Build tools")
 set (BUILD_TEST OFF CACHE BOOL "Build test")
-
-
+##-------------------------------------------------------------------------------------------
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib/skyai)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib/skyai)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/skyai)
+##-------------------------------------------------------------------------------------------
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/materials/cmake)
+##-------------------------------------------------------------------------------------------
 include(UseSkyAI)
 
 if (BUILD_3RDPARTY)
@@ -50,7 +54,7 @@ if (BUILD_LORA)
 endif()
 if (BUILD_SKYAI)
   add_subdirectory (libskyai)
-  configure_file(test.agent.in ${PROJECT_BINARY_DIR}/libskyai/default.agent)
+  configure_file(test.agent.in ${PROJECT_BINARY_DIR}/bin/skyai/default.agent)
   configure_file(default.agent.in ${PROJECT_BINARY_DIR}/default.agent)
   install (FILES ${PROJECT_BINARY_DIR}/default.agent DESTINATION bin/skyai)
 endif()
@@ -63,4 +67,4 @@ endif()
 if (BUILD_TEST)
   add_subdirectory (test)
 endif()
-
+##-------------------------------------------------------------------------------------------

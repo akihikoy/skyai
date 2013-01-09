@@ -52,8 +52,9 @@ if (BUILD_BENCHMARKS_bioloid)
 endif()
 
 # for testing in the build directory
-execute_process (COMMAND
-    ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/agents
+execute_process (
+    COMMAND mkdir -p share/skyai
+    COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/agents share/skyai/
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   )
 

@@ -1,15 +1,14 @@
+##------------------------------------------------------------------
 # CMakeLists.txt for test codes
-
+##------------------------------------------------------------------
 # usage: add_skyai_executable(file_prefix [extra_libs])
 function(add_skyai_executable file_prefix)
   add_executable (${file_prefix}.out ${file_prefix}.cpp)
   target_link_libraries (${file_prefix}.out ${ARGN} ${SKYAI_LIBRARIES})
+  set_target_properties(${file_prefix}.out PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/skyai/test)
 endfunction()
-
-execute_process (COMMAND
-    ln -sf ${CMAKE_CURRENT_SOURCE_DIR} src
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
+##------------------------------------------------------------------
 
 use_skyai(oct)
 include_directories(${SKYAI_INCLUDE_DIRS})
@@ -53,3 +52,10 @@ link_directories (${SKYAI_LIBRARY_DIRS})
 add_skyai_executable(load-lib skyai)
 # NOTE: libskyai is linked, but libskyai_mcore and libskyai_mstd are not linked
 
+
+##------------------------------------------------------------------
+execute_process (COMMAND
+    ln -sf ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR}/bin/skyai/test/src
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+##------------------------------------------------------------------
