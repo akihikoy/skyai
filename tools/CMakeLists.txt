@@ -6,5 +6,5 @@ if (BUILD_TOOLS_agent_talker)
 endif()
 
 if (BUILD_TOOLS_ngnet_generator)
-  add_subdirectory(ngnet-generator)
+  add_subdirectory(ngnet_generator)
 endif()

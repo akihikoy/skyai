@@ -1,3 +1,4 @@
+load "libmaze"
 include_once "ql_dsda"
 
 module MMazeTaskModule  maze_task

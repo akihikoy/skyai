@@ -68,3 +68,18 @@ if (BUILD_TEST)
   add_subdirectory (test)
 endif()
 ##-------------------------------------------------------------------------------------------
+execute_process (
+    COMMAND mkdir -p share/skyai
+    COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/materials share/skyai/
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  )
+install (DIRECTORY materials/ DESTINATION share/skyai/materials
+    FILES_MATCHING
+      PATTERN "*.cmake"
+      PATTERN "*.pdf"
+      PATTERN "*.svg"
+      PATTERN "*.png"
+      PATTERN "*.cpp"
+      PATTERN "*.h"
+      PATTERN "*.xml")
+##-------------------------------------------------------------------------------------------

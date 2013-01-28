@@ -61,10 +61,11 @@ include_directories (${SKYAI_INCLUDE_DIRS})
 add_library (lora_cv SHARED ${lora_cv_srcs})
 install (TARGETS lora_cv LIBRARY DESTINATION lib/skyai)
 ##------------------------------------------------------------------
-# file (GLOB lora_hdrs "include/lora/*.h")
-# install (FILES ${lora_hdrs} DESTINATION include/skyai/lora)
-# file (GLOB lora_bits_hdrs "include/lora/bits/*.h")
-# install (FILES ${lora_bits_hdrs} DESTINATION include/skyai/lora/bits)
+execute_process (
+    COMMAND mkdir -p include/skyai
+    COMMAND ln -sf ${CMAKE_CURRENT_SOURCE_DIR}/include/lora include/skyai/
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  )
 install (DIRECTORY include/ DESTINATION include/skyai
     FILES_MATCHING PATTERN "*.h")
 ##------------------------------------------------------------------

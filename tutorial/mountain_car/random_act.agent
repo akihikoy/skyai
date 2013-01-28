@@ -1,3 +1,5 @@
+load "libmountain_car"
+
 module MMountainCarTaskModule  mountaincar_task
 module MRandomActionModule     rand_action
 

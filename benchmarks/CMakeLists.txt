@@ -59,4 +59,4 @@ execute_process (
   )
 
 install (DIRECTORY agents/ DESTINATION share/skyai/agents
-    FILES_MATCHING PATTERN "*.agent" PATTERN "*.dat" PATTERN "*.ppm")
+    FILES_MATCHING PATTERN "*.agent" PATTERN "*.dat" PATTERN "*.ppm" PATTERN "*.png")

@@ -1,3 +1,5 @@
+load "libmaze"
+
 module MMazeTaskModule     maze_task
 module MRandomActionModule rand_action
 

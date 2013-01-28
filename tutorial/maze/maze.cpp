@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
-#include <skyai/utility.h>
+#include <skyai/execs/general_agent.h>
 #include <lora/variable_space_impl.h>  // to store std::vector<TIntVector>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -345,13 +345,8 @@ using namespace std;
 using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
 
-int main(int argc, char**argv)
+int TutMazeSkyAIMain(TOptionParser &option, TAgent &agent)
 {
-  TOptionParser option(argc,argv);
-
-  TAgent  agent;
-  if (!ParseCmdLineOption (agent, option))  return 0;
-
   MMazeTaskModule *p_maze_task = dynamic_cast<MMazeTaskModule*>(agent.SearchModule("maze_task"));
   if(p_maze_task==NULL)  {LERROR("module `maze_task' is not defined as an instance of MMazeTaskModule"); return 1;}
 
@@ -363,4 +358,6 @@ int main(int argc, char**argv)
 
   return 0;
 }
+//-------------------------------------------------------------------------------------------
+SKYAI_SET_MAIN(TutMazeSkyAIMain)
 //-------------------------------------------------------------------------------------------
