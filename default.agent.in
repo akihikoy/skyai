@@ -1,5 +1,5 @@
-// default agent file for install dir
-add_path "${CMAKE_INSTALL_PREFIX}"
+// default agent file
+add_path "${SKYAI_INSTALL_PREFIX}"
 add_path "lib/skyai"
 add_path "share/skyai/agents"
 add_path "share/skyai/agents/cmn"

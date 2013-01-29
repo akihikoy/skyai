@@ -1,13 +1,13 @@
 // Roll task's agent file
-def episode_start(task_id)
+def episode_start_rl(task_id)
 {
   task_id.memory ={TmpR2= 0.0;}  // total-time
 }
-def action_start(task_id)
+def action_start_rl(task_id)
 {
 }
 // forward roll
-def timestep_end_f(task_id)
+def timestep_end_rlf(task_id)
 {
   task_id.memory ={
       // reward from rolling movement (angular vel around y-axis)
@@ -20,7 +20,7 @@ def timestep_end_f(task_id)
   }
 }
 // backward roll
-def timestep_end_b(task_id)
+def timestep_end_rlb(task_id)
 {
   task_id.memory ={
       // reward from rolling movement (angular vel around y-axis)
@@ -43,9 +43,9 @@ def make_task_rl2(task_id,env_id)
       // SensingAtTimeStepStart = false
       SensingAtTimeStepEnd   = true
 
-      FEpisodeStart   = "episode_start"
-      FActionStart    = "action_start"
-      // FTimeStepStart  = "timestep_start"
+      FEpisodeStart   = "episode_start_rl"
+      FActionStart    = "action_start_rl"
+      // FTimeStepStart  = "timestep_start_rl"
       FTimeStepEnd    = ""
       ForwardStepCost = true
     }
@@ -66,13 +66,13 @@ def make_task_rl2_f(task_id,env_id)
 {
   make_task_rl2(task_id,env_id)
   task_id.config ={
-      FTimeStepEnd    = "timestep_end_f"
+      FTimeStepEnd    = "timestep_end_rlf"
     }
 }
 def make_task_rl2_b(task_id,env_id)
 {
   make_task_rl2(task_id,env_id)
   task_id.config ={
-      FTimeStepEnd    = "timestep_end_b"
+      FTimeStepEnd    = "timestep_end_rlb"
     }
 }

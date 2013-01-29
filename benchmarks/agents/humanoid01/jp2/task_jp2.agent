@@ -1,13 +1,13 @@
 // Jumping task's agent file
-def episode_start(task_id)
+def episode_start_jp(task_id)
 {
   task_id.memory ={TmpR2= 0.0;}  // total-time
 }
-def action_start(task_id)
+def action_start_jp(task_id)
 {
   task_id.memory ={TmpB1= false; TmpB2= false;}  // no falling down (head, hand)
 }
-def timestep_end(task_id)
+def timestep_end_jp(task_id)
 {
   // reward from height (z-position)
   // given only when no link contacts with the ground
@@ -54,10 +54,10 @@ def make_task_jp2(task_id,env_id)
       // SensingAtTimeStepStart = false
       SensingAtTimeStepEnd   = true
 
-      FEpisodeStart   = "episode_start"
-      FActionStart    = "action_start"
-      // FTimeStepStart  = "timestep_start"
-      FTimeStepEnd    = "timestep_end"
+      FEpisodeStart   = "episode_start_jp"
+      FActionStart    = "action_start_jp"
+      // FTimeStepStart  = "timestep_start_jp"
+      FTimeStepEnd    = "timestep_end_jp"
       ForwardStepCost = true
     }
 

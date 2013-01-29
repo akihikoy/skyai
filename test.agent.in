@@ -1,8 +1,0 @@
-// default agent file for build dir
-add_path "${PROJECT_BINARY_DIR}"
-add_path "lib/skyai"
-add_path "share/skyai/agents"
-add_path "share/skyai/agents/cmn"
-
-load "libskyai_mcore"
-load "libskyai_mstd"

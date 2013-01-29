@@ -1,13 +1,13 @@
 // Turning task's agent file
-def episode_start(task_id)
+def episode_start_tn(task_id)
 {
   task_id.memory ={TmpR1= 0.0;  TmpR2= 0.0;}  // sum-of-reward, total-time
 }
-def action_start(task_id)
+def action_start_tn(task_id)
 {
   task_id.memory ={TmpB1= false;  TmpB2= false;}  // no falling down (body,head)
 }
-def timestep_end(task_id)
+def timestep_end_tn(task_id)
 {
   task_id.memory ={
       Reward= cast<real>(task_id.config.CR1)*(cast<real>(BaseVel[5]))
@@ -47,10 +47,10 @@ def make_task_tn2(task_id,env_id)
       // SensingAtTimeStepStart = false
       SensingAtTimeStepEnd   = true
 
-      FEpisodeStart   = "episode_start"
-      FActionStart    = "action_start"
-      // FTimeStepStart  = "timestep_start"
-      FTimeStepEnd    = "timestep_end"
+      FEpisodeStart   = "episode_start_tn"
+      FActionStart    = "action_start_tn"
+      // FTimeStepStart  = "timestep_start_tn"
+      FTimeStepEnd    = "timestep_end_tn"
       ForwardStepCost = true
     }
 
