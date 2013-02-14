@@ -425,8 +425,9 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 
   parenthesized_list_expr_any  // FIXME
     = op_parenthesis_l [SCMD(LLISTS)]
-      >> !(expr_block >> *(op_comma >> expr_block))
-        >> op_parenthesis_r;
+      >> *blank_eol_p
+        >> !(expr_block >> *(*blank_eol_p >> op_comma >> expr_block))
+          >> *blank_eol_p >> op_parenthesis_r;
 
 //   list_expr_any  // FIXME
 //     = !(expr_any >> *(op_comma >> expr_any));
@@ -444,7 +445,8 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   expr_block_list
     = expr_block
       >> *(
-          (op_comma >> expr_block)  [SCMD(LAPPEND)]
+          *blank_eol_p
+            >> (op_comma >> *blank_eol_p >> expr_block)  [SCMD(LAPPEND)]
           );
   expr_block
     = expr_or;
@@ -497,12 +499,14 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
     = expr_primary
       >> *(
           (op_dot >> expr_primary)  [SCMD(MEMBER)]
-          | (op_bracket_l >> expr_block_list >> op_bracket_r)  [SCMD(ELEM)]
+          | (op_bracket_l >> *blank_eol_p
+              >> expr_block_list >> *blank_eol_p >> op_bracket_r)  [SCMD(ELEM)]
           );
 
   expr_primary
     = (
-      (op_parenthesis_l >> expr_block_list >> op_parenthesis_r)
+      (op_parenthesis_l >> *blank_eol_p
+          >> expr_block_list >> *blank_eol_p >> op_parenthesis_r)
       | (op_parenthesis_l >> *blank_p >> op_parenthesis_r) [SCMD(PUSH_EMPL)]
       | (
           str_p("cast") >> op_lt >> type_block >> op_gt

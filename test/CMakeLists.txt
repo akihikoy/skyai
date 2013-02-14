@@ -16,6 +16,7 @@ link_directories (${SKYAI_LIBRARY_DIRS})
 add_skyai_executable(variable_binexec)
 add_skyai_executable(variable_parser)
 add_skyai_executable(variable_writer)
+add_skyai_executable(varspace_addfunc)
 add_skyai_executable(bioloid01)
 
 use_skyai(oct cv)

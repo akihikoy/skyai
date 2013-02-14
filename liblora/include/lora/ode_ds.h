@@ -41,6 +41,7 @@
   #define dsDrawCylinder dsDrawCylinderD
   #define dsDrawCapsule dsDrawCapsuleD
   #define dsDrawConvex dsDrawConvexD
+  #define dsDrawTriangle dsDrawTriangleD
 #endif
 #endif
 //-------------------------------------------------------------------------------------------

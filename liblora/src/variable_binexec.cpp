@@ -41,9 +41,9 @@ namespace var_space
 //!\brief dummy type to use a built-in function class as a variable space
 template<typename t_ret>
 struct TBuiltinFunctions {void *dummy;};
-TBuiltinFunctions<pt_real>  BuiltinFunctionsDummyReal;
-TBuiltinFunctions<pt_bool>  BuiltinFunctionsDummyBool;
-TBuiltinFunctions<std::list<TAnyPrimitive> >  BuiltinFunctionsDummyList;
+TBuiltinFunctions<pt_real>  BuiltinFunctions_DummyReal;
+TBuiltinFunctions<pt_bool>  BuiltinFunctions_DummyBool;
+TBuiltinFunctions<std::list<TAnyPrimitive> >  BuiltinFunctions_DummyList;
 
 template<typename t_ret>
 void register_builtin_functions (TVariableMap &mmap);
@@ -64,9 +64,9 @@ struct TVariable::generator<TBuiltinFunctions<t_ret> >
     }
 };
 
-static TVariable BuiltinFunctionsReal(BuiltinFunctionsDummyReal);
-static TVariable BuiltinFunctionsBool(BuiltinFunctionsDummyBool);
-static TVariable BuiltinFunctionsList(BuiltinFunctionsDummyList);
+static TVariable BuiltinFunctions_Real(BuiltinFunctions_DummyReal);
+static TVariable BuiltinFunctions_Bool(BuiltinFunctions_DummyBool);
+static TVariable BuiltinFunctions_List(BuiltinFunctions_DummyList);
 //-------------------------------------------------------------------------------------------
 
 class TBuiltinFunction : public TVariable
@@ -86,6 +86,14 @@ private:
   TBuiltinFunction (TVariableSpace);
   template <typename t_var>  TBuiltinFunction (t_var &x);
 };
+
+static void builtin_function_pi (TVariableList &argv)
+{
+  if (argv.size()!=1)
+    {VAR_SPACE_ERR_EXIT("syntax of pi should be real()");}
+  TVariableList::const_iterator itr(argv.begin());
+  argv.front().PrimitiveSetBy<pt_real>(REAL_PI);
+}
 
 #define DEF_UNARY_FUNC(x_func)  \
   static void builtin_function_##x_func (TVariableList &argv)               \
@@ -153,6 +161,7 @@ void register_builtin_functions<pt_real> (TVariableMap &mmap)
 {
   #define ADD(x_func)  \
     mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
+  ADD( pi     )
   ADD( acos   )
   ADD( asin   )
   ADD( atan   )
@@ -248,6 +257,21 @@ void register_builtin_functions<std::list<TAnyPrimitive> > (TVariableMap &mmap)
     mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
   ADD( shuffle )
   #undef ADD
+}
+//-------------------------------------------------------------------------------------------
+
+
+void AddToBuiltinFunctions_Real(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f)
+{
+  BuiltinFunctions_Real.SetMemberMap()[func_id]= TBuiltinFunction((f));
+}
+void AddToBuiltinFunctions_Bool(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f)
+{
+  BuiltinFunctions_Bool.SetMemberMap()[func_id]= TBuiltinFunction((f));
+}
+void AddToBuiltinFunctions_List(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f)
+{
+  BuiltinFunctions_List.SetMemberMap()[func_id]= TBuiltinFunction((f));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -366,7 +390,7 @@ void TExtForwardIterator::i_dereference_()
     // CONV_ERR_CATCHER_E
     return true;
   }
-  else if(BuiltinFunctionsReal.FunctionExists(func_id))
+  else if(BuiltinFunctions_Real.FunctionExists(func_id))
   {
     ret_val.Set(GetZero<pt_real>());
     TVariableList  argv_var;
@@ -374,10 +398,10 @@ void TExtForwardIterator::i_dereference_()
     for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
       argv_var.push_back(Variable(*itr));
 
-    BuiltinFunctionsReal.FunctionCall(func_id, argv_var);
+    BuiltinFunctions_Real.FunctionCall(func_id, argv_var);
     return true;
   }
-  else if(BuiltinFunctionsBool.FunctionExists(func_id))
+  else if(BuiltinFunctions_Bool.FunctionExists(func_id))
   {
     ret_val.Set(GetZero<pt_bool>());
     TVariableList  argv_var;
@@ -385,10 +409,10 @@ void TExtForwardIterator::i_dereference_()
     for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
       argv_var.push_back(Variable(*itr));
 
-    BuiltinFunctionsBool.FunctionCall(func_id, argv_var);
+    BuiltinFunctions_Bool.FunctionCall(func_id, argv_var);
     return true;
   }
-  else if(BuiltinFunctionsList.FunctionExists(func_id))
+  else if(BuiltinFunctions_List.FunctionExists(func_id))
   {
     ret_val= LiteralEmptyList();
     TVariableList  argv_var;
@@ -396,7 +420,7 @@ void TExtForwardIterator::i_dereference_()
     for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
       argv_var.push_back(Variable(*itr));
 
-    BuiltinFunctionsList.FunctionCall(func_id, argv_var);
+    BuiltinFunctions_List.FunctionCall(func_id, argv_var);
     return true;
   }
   else

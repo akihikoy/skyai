@@ -264,16 +264,52 @@ inline TVariable Variable(TLiteral &literal)
     }                                                                                     \
   }
 
-DEF_OP2(+)
-DEF_OP2(-)
+#define DEF_OP2_PL(x_op,x_swappable)  \
+  inline TLiteral operator x_op (const TLiteral &lhs, const TLiteral &rhs)                \
+  {                                                                                       \
+    LASSERT(lhs.IsPrimitive() || lhs.IsList());                                           \
+    LASSERT(rhs.IsPrimitive() || rhs.IsList());                                           \
+    if(lhs.IsPrimitive() && rhs.IsPrimitive())                                            \
+      return TLiteral(lhs.AsPrimitive() x_op rhs.AsPrimitive());                          \
+    else if(lhs.IsList() && rhs.IsList())                                                 \
+    {                                                                                     \
+      LASSERT1op1(lhs.AsList().size(),==,rhs.AsList().size());                            \
+      TLiteral res(TLiteral::dkList);                                                     \
+      for(std::list<TAnyPrimitive>::const_iterator litr(lhs.AsList().begin()),            \
+              lend(lhs.AsList().end()),ritr(rhs.AsList().begin());                        \
+          litr!=lend; ++litr,++ritr)                                                      \
+      {                                                                                   \
+        res.AsList().push_back((*litr) x_op (*ritr));                                     \
+      }                                                                                   \
+      return res;                                                                         \
+    }                                                                                     \
+    else                                                                                  \
+    {                                                                                     \
+      const TLiteral *v(&lhs), *s(&rhs);                                                  \
+      if(rhs.IsList())                                                                    \
+      {                                                                                   \
+        if(x_swappable)  std::swap(v,s);                                                  \
+        else  {LERROR("Operator "#x_op" is not defined for primitive "#x_op" list");lexit(df);}  \
+      }                                                                                   \
+      TLiteral res(TLiteral::dkList);                                                     \
+      for(std::list<TAnyPrimitive>::const_iterator itr(v->AsList().begin()),              \
+              end(v->AsList().end()); itr!=end; ++itr)                                    \
+      {                                                                                   \
+        res.AsList().push_back((*itr) x_op s->AsPrimitive());                             \
+      }                                                                                   \
+      return res;                                                                         \
+    }                                                                                     \
+  }
 
-//! \todo FIXME: implement the operation for scalar * list
-DEF_OP2(*)
-DEF_OP2(/)
-DEF_OP2(%)
+DEF_OP2_PL(+,true)
+DEF_OP2_PL(-,true)
 
-DEF_OP2(&&)
-DEF_OP2(||)
+DEF_OP2_PL(*,true)
+DEF_OP2_PL(/,false)
+DEF_OP2_PL(%,false)
+
+DEF_OP2_PL(&&,true)
+DEF_OP2_PL(||,true)
 DEF_OP1(!)
 
 DEF_OP2(==)
@@ -285,6 +321,7 @@ DEF_OP2(>)
 
 #undef DEF_OP1
 #undef DEF_OP2
+#undef DEF_OP2_PL
 //-------------------------------------------------------------------------------------------
 
 

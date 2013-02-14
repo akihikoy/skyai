@@ -36,6 +36,15 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 
+//! add a builtin function (globally affect) whose return value is a real
+void AddToBuiltinFunctions_Real(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
+//! add a builtin function (globally affect) whose return value is a real
+void AddToBuiltinFunctions_Bool(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
+//! add a builtin function (globally affect) whose return value is a real
+void AddToBuiltinFunctions_List(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
+//-------------------------------------------------------------------------------------------
+
+
 class TExtForwardIterator;
 
 //===========================================================================================
