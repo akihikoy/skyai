@@ -41,6 +41,7 @@ namespace var_space
 //!\brief dummy type to use a built-in function class as a variable space
 template<typename t_ret>
 struct TBuiltinFunctions {void *dummy;};
+TBuiltinFunctions<void>     BuiltinFunctions_DummyVoid;
 TBuiltinFunctions<pt_real>  BuiltinFunctions_DummyReal;
 TBuiltinFunctions<pt_bool>  BuiltinFunctions_DummyBool;
 TBuiltinFunctions<std::list<TAnyPrimitive> >  BuiltinFunctions_DummyList;
@@ -64,6 +65,7 @@ struct TVariable::generator<TBuiltinFunctions<t_ret> >
     }
 };
 
+static TVariable BuiltinFunctions_Void(BuiltinFunctions_DummyVoid);
 static TVariable BuiltinFunctions_Real(BuiltinFunctions_DummyReal);
 static TVariable BuiltinFunctions_Bool(BuiltinFunctions_DummyBool);
 static TVariable BuiltinFunctions_List(BuiltinFunctions_DummyList);
@@ -86,6 +88,11 @@ private:
   TBuiltinFunction (TVariableSpace);
   template <typename t_var>  TBuiltinFunction (t_var &x);
 };
+
+template<>
+void register_builtin_functions<void> (TVariableMap &mmap)
+{
+}
 
 static void builtin_function_pi (TVariableList &argv)
 {
@@ -225,13 +232,31 @@ static void builtin_function_or (TVariableList &argv)
   res.PrimitiveSetBy<pt_bool>(false);
 }
 
+void builtin_function_finclude (var_space::TVariableList &argv)
+{
+  using namespace loco_rabbits::var_space;
+  if (argv.size()!=3)
+    {VAR_SPACE_ERR_EXIT("syntax of " "finclude" " should be bool(var,str)");}
+  TVariableList::iterator itr(argv.begin());
+  TVariable &res(*itr); ++itr;
+  TVariable &arg1(*itr); ++itr;
+  TVariable &arg2(*itr); ++itr;
+
+  TLiteralTable literal_table;
+  bool load_res;
+  if(!(load_res= var_space::LoadFromFile(arg2.PrimitiveGetAs<pt_string>(),arg1,literal_table)))
+    LERROR("Failed to load: "<<arg2.PrimitiveGetAs<pt_string>());
+  res.PrimitiveSetBy<pt_bool>(load_res);
+}
+
 template<>
 void register_builtin_functions<pt_bool> (TVariableMap &mmap)
 {
   #define ADD(x_func)  \
     mmap[#x_func]= TBuiltinFunction(boost::function<void(TVariableList &)>(builtin_function_##x_func));
-  ADD( and   )
-  ADD( or    )
+  ADD( and      )
+  ADD( or       )
+  ADD( finclude )
   #undef ADD
 }
 
@@ -261,6 +286,10 @@ void register_builtin_functions<std::list<TAnyPrimitive> > (TVariableMap &mmap)
 //-------------------------------------------------------------------------------------------
 
 
+void AddToBuiltinFunctions_Void(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f)
+{
+  BuiltinFunctions_Void.SetMemberMap()[func_id]= TBuiltinFunction((f));
+}
 void AddToBuiltinFunctions_Real(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f)
 {
   BuiltinFunctions_Real.SetMemberMap()[func_id]= TBuiltinFunction((f));
@@ -388,6 +417,17 @@ void TExtForwardIterator::i_dereference_()
     // CONV_ERR_CATCHER_S
     variable_stack_.back().FunctionCall(func_id, argv_var);
     // CONV_ERR_CATCHER_E
+    return true;
+  }
+  else if(BuiltinFunctions_Void.FunctionExists(func_id))
+  {
+    ret_val.Unset();
+    TVariableList  argv_var;
+    argv_var.push_back(TVariable());
+    for(std::list<TLiteral>::iterator itr(argv.begin()),last(argv.end()); itr!=last; ++itr)
+      argv_var.push_back(Variable(*itr));
+
+    BuiltinFunctions_Void.FunctionCall(func_id, argv_var);
     return true;
   }
   else if(BuiltinFunctions_Real.FunctionExists(func_id))
@@ -636,7 +676,7 @@ IMPL_CMD_EXEC( M_ASGN_CS )  // bin=[-]; pop an identifier, start composite assig
   VAR_ERR_CATCHER_S
   member= variable_stack_.back().GetMember(TVariable(identifier));
   VAR_ERR_CATCHER_E
-  variable_stack_.push_back(member);
+  PushVariable(member);
 }
 IMPL_CMD_EXEC( E_ASGN_P  )  // bin=[-]; pop two values(1,2), elemental assign:[2]=1;
 {
@@ -657,7 +697,7 @@ IMPL_CMD_EXEC( E_ASGN_CS )  // bin=[-]; pop a value, start elemental composite a
   VAR_ERR_CATCHER_S
   member= variable_stack_.back().GetMember(Variable(key));
   VAR_ERR_CATCHER_E
-  variable_stack_.push_back(member);
+  PushVariable(member);
 }
 IMPL_CMD_EXEC( P_ASGN_P  )  // bin=[-]; pop a value, push:[]=val;
 {
@@ -675,7 +715,7 @@ IMPL_CMD_EXEC( P_ASGN_CS )  // bin=[-]; start composite push:[]={..};
   VAR_ERR_CATCHER_S
   new_var= variable_stack_.back().Push();
   VAR_ERR_CATCHER_E
-  variable_stack_.push_back(new_var);
+  PushVariable(new_var);
 }
 IMPL_CMD_EXEC( F_ASGN_P  )  // bin=[-]; pop a value, fill:[@]=val;
 {
@@ -702,12 +742,13 @@ IMPL_CMD_EXEC( F_ASGN_CS )  // bin=[-]; start composite fill:[@]={..};
   variable_stack_.back().GetBegin(itr);
   variable_stack_.back().GetEnd(ilast);
   VAR_ERR_CATCHER_E
-  variable_stack_.push_back(TExtVariable(itr,ilast));
+  TExtVariable array_all(itr,ilast);
+  PushVariable(array_all);
 }
 IMPL_CMD_EXEC( CASGN_END )  // finish M_ASGN_CS, E_ASGN_CS, P_ASGN_CS, F_ASGN_CS;
 {
   LASSERT(!variable_stack_.empty());
-  variable_stack_.pop_back();
+  PopVariable();
 }
 
 IMPL_CMD_EXEC( FUNC_CALL )  // bin=[-]; pop list-of-literals, pop an identifier, call function:id(l-o-l);

@@ -76,6 +76,19 @@ const TLiteral* TLiteralTable::Find(const TIdentifier &id) const
 }
 //-------------------------------------------------------------------------------------------
 
+//! Remove a literal named id from the table, return true if removed, false if there is not literal named id
+bool TLiteralTable::RemoveLiteral(const TIdentifier &id)
+{
+  TTable::iterator itr(table_.find(id));
+  if (itr!=table_.end())
+  {
+    table_.erase(itr);
+    return true;
+  }
+  return false;
+}
+//-------------------------------------------------------------------------------------------
+
 TLiteralTable::TAddResult TLiteralTable::add_to_table(const TIdentifier &id, const TLiteral &value)
 {
   if (keywords_.find(id)!=keywords_.end())

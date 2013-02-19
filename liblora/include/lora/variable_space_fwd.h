@@ -71,6 +71,8 @@ class TLiteralTable;
 #define VAR_SPACE_ERR_EXIT(x_err_message)  do{LERROR(x_err_message); lexit(df);}while(0)
 #endif
 
+#define VAR_SPACE_KEYWORD_THIS "this"
+
 //-------------------------------------------------------------------------------------------
 }  // end of namespace var_space
 //-------------------------------------------------------------------------------------------

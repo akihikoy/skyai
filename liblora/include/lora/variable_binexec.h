@@ -36,11 +36,13 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 
+//! add a builtin function (globally affect) whose return value is a void
+void AddToBuiltinFunctions_Void(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
 //! add a builtin function (globally affect) whose return value is a real
 void AddToBuiltinFunctions_Real(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
-//! add a builtin function (globally affect) whose return value is a real
+//! add a builtin function (globally affect) whose return value is a bool
 void AddToBuiltinFunctions_Bool(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
-//! add a builtin function (globally affect) whose return value is a real
+//! add a builtin function (globally affect) whose return value is a list
 void AddToBuiltinFunctions_List(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
 //-------------------------------------------------------------------------------------------
 
@@ -64,6 +66,9 @@ public:
       LASSERT(kind_==kSingle);
       return entity_;
     }
+
+  bool IsSingle() const {return kind_==kSingle;}
+  bool IsArray() const {return kind_==kArray;}
 
   inline bool IfDefFunctionCall() const;
 
@@ -255,8 +260,9 @@ public:
 
   virtual void Execute(bool from_current=false);
 
-  void PushVariable(TVariable &var)  {variable_stack_.push_back(TExtVariable(var));}
-  void PopVariable()  {variable_stack_.pop_back();}
+  void PushVariable(TExtVariable &var)  {variable_stack_.push_back(var); update_keyword_this();}
+  void PushVariable(TVariable &var)  {variable_stack_.push_back(TExtVariable(var)); update_keyword_this();}
+  void PopVariable()  {variable_stack_.pop_back(); update_keyword_this();}
   int  VariableStackSize()  {return variable_stack_.size();}
 
   const TBinaryStack& BinStack() const {return *bin_stack_;}
@@ -282,6 +288,17 @@ protected:
   int  line_num_;
   bool error_;
 
+
+  void update_keyword_this()
+    {
+      if(literal_table_ && !variable_stack_.empty())
+      {
+        if(variable_stack_.back().IsSingle())
+          literal_table_->AddLiteral(VAR_SPACE_KEYWORD_THIS, TLiteral(variable_stack_.back().ToVariable()));
+        else
+          literal_table_->RemoveLiteral(VAR_SPACE_KEYWORD_THIS);
+      }
+    }
 
   TLiteral evaluate_literal (const TLiteral &src, const TEvaluateLiteralConfig &config=TEvaluateLiteralConfig())
     {

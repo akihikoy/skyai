@@ -68,3 +68,7 @@ z= cast<list<real> >(z)*2.0+1
 
 // z= increment(cast<list<real> >(z))
 // y= pi()
+
+z= cast<list<real> >(this.z)*2.0
+
+inline_include(this,"../test/test-TTest2.var")

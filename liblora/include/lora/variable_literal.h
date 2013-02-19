@@ -350,6 +350,9 @@ public:
   TAddResult AddLiteral(const TIdentifier &id, const TLiteral &value)
     {return add_to_table(id,value);}
 
+  //! Remove a literal named id from the table, return true if removed, false if there is not literal named id
+  bool RemoveLiteral(const TIdentifier &id);
+
 private:
 
   TTable table_;
