@@ -27,11 +27,17 @@
 #include <lora/stl_ext.h>
 #include <lora/string_impl.h>  // NumericalContainerToString
 #include <boost/bind.hpp>
+#include <boost/filesystem/operations.hpp>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 namespace var_space
 {
+
+inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_path, const std::string &rhs)
+{
+  return file_path.parent_path()/(file_path.filename()+rhs);
+}
 
 
 //===========================================================================================
@@ -160,9 +166,17 @@ void builtin_function_finclude (TBinExecutor &context, var_space::TVariableList 
   TVariable &arg1(*itr); ++itr;
   TVariable &arg2(*itr); ++itr;
 
+  boost::filesystem::path file_path;
+  if(!context.SearchFile(arg2.PrimitiveGetAs<pt_string>(), file_path))
+  {
+    LERROR("File not found: "<<arg2.PrimitiveGetAs<pt_string>());
+    res.PrimitiveSetBy<pt_bool>(false);
+    return;
+  }
+
   bool load_res;
-  if(!(load_res= var_space::LoadFromFile(arg2.PrimitiveGetAs<pt_string>(),arg1,context.LiteralTable(),&context.BuiltinFunctions())))
-    LERROR("Failed to load: "<<arg2.PrimitiveGetAs<pt_string>());
+  if(!(load_res= var_space::LoadFromFile(file_path.file_string(),arg1,context.LiteralTable(),&context.BuiltinFunctions())))
+    LERROR("Failed to load: "<<file_path.file_string());
   res.PrimitiveSetBy<pt_bool>(load_res);
 }
 
@@ -329,6 +343,51 @@ void TExtForwardIterator::i_dereference_()
 //===========================================================================================
 // class TBinExecutor
 //===========================================================================================
+
+bool TBinExecutor::AddPath (const std::string &dir_name)
+{
+  using namespace boost::filesystem;
+  if (path_list_==NULL)
+  {
+    print_error("add_path: failed because path-list is not assigned to the TBinExecutor's instance");
+    return false;
+  }
+  boost::filesystem::path absolute_dir;
+  if(!SearchFile(dir_name,absolute_dir))
+    path_list_->push_back (complete(path(dir_name,native)));
+  else
+    path_list_->push_back (absolute_dir);
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
+bool TBinExecutor::SearchFile (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension) const
+{
+  using namespace boost::filesystem;
+  if (file_path.is_complete())
+  {
+    if (exists((absolute_path= file_path)))  return true;
+    if (extension && exists((absolute_path= file_path.parent_path()/(file_path.filename()+extension))))  return true;
+    return false;
+  }
+
+  if (exists((absolute_path= current_dir_/file_path)))  return true;
+  if (extension && exists((absolute_path= current_dir_/file_path+extension)))  return true;
+
+  if (path_list_==NULL)  return false;
+
+  path  tmp_path(file_path);
+  for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
+    if (exists((absolute_path= *ditr/tmp_path)))  return true;
+  if (extension)
+  {
+    tmp_path= file_path+extension;
+    for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
+      if (exists((absolute_path= *ditr/tmp_path)))  return true;
+  }
+  return false;
+}
+//-------------------------------------------------------------------------------------------
 
 //! call function of identifier func_id with arguments argv, store the return value into ret_val
 /*virtual*/bool TBinExecutor::function_call(const std::string &func_id, std::list<TLiteral> &argv, TLiteral &ret_val)
@@ -1268,21 +1327,27 @@ static void partially_execute(TBinExecutor *executor, TBinaryStack *bin_stack, c
 
 bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &literal_table, const TBuiltinFunctions *additional_funcs)
 {
-  TBinExecutor executor;
+  boost::filesystem::path file_path
+    = boost::filesystem::complete(boost::filesystem::path(file_name,boost::filesystem::native));
 
+  if (boost::filesystem::exists(file_path) && boost::filesystem::is_empty(file_path))  // if file is empty...
+    return true;
+
+  TBinExecutor executor;
   TBinaryStack bin_stack;
 
   executor.PushVariable(var);
   executor.SetBinStack(&bin_stack);
   executor.SetLiteralTable(&literal_table);
+  executor.SetCurrentDir(file_path.parent_path());
   if(additional_funcs)  executor.BuiltinFunctions().Merge(*additional_funcs);
 
   TParserCallbacks callbacks;
   // callbacks.OnCommandPushed= callback;
   callbacks.OnEndOfLine= boost::bind(&partially_execute,&executor,&bin_stack,_1,_2,_3);
-  if(ParseFile(file_name,bin_stack,callbacks))
+  if(ParseFile(file_path.file_string(),bin_stack,callbacks))
   {
-    partially_execute(&executor,&bin_stack,file_name,-1,false);
+    partially_execute(&executor,&bin_stack,file_path.file_string(),-1,false);
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopVariable();
     LASSERT(executor.VariableStackSize()==0);

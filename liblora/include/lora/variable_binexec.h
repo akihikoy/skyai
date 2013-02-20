@@ -29,6 +29,8 @@
 #include <lora/variable_space.h>
 #include <lora/variable_literal.h>
 //-------------------------------------------------------------------------------------------
+#include <boost/filesystem/path.hpp>
+//-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 namespace var_space
@@ -287,7 +289,12 @@ class TBinExecutor
 {
 public:
 
-  TBinExecutor() : bin_stack_(NULL), literal_table_(NULL), error_(false) {}
+  TBinExecutor()
+    : bin_stack_(NULL),
+      literal_table_(NULL),
+      path_list_(NULL),
+      error_(false)
+    {}
 
   virtual void PartiallyExecute(const std::string& file_name, int line_num, bool error_stat);
 
@@ -305,6 +312,8 @@ public:
 
   void SetBinStack(const TBinaryStack *p)  {bin_stack_= p;}
   void SetLiteralTable(TLiteralTable *p)  {literal_table_= p; update_keyword_this();}
+  void SetCurrentDir (const boost::filesystem::path &current_dir)  {current_dir_= current_dir;}
+  void SetPathList (std::list<boost::filesystem::path> *path_list)  {path_list_= path_list;}
 
   TBuiltinFunctions& BuiltinFunctions()  {return builtin_functions_;}
   const TBuiltinFunctions& BuiltinFunctions() const {return builtin_functions_;}
@@ -313,14 +322,18 @@ public:
   int LineNum() const {return line_num_;}
   bool Error() const {return error_;}
 
+  bool AddPath (const std::string &dir_name);
+  bool SearchFile (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension=NULL) const;
+
 protected:
 
   const TBinaryStack *bin_stack_;
 
-  TLiteralTable  *literal_table_;
+  TLiteralTable                        *literal_table_;
+  boost::filesystem::path              current_dir_;
+  std::list<boost::filesystem::path>   *path_list_;
 
   std::list<TLiteral> literal_stack_;
-  std::list<TExtVariable>  variable_stack_;
 
   TBuiltinFunctions builtin_functions_;
 
@@ -328,6 +341,11 @@ protected:
   int  line_num_;
   bool error_;
 
+private:
+
+  std::list<TExtVariable>  variable_stack_;  //!< Use PushVariable and PopVariable to manipulate variable_stack_
+
+protected:
 
   void update_keyword_this()
     {
@@ -380,7 +398,6 @@ protected:
       error_= true;
       std::cerr<<"("<<file_name_<<":"<<line_num_<<") "<<str<<std::endl;
     }
-
 
   //! call function of identifier func_id with arguments argv, store the return value into ret_val
   virtual bool function_call(const std::string &func_id, std::list<TLiteral> &argv, TLiteral &ret_val);

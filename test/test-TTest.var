@@ -71,4 +71,5 @@ z= cast<list<real> >(z)*2.0+1
 
 z= cast<list<real> >(this.z)*2.0
 
-inline_include(this,"../test/test-TTest2.var")
+// inline_include(this,"../test/test-TTest2.var")
+finclude(this,"test-TTest2.var")

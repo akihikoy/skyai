@@ -35,36 +35,20 @@ namespace loco_rabbits
 namespace agent_parser
 {
 
-inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_path, const std::string &rhs)
-{
-  return file_path.parent_path()/(file_path.filename()+rhs);
-}
-
 //===========================================================================================
 // class TBinExecutor
 //===========================================================================================
 
 bool TBinExecutor::OnAddPath (const std::string &dir_name)
 {
-  using namespace boost::filesystem;
-  if (path_list_==NULL)
-  {
-    print_error("add_path: failed because path-list is not assigned to the TBinExecutor's instance");
-    return false;
-  }
-  boost::filesystem::path absolute_dir;
-  if(!search_file(dir_name,absolute_dir))
-    path_list_->push_back (complete(path(dir_name,native)));
-  else
-    path_list_->push_back (absolute_dir);
-  return true;
+  return AddPath(dir_name);
 }
 //-------------------------------------------------------------------------------------------
 
 bool TBinExecutor::OnLoadLibrary (const std::string &file_name)
 {
   boost::filesystem::path absolute_path;
-  if (!search_library_file(file_name,absolute_path))
+  if (!SearchLibraryFile(file_name,absolute_path))
   {
     print_error("load: failed because the library not found");
     return false;
@@ -91,7 +75,7 @@ bool TBinExecutor::OnLoadLibrary (const std::string &file_name)
 bool TBinExecutor::OnInclude (const std::string &file_name, std::string &abs_file_name, bool once)
 {
   boost::filesystem::path absolute_path;
-  if (!search_agent_file(file_name,absolute_path))
+  if (!SearchAgentFile(file_name,absolute_path))
     return false;
 
   abs_file_name= absolute_path.file_string();
@@ -103,34 +87,6 @@ bool TBinExecutor::OnInclude (const std::string &file_name, std::string &abs_fil
       abs_file_name= "";
   }
   return true;
-}
-//-------------------------------------------------------------------------------------------
-
-bool TBinExecutor::search_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension) const
-{
-  using namespace boost::filesystem;
-  if (file_path.is_complete())
-  {
-    if (exists((absolute_path= file_path)))  return true;
-    if (extension && exists((absolute_path= file_path.parent_path()/(file_path.filename()+extension))))  return true;
-    return false;
-  }
-
-  if (exists((absolute_path= current_dir_/file_path)))  return true;
-  if (extension && exists((absolute_path= current_dir_/file_path+extension)))  return true;
-
-  if (path_list_==NULL)  return false;
-
-  path  tmp_path(file_path);
-  for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
-    if (exists((absolute_path= *ditr/tmp_path)))  return true;
-  if (extension)
-  {
-    tmp_path= file_path+extension;
-    for (std::list<path>::const_iterator ditr(path_list_->begin()), ditr_last(path_list_->end()); ditr!=ditr_last; ++ditr)
-      if (exists((absolute_path= *ditr/tmp_path)))  return true;
-  }
-  return false;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -916,7 +872,7 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule)
 
   if(ParseFile(file_path.file_string(),bin_stack,callbacks))
   {
-    partially_execute(&executor,&bin_stack,file_name,-1,false);
+    partially_execute(&executor,&bin_stack,file_path.file_string(),-1,false);
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopCmpModule();
     LASSERT(executor.CmpModuleStackSize()==0);
