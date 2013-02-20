@@ -36,14 +36,47 @@ namespace var_space
 //-------------------------------------------------------------------------------------------
 
 
-//! add a builtin function (globally affect) whose return value is a void
-void AddToBuiltinFunctions_Void(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
-//! add a builtin function (globally affect) whose return value is a real
-void AddToBuiltinFunctions_Real(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
-//! add a builtin function (globally affect) whose return value is a bool
-void AddToBuiltinFunctions_Bool(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
-//! add a builtin function (globally affect) whose return value is a list
-void AddToBuiltinFunctions_List(const TIdentifier &func_id, const boost::function<void(TVariableList&)> &f);
+class TBinExecutor;
+
+//===========================================================================================
+class TBuiltinFunctions
+//===========================================================================================
+{
+public:
+  enum TReturnType {rtVoid=0, rtInt, rtReal, rtBool, rtString, rtList};
+  struct TFunction
+    {
+      TReturnType ReturnType;
+      boost::function<void(TBinExecutor &context, TVariableList &argv)> F;
+
+      TFunction() : ReturnType(rtVoid) {}
+      TFunction(TReturnType rt, boost::function<void(TBinExecutor&,TVariableList&)> f)
+        : ReturnType(rt), F(f)  {}
+    };
+
+  TBuiltinFunctions()  {AddDefaultFunctions();}
+  TBuiltinFunctions(bool use_default)  {if(use_default) AddDefaultFunctions();}
+
+  void AddDefaultFunctions();
+
+  void Add(const TIdentifier &func_id, const TFunction &f)  {func_table_[func_id]= f;}
+  void Add(const TIdentifier &func_id, TReturnType rt, boost::function<void(TBinExecutor&,TVariableList&)> f)
+          {func_table_[func_id]= TFunction(rt,f);}
+  void Merge(const TBuiltinFunctions &src)
+    {
+      func_table_.insert(src.func_table_.begin(), src.func_table_.end());
+    }
+
+  const TFunction* Find(const TIdentifier &func_id) const
+    {
+      std::map<TIdentifier, TFunction>::const_iterator itr= func_table_.find(func_id);
+      if(itr==func_table_.end())  return NULL;
+      return &itr->second;
+    }
+
+private:
+  std::map<TIdentifier, TFunction>  func_table_;
+};
 //-------------------------------------------------------------------------------------------
 
 
@@ -266,10 +299,15 @@ public:
   int  VariableStackSize()  {return variable_stack_.size();}
 
   const TBinaryStack& BinStack() const {return *bin_stack_;}
+  TLiteralTable& LiteralTable()  {return *literal_table_;}
   const TLiteralTable& LiteralTable() const {return *literal_table_;}
+  TLiteralTable* LiteralTablePtr()  {return literal_table_;}
 
   void SetBinStack(const TBinaryStack *p)  {bin_stack_= p;}
-  void SetLiteralTable(TLiteralTable *p)  {literal_table_= p;}
+  void SetLiteralTable(TLiteralTable *p)  {literal_table_= p; update_keyword_this();}
+
+  TBuiltinFunctions& BuiltinFunctions()  {return builtin_functions_;}
+  const TBuiltinFunctions& BuiltinFunctions() const {return builtin_functions_;}
 
   const std::string& FileName() const {return file_name_;}
   int LineNum() const {return line_num_;}
@@ -283,6 +321,8 @@ protected:
 
   std::list<TLiteral> literal_stack_;
   std::list<TExtVariable>  variable_stack_;
+
+  TBuiltinFunctions builtin_functions_;
 
   std::string  file_name_;
   int  line_num_;
@@ -539,9 +579,9 @@ protected:
 
 //===========================================================================================
 
-bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &literal_table);
+bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &literal_table, const TBuiltinFunctions *additional_funcs=NULL);
 
-bool ExecuteBinary (const TBinaryStack &bin_stack, TVariable &var, TLiteralTable &literal_table);
+bool ExecuteBinary (const TBinaryStack &bin_stack, TVariable &var, TLiteralTable &literal_table, const TBuiltinFunctions *additional_funcs=NULL);
 
 
 //-------------------------------------------------------------------------------------------
