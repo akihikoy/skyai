@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include "libhumanoid01.h"
-#include <skyai/utility.h>
+#include <skyai/execs/general_agent.h>
 #include <skyai/modules_core/learning_manager.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -31,24 +31,16 @@ namespace loco_rabbits
 }
 //-------------------------------------------------------------------------------------------
 using namespace std;
-// using namespace boost;
 using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
-// #define print(var) PrintContainer((var), #var"= ")
-// #define print(var) std::cout<<#var"= "<<(var)<<std::endl
-//-------------------------------------------------------------------------------------------
 
-int main(int argc, char**argv)
+int Maze2dSkyAIMain(TOptionParser &option, TAgent &agent)
 {
-  TOptionParser option(argc,argv);
   option["notex"]; option["noshadow"]; option["noshadows"]; option["pause"];  // these options are used by ODE
   bool console_mode= ConvertFromStr<bool>(option("console","false"));
-  string textures_path= option("texture","m/textures");
+  string default_textures_path(agent.SearchFileName("textures"));
+  string textures_path= option("texture",default_textures_path);
   int xwindow_width(ConvertFromStr<int>(option("winx","400"))), xwindow_height(ConvertFromStr<int>(option("winy","400")));
-
-  TAgent  agent;
-  std::ofstream debug;
-  if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
   MBasicLearningManager *p_lmanager = dynamic_cast<MBasicLearningManager*>(agent.SearchModule("lmanager"));
   MHumanoidEnvironment *p_environment = dynamic_cast<MHumanoidEnvironment*>(agent.SearchModule("environment"));
@@ -58,14 +50,6 @@ int main(int argc, char**argv)
   MHumanoidEnvironment &environment(*p_environment);
 
   agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
-
-  {
-    stringstream optss;
-    if (option("help")!="")
-      {cerr<<"valid options:"<<endl; option.PrintUsed(); return 0;}
-    if (option.PrintNotAccessed(optss))
-      {cerr<<"invalid options:"<<endl<<optss.str(); return 1;}
-  }
 
   //////////////////////////////////////////////////////
   /// start learning:
@@ -85,7 +69,7 @@ int main(int argc, char**argv)
   while(environment.Executing())
   {
     if (!environment.ConsoleMode())
-      {dsSimulationLoop (argc,argv,xwindow_width,xwindow_height,&fn);}
+      {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
     else
       {while(environment.Executing()) environment.StepLoop();}
   }
@@ -99,4 +83,5 @@ int main(int argc, char**argv)
   return 0;
 }
 //-------------------------------------------------------------------------------------------
-
+SKYAI_SET_MAIN(Maze2dSkyAIMain)
+//-------------------------------------------------------------------------------------------

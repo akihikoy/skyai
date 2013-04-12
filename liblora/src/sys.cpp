@@ -30,6 +30,7 @@
 //-------------------------------------------------------------------------------------------
 #include <cstdio>  // getchar
 #include <sys/stat.h>  // stat, mkdir
+#include <unistd.h>  // readlink
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -55,6 +56,22 @@ bool CreateDirectory (const std::string &dirname, mode_t mode)
   return true;
 }
 //-------------------------------------------------------------------------------------------
+
+/*! \brief Get the executable's absolute-path */
+std::string GetExecutablePath ()
+{
+  char buf[512];
+  int siz= readlink("/proc/self/exe", buf, sizeof(buf)-1);
+  if(siz>0)
+  {
+    buf[siz]='\0';
+    return buf;
+  }
+  LERROR("failed to get executable's path");
+  return "";
+}
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 // class TKBHit
@@ -85,6 +102,24 @@ void TKBHit::Close (void)
 int TKBHit::operator() (void) const
 {
   return getchar();
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// Dynamic link library support
+//===========================================================================================
+
+void* DLOpen(const char *file_name, int flag)
+{
+  void *dl_handle;
+  dl_handle= dlopen(file_name, flag);
+  if (!dl_handle)
+  {
+    LERROR("error: "<<dlerror());
+    return NULL;
+  }
+  return dl_handle;
 }
 //-------------------------------------------------------------------------------------------
 

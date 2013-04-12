@@ -50,8 +50,7 @@ class TAgent;
     }
     \endcode
 */
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream=std::cout,
-      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream=std::cout);
 
 /*!\brief Parse command line option for an instance of TAgent
 
@@ -67,8 +66,7 @@ bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &deb
     }
     \endcode
 */
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream,
-      LIST_FWD(std::string) *included_list=NULL, bool agent_option_required=true);
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream);
 
 
 //-------------------------------------------------------------------------------------------

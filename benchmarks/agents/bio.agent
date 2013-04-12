@@ -1,0 +1,3 @@
+add_path "bioloid"
+load "libbioloid"
+load "libbioloid_main"

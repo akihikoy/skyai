@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include "libbioloid.h"
-#include <skyai/utility.h>
+#include <skyai/execs/general_agent.h>
 #include <skyai/modules_core/learning_manager.h>
 #include <fstream>
 //-------------------------------------------------------------------------------------------
@@ -35,11 +35,7 @@ namespace loco_rabbits
 #include <lora/sys.h>
 //-------------------------------------------------------------------------------------------
 using namespace std;
-// using namespace boost;
 using namespace loco_rabbits;
-//-------------------------------------------------------------------------------------------
-// #define print(var) PrintContainer((var), #var"= ")
-// #define print(var) std::cout<<#var"= "<<(var)<<std::endl
 //-------------------------------------------------------------------------------------------
 
 
@@ -155,18 +151,12 @@ void FinishLearningProc ()
 //-------------------------------------------------------------------------------------------
 
 
-int main (int argc, const char **argv)
+int Maze2dSkyAIMain(TOptionParser &option, TAgent &agent)
 {
   signal(SIGINT,sig_handler);
   signal(SIGQUIT,sig_handler);
 
-  TOptionParser option(argc,argv);
-
   // [-- setup the agent
-
-  TAgent  agent;
-  std::ofstream debug;
-  if (!ParseCmdLineOption (agent, option, debug))  return 0;
 
   MManualLearningManager *p_lmanager = dynamic_cast<MManualLearningManager*>(agent.SearchModule("lmanager"));
   MBioloidEnvironment *p_environment = dynamic_cast<MBioloidEnvironment*>(agent.SearchModule("environment"));
@@ -182,14 +172,6 @@ int main (int argc, const char **argv)
 
   PtrAgent= &agent;
   PtrEnvironment= &environment;
-
-  {
-    stringstream optss;
-    if (option("help")!="")
-      {cerr<<"valid options:"<<endl; option.PrintUsed(); return 0;}
-    if (option.PrintNotAccessed(optss))
-      {cerr<<"invalid options:"<<endl<<optss.str(); return 1;}
-  }
 
   //////////////////////////////////////////////////////
   // [-- learning
@@ -233,6 +215,5 @@ int main (int argc, const char **argv)
   return ExitCode;
 }
 //-------------------------------------------------------------------------------------------
-
-
-
+SKYAI_SET_MAIN(Maze2dSkyAIMain)
+//-------------------------------------------------------------------------------------------

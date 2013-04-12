@@ -46,7 +46,9 @@ struct TParserCallbacks
   TCallback  OnEndOfLine;
 };
 
-bool ParseFile (const std::string &filename, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks());
+bool ParseFile (const std::string &filename, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks(), bool no_msg=false);
+
+bool ParseScript (const std::string &script, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name="-", bool no_msg=false);
 
 
 //-------------------------------------------------------------------------------------------

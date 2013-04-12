@@ -67,6 +67,14 @@ static bool save_agent_config_to_stream (const TAgent *agent, ostream *os, const
 }
 //-------------------------------------------------------------------------------------------
 
+static bool save_library_list_to_stream (const TAgent *agent, ostream *os, const std::string &indent)
+{
+  for(list<string>::const_iterator itr(agent->LibList().begin()),last(agent->LibList().end()); itr!=last; ++itr)
+    (*os) <<indent<< "load  " << ConvertToStr(*itr) << endl;
+  return true;
+}
+//-------------------------------------------------------------------------------------------
+
 static bool save_config_to_stream (const TModuleInterface *module, ostream *os, const std::string &indent)
 {
   if(module->ParamBoxConfig().NoMember())  return true;
@@ -445,6 +453,8 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
 bool WriteAgentToStream (const TAgent &agent, ostream &os, bool ext_sto_available)
 //===========================================================================================
 {
+  save_library_list_to_stream (&agent, &os, "");
+  os<<endl;
   save_agent_config_to_stream (&agent, &os, "");
   os<<endl;
   agent.CompositeModuleGenerator().WriteToStream(os);
@@ -489,6 +499,17 @@ bool DumpCModInfo (const TCompositeModule &cmodule, const std::string &filename,
   if(kind=="agent")
   {
     return WriteAgentToStream (cmodule.Agent(), *p_os, ext_sto_available);
+  }
+  else if(kind=="lib_list")
+  {
+    for(list<string>::const_iterator itr(cmodule.Agent().LibList().begin()),last(cmodule.Agent().LibList().end()); itr!=last; ++itr)
+      (*p_os) <<indent<< *itr << endl;
+  }
+  else if(kind=="path_list")
+  {
+    if(cmodule.Agent().PathListPtr())
+      for(std::list<boost::filesystem::path>::const_iterator itr(cmodule.Agent().PathListPtr()->begin()),last(cmodule.Agent().PathListPtr()->end()); itr!=last; ++itr)
+        (*p_os) <<indent<< *itr << endl;
   }
   else if(kind=="config")
   {

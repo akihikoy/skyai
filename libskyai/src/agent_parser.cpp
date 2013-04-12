@@ -76,6 +76,7 @@ public:
       rule_t  statements_in_cmp, statement_in_cmp;
       rule_t  statements_in_edit, statement_in_edit;
       rule_t  statement_composite, statement_edit, statement_def, statement_return;
+      rule_t  statement_add_path, statement_load;
       rule_t  statement_include, statement_include_once, statement_linclude;
       rule_t  statement_dump1, statement_dump2;
       rule_t  statement_destroy;
@@ -129,6 +130,8 @@ private:
   void add_single_command(t_iterator first, t_iterator last, int command) const;
 
   #define DECL_ACTION(x_func)  void x_func (t_iterator first, t_iterator last) const
+  DECL_ACTION(add_path);
+  DECL_ACTION(load_library);
   DECL_ACTION(include_file);
   DECL_ACTION(include_file_once);
   DECL_ACTION(syntax_error);
@@ -168,6 +171,37 @@ void XCLASS::add_single_command(t_iterator first, t_iterator last, int command) 
 {
   bin_stack_->Push(command);
   on_command_pushed();
+}
+
+TEMPLATE_DEC
+void XCLASS::add_path (t_iterator first, t_iterator last) const
+{
+  if(callbacks_.OnAddPath)
+  {
+    std::string file_name(var_parser.TmpString());
+    if(!callbacks_.OnAddPath(file_name))
+    {
+      print_error(file_name+": failed to add_path");
+      return;
+    }
+  }
+  else
+    print_error("error: callbacks_.OnAddPath is not given;`add_path' is not available");
+}
+TEMPLATE_DEC
+void XCLASS::load_library (t_iterator first, t_iterator last) const
+{
+  if(callbacks_.OnLoadLibrary)
+  {
+    std::string file_name(var_parser.TmpString());
+    if(!callbacks_.OnLoadLibrary(file_name))
+    {
+      print_error(file_name+": failed to load");
+      return;
+    }
+  }
+  else
+    print_error("error: callbacks_.OnLoadLibrary is not given;`load' is not available");
 }
 
 TEMPLATE_DEC
@@ -267,6 +301,8 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
     boost::function<void(t_iterator,t_iterator)>  \
       x_as= boost::bind(&TCodeParser::x_action,&self,_1,_2)
   ALIAS_ACTION(syntax_error        , f_syntax_error           );
+  ALIAS_ACTION(add_path            , f_add_path               );
+  ALIAS_ACTION(load_library        , f_load_library           );
   ALIAS_ACTION(include_file        , f_include_file           );
   ALIAS_ACTION(include_file_once   , f_include_file_once      );
   ALIAS_ACTION(ctrl_if             , f_ctrl_if                );
@@ -338,6 +374,8 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
   statement_global
     = (
       statement_def
+      | statement_add_path [f_add_path]
+      | statement_load [f_load_library]
       | statement_in_def
       );
   statement_in_def
@@ -397,6 +435,14 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 
   statement_return
     = str_p("return") >> +blank_p >> expr_block [SCMD(RETURN)];
+
+
+  statement_add_path
+    = str_p("add_path")
+      >> +blank_p >> lex_string;
+  statement_load
+    = str_p("load")
+      >> +blank_p >> lex_string;
 
   statement_include
     = str_p("include")
@@ -540,7 +586,35 @@ TCodeParser<t_iterator>::definition<ScannerT>::definition (const TCodeParser &se
 //-------------------------------------------------------------------------------------------
 
 
-bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks)
+template <typename t_iterator>
+bool parse_base (t_iterator first, t_iterator last, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name, bool no_msg)
+{
+  using namespace boost::spirit::classic;
+  int linenum(1);
+  std::string file_name2(file_name);
+  bool error(false);
+
+  TCodeParser<t_iterator> parser;
+  parser.SetBinStack(&bin_stack);
+  parser.SetFileName(&file_name2);
+  parser.SetLineNum(&linenum);
+  parser.SetError(&error);
+  parser.SetCallbacks(callbacks);
+
+  LORA_MESSAGE_FORMAT_FUNCTION tmp_msg_format= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
+  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&TCodeParser<t_iterator>::LoraError,&parser,_1,_2,_3,_4,_5)) );
+
+  parse_info<t_iterator> info= parse(first, last, parser);
+  message_system::SetFormat(tmp_msg_format);
+
+  if(!no_msg)
+    {LMESSAGE("included agent script: "<<file_name<<" (loaded "<<linenum<<" lines;"<<(info.stop==last ? "eof)" : "not eof)"));}
+
+  return !parser.Error();
+}
+//-------------------------------------------------------------------------------------------
+
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, bool no_msg)
 {
   using namespace boost::spirit::classic;
   typedef file_iterator<char> TIterator;
@@ -553,28 +627,13 @@ bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TPa
 
   TIterator last= first.make_end();
 
-  int linenum(1);
-  std::string file_name2(file_name);
-  bool error(false);
+  return parse_base(first, last, bin_stack, callbacks, file_name, no_msg);
+}
+//-------------------------------------------------------------------------------------------
 
-  TCodeParser<TIterator> parser;
-  parser.SetBinStack(&bin_stack);
-  parser.SetFileName(&file_name2);
-  parser.SetLineNum(&linenum);
-  parser.SetError(&error);
-  parser.SetCallbacks(callbacks);
-
-  LORA_MESSAGE_FORMAT_FUNCTION tmp_msg_format= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
-  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&TCodeParser<TIterator>::LoraError,&parser,_1,_2,_3,_4,_5)) );
-
-  parse_info<TIterator> info= parse(first, last, parser);
-  message_system::SetFormat(tmp_msg_format);
-
-
-  LMESSAGE("loaded "<<linenum<<" lines,");
-  LMESSAGE("which is "<<(info.stop==last ? "the last" : "not the last"));
-
-  return !parser.Error();
+bool ParseScript (const std::string &script, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name, bool no_msg)
+{
+  return parse_base(script.begin(), script.end(), bin_stack, callbacks, file_name, no_msg);
 }
 //-------------------------------------------------------------------------------------------
 

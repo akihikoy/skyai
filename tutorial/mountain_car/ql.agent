@@ -1,3 +1,5 @@
+load "libmountain_car"
+
 include_once "ql_da"
 
 module MMountainCarTaskModule mountaincar_task

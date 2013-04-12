@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include <skyai/skyai.h>
-#include <skyai/utility.h>
+#include <skyai/execs/general_agent.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -323,13 +323,8 @@ using namespace std;
 using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
 
-int main(int argc, char**argv)
+int TutMountainCarSkyAIMain(TOptionParser &option, TAgent &agent)
 {
-  TOptionParser option(argc,argv);
-
-  TAgent  agent;
-  if (!ParseCmdLineOption (agent, option))  return 0;
-
   MMountainCarTaskModule *p_mountaincar_task = dynamic_cast<MMountainCarTaskModule*>(agent.SearchModule("mountaincar_task"));
   if(p_mountaincar_task==NULL)  {LERROR("module `mountaincar_task' is not defined as an instance of MMountainCarTaskModule"); return 1;}
 
@@ -341,4 +336,6 @@ int main(int argc, char**argv)
 
   return 0;
 }
+//-------------------------------------------------------------------------------------------
+SKYAI_SET_MAIN(TutMountainCarSkyAIMain)
 //-------------------------------------------------------------------------------------------

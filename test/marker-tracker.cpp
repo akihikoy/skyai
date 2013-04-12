@@ -36,6 +36,7 @@ int main(int argc, char**argv)
 {
   int no_obs(0);
   marker_tracker::TMarkerTracker mtracker;
+  mtracker.Config().PrintResult= false;
   mtracker.Initialize();
   while(mtracker.Step())
   {
@@ -53,6 +54,12 @@ int main(int argc, char**argv)
       no_obs= 0;
     if (mtracker.Key() == 'q' || mtracker.Key() == 'Q')
       break;
+    if (mtracker.Key() == 'r' || mtracker.Key() == 'R')
+      mtracker.Initialize();
+
+    const marker_tracker::TParticle &p(mtracker.EstimatedState());
+    for(int i(0);i<9;++i)  cout<<" "<<p.R.t().val[i];
+    cout<<endl;
   }
   return 0;
 }

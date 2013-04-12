@@ -1,0 +1,3 @@
+add_path "maze2d"
+load "libmaze2d"
+load "libmaze2d_main"

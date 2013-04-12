@@ -134,14 +134,14 @@ namespace message_system
 #define LASSERT(eqn)                                        \
     do{if(!(eqn)){                                          \
       LERROR("assertion failed: (" #eqn ")");               \
-      lexit(abort);                                         \
+      lexit(df);                                            \
     }}while(0)
 #define LASSERT1op1(lhs,op,rhs)                             \
     do{if(!((lhs) op (rhs))){                               \
       LERROR("assertion failed: (" #lhs")" #op "("#rhs")"); \
       std::cerr<<"  ("#lhs")= "<<(lhs)<<std::endl;          \
       std::cerr<<"  ("#rhs")= "<<(rhs)<<std::endl;          \
-      lexit(abort);                                         \
+      lexit(df);                                            \
     }}while(0)
 //-------------------------------------------------------------------------------------------
 #define SIZE_OF_ARRAY(array)  (sizeof(array)/sizeof((array)[0]))

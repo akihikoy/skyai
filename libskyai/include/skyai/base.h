@@ -64,6 +64,10 @@ static const char * const SKYAI_EXT_STORAGE_DIR ("ext_sto");
     so that "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT can indicate ".agent" */
 #define SKYAI_DEFAULT_AGENT_SCRIPT_EXT  "agent"
 //-------------------------------------------------------------------------------------------
+#ifndef SKYAI_DEFAULT_LIBRARY_EXT
+#define SKYAI_DEFAULT_LIBRARY_EXT "so"
+#endif
+//-------------------------------------------------------------------------------------------
 
 class  TPortInterface;
 class  TModuleInterface;
@@ -79,6 +83,7 @@ ENUM_STR_MAP_BEGIN(TPortKind)
   ENUM_STR_MAP_ADD(pkSignal  )
   ENUM_STR_MAP_ADD(pkSlot    )
 ENUM_STR_MAP_END  (TPortKind)
+//-------------------------------------------------------------------------------------------
 
 struct TPortInfo
 {
@@ -671,8 +676,8 @@ public:
   bool WriteToBinary (TBinaryStack &bstack, bool ext_sto_available=false) const;
     // defined in agent_writer.cpp
 
-  //! see comments of TAgent::LoadFromFile
-  bool LoadFromFile (const std::string &file_name, std::list<std::string> *included_list=NULL);
+  /*!\brief load modules, connections, configurations from the file [file_name] (native path format) */
+  bool LoadFromFile (const std::string &file_name);
     // defined in agent_binexec.cpp
 
 
@@ -997,10 +1002,8 @@ public:
     {modules_.ForEachSubConnection(f);}
 
 
-  /*!\brief load modules, connections, configurations from the file [filename] (native path format)
-      \param [in,out]included_list  :  included full-path (native) list
-      \note  If you use include_once for multiple LoadFromFile, the same included_list should be specified */
-  bool LoadFromFile (const std::string &filename, std::list<std::string> *included_list=NULL);
+  /*!\brief load modules, connections, configurations from the file [filename] (native path format) */
+  bool LoadFromFile (const std::string &file_name);
     // defined in agent_binexec.cpp
 
   /*!\brief save modules, connections, configurations to the file [filename] (native path format) */
@@ -1016,7 +1019,14 @@ public:
 
   std::list<boost::filesystem::path>*  PathListPtr()  {return path_list_;}
   const std::list<boost::filesystem::path>*  PathListPtr() const {return path_list_;}
+  std::list<boost::filesystem::path>&  PathList()  {return SetPathList();}
   std::list<boost::filesystem::path>&  SetPathList();
+
+  std::list<std::string>&  LibList()  {return lib_list_;}
+  const std::list<std::string>&  LibList() const {return lib_list_;}
+
+  std::list<std::string>&  IncludedList()  {return included_list_;}
+  const std::list<std::string>&  IncludedList() const {return included_list_;}
 
 
   TCompositeModuleGenerator& CompositeModuleGenerator()  {return cmp_module_generator_;}
@@ -1029,8 +1039,8 @@ public:
           TCompositeModule &context_cmodule, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 
   bool ExecuteScript(
-          const std::string &exec_script, TCompositeModule &context_cmodule, std::list<std::string> *included_list=NULL,
-          const std::string &file_name="-", int start_line_num=1, bool ignore_export=false);
+          const std::string &script, TCompositeModule &context_cmodule,
+          bool ignore_export=false, const std::string &file_name="-");
     // defined in agent_binexec.cpp
 
   /*!\brief search filename from the path-list, return the native path
@@ -1078,8 +1088,10 @@ protected:
   TCompositeModuleGenerator  cmp_module_generator_;
   TFunctionManager           function_manager_;
 
-  boost::filesystem::path  *current_dir_;
+  boost::filesystem::path             *current_dir_;
   std::list<boost::filesystem::path>  *path_list_;
+  std::list<std::string>              lib_list_;  //!< loaded libraries
+  std::list<std::string>              included_list_;  //!< included agent scripts
 
 };
 //-------------------------------------------------------------------------------------------

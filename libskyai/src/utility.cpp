@@ -26,6 +26,7 @@
 #include <skyai/base.h>
 #include <lora/string.h>
 #include <lora/small_classes.h>
+#include <lora/sys.h>  // GetExecutablePath
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -36,7 +37,7 @@ using namespace std;
 // using namespace boost;
 
 
-static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, std::list<std::string> &included_list, bool agent_option_required)
+static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option)
 {
   if (ConvertFromStr<bool>(option("available_mods","false")))
   {
@@ -63,17 +64,36 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option, s
     // NOTE: DataDir is assigned both before loading agent files and after loading agent files.
     //       Note that dump{1,2} dumps info into a file in the data directory.
 
+  if (!ConvertFromStr<bool>(option("nodefault","false")))
+  {
+    using namespace boost::filesystem;
+    path exec_dir(path(GetExecutablePath()).parent_path());
+    if(exists(exec_dir/"default.agent"))
+    {
+      string agent_file= (exec_dir/"default.agent").file_string();
+      if (!agent.LoadFromFile(agent_file))
+      {
+        LERROR("failed to read "<<agent_file);
+        cout<<"Continue? (Y: continue to execute, N: exit now)"<<endl;
+        if (!AskYesNo())  lexit(df);
+      }
+    }
+  }
+
   if (option("agent")=="")
-    {if (agent_option_required) {LERROR("fatal! -agent option is needed."); lexit(df);}}
+  {
+    LWARNING("No -agent option is specified.");
+  }
   else
-  { /*load agent files*/
+  {
+    /*load agent files*/
     TTokenizer tokenizer(option("agent"));
     string agent_file,tmp_filename;
     while(!tokenizer.EOL())
     {
       tokenizer.ReadSeparators();
       agent_file= agent.SearchFileName(tmp_filename= tokenizer.ReadNonSeparators(), "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT);
-      if (agent_file=="" || !agent.LoadFromFile(agent_file,&included_list))
+      if (agent_file=="" || !agent.LoadFromFile(agent_file))
       {
         LERROR("failed to read "<<tmp_filename);
         cout<<"Continue? (Y: continue to execute, N: exit now)"<<endl;
@@ -113,7 +133,7 @@ static bool rename_to_old (const boost::filesystem::path &src, int max_old_index
 }
 //-------------------------------------------------------------------------------------------
 
-static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, std::list<std::string> &included_list, std::ostream &debug_stream)
+static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, std::ostream &debug_stream)
 {
   bool overwrite(true);
 
@@ -155,7 +175,7 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
     if (exists(included_dir.parent_path()))
     {
       create_directory(included_dir);
-      for (std::list<std::string>::const_iterator itr(included_list.begin()),last(included_list.end()); itr!=last; ++itr)
+      for (std::list<std::string>::const_iterator itr(agent.IncludedList().begin()),last(agent.IncludedList().end()); itr!=last; ++itr)
       {
         path from(*itr,native);
         copy_file(from, included_dir/(from.filename()));
@@ -205,32 +225,24 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
 }
 //-------------------------------------------------------------------------------------------
 
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream,
-      std::list<std::string> *included_list, bool agent_option_required)
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ostream &debug_stream)
 {
-  std::list<std::string>  null_included_list;
-  if (included_list==NULL)  included_list= &null_included_list;
+  if (!parse_cmd_line_option_step1(agent, option))  return false;
 
-  if (!parse_cmd_line_option_step1(agent, option, *included_list, agent_option_required))  return false;
-
-  if (!parse_cmd_line_option_step2(agent, option, *included_list, debug_stream))  return false;
+  if (!parse_cmd_line_option_step2(agent, option, debug_stream))  return false;
 
   return true;
 }
 //-------------------------------------------------------------------------------------------
 
-bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream,
-      std::list<std::string> *included_list, bool agent_option_required)
+bool ParseCmdLineOption (TAgent &agent, TOptionParser &option, std::ofstream &debug_fstream)
 {
-  std::list<std::string>  null_included_list;
-  if (included_list==NULL)  included_list= &null_included_list;
-
-  if (!parse_cmd_line_option_step1(agent, option, *included_list, agent_option_required))  return false;
+  if (!parse_cmd_line_option_step1(agent, option))  return false;
 
   if (ConvertFromStr<bool>(option("dump_debug","false")))
     debug_fstream.open(agent.GetDataFileName("debug.dat").c_str());
 
-  if (!parse_cmd_line_option_step2(agent, option, *included_list, debug_fstream))  return false;
+  if (!parse_cmd_line_option_step2(agent, option, debug_fstream))  return false;
 
   return true;
 }

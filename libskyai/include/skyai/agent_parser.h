@@ -40,17 +40,25 @@ struct TParserCallbacks
          file_name: current file name, line_num: current line num, error_stat: error status */
   typedef boost::function<void(const std::string &file_name,int line_num, bool error_stat)> TCallback;
 
+  /*! \brief callback function to for add_path and load_library
+         return true if succeeded */
+  typedef boost::function<bool(const std::string &str)> TCBBool_Str;
+
   /*! \brief callback function to get a path from file_name by searching a path list
          return true if file_name exists, false if file_name doesn't exist */
   typedef boost::function<bool(const std::string &file_name, std::string &abs_file_name)> TGetFilePath;
 
   TCallback      OnCommandPushed;
   TCallback      OnEndOfLine;
+  TCBBool_Str    OnAddPath;
+  TCBBool_Str    OnLoadLibrary;
   TGetFilePath   OnInclude;
   TGetFilePath   OnIncludeOnce;  //!< this callback should assign "" to abs_file_name if file_name is already loaded
 };
 
-bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks());
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks=TParserCallbacks(), bool no_msg=false);
+
+bool ParseScript (const std::string &script, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name="-", bool no_msg=false);
 
 
 //-------------------------------------------------------------------------------------------

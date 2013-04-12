@@ -1,0 +1,6 @@
+use_skyai(skyai)
+include_directories(${SKYAI_INCLUDE_DIRS})
+link_directories (${SKYAI_LIBRARY_DIRS})
+add_executable (agent_talker.out agent_talker.cpp)
+target_link_libraries (agent_talker.out ${SKYAI_LIBRARIES})
+install (TARGETS agent_talker.out DESTINATION bin/skyai)

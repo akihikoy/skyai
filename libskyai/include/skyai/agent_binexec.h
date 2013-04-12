@@ -53,9 +53,14 @@ public:
       included_list_(NULL),
       ignore_export_(false),
       path_list_(NULL),
+      lib_list_(NULL),
       cmp_module_generator_(NULL),
       function_manager_(NULL)
     {}
+
+  bool OnAddPath (const std::string &dir_name);
+
+  bool OnLoadLibrary (const std::string &file_name);
 
   bool OnInclude (const std::string &file_name, std::string &abs_file_name, bool once);
 
@@ -71,6 +76,7 @@ public:
   void SetIgnoreExport (bool ignore_export)  {ignore_export_= ignore_export;}
 
   void SetPathList (std::list<boost::filesystem::path> *path_list)  {path_list_= path_list;}
+  void SetLibList (std::list<std::string> *lib_list)  {lib_list_= lib_list;}
   void SetCmpModuleGenerator (TCompositeModuleGenerator *cmp_module_generator)  {cmp_module_generator_= cmp_module_generator;}
   void SetFunctionManager (TFunctionManager *function_manager)  {function_manager_= function_manager;}
 
@@ -88,6 +94,7 @@ protected:
   bool                                 ignore_export_;
 
   std::list<boost::filesystem::path>   *path_list_;
+  std::list<std::string>               *lib_list_;
   TCompositeModuleGenerator            *cmp_module_generator_;
   TFunctionManager                     *function_manager_;
 
@@ -111,7 +118,11 @@ protected:
       return value.AsPrimitive().String();
     }
 
-  bool search_agent_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path) const;
+  bool search_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension=NULL) const;
+  bool search_library_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path) const
+    {return search_file (file_path, absolute_path, "."SKYAI_DEFAULT_LIBRARY_EXT);}
+  bool search_agent_file (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path) const
+    {return search_file (file_path, absolute_path, "."SKYAI_DEFAULT_AGENT_SCRIPT_EXT);}
   void inherit_module (bool no_export);
 
   inline bool forbidden_in_composite(const std::string &x);
@@ -255,7 +266,9 @@ protected:
 //===========================================================================================
 
 /*!\brief load modules, connections, configurations from the file [file_name] */
-bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule, std::list<std::string> *included_list=NULL);
+bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule);
+
+bool ExecuteScript (const std::string &script, TCompositeModule &cmodule, bool ignore_export, const std::string &file_name="-");
 
 bool ExecuteBinary (const TBinaryStack &bin_stack, TCompositeModule &cmodule, var_space::TLiteralTable *literal_table=NULL, var_space::TLiteral *ret_val=NULL, bool ignore_export=false);
 

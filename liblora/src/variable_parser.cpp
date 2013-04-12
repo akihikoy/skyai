@@ -29,10 +29,37 @@ namespace loco_rabbits
 namespace var_space
 {
 using namespace std;
-using namespace boost::spirit::classic;
 
 
-bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks)
+template <typename t_iterator>
+bool parse_base (t_iterator first, t_iterator last, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name, bool no_msg)
+{
+  using namespace boost::spirit::classic;
+  int linenum(1);
+  std::string file_name2(file_name);
+  bool error(false);
+
+  TCodeParser<t_iterator> parser;
+  parser.SetBinStack(&bin_stack);
+  parser.SetFileName(&file_name2);
+  parser.SetLineNum(&linenum);
+  parser.SetError(&error);
+  parser.SetCallbacks(callbacks);
+
+  LORA_MESSAGE_FORMAT_FUNCTION tmp_msg_format= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
+  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&TCodeParser<t_iterator>::LoraError,&parser,_1,_2,_3,_4,_5)) );
+
+  parse_info<t_iterator> info= parse(first, last, parser);
+  message_system::SetFormat(tmp_msg_format);
+
+  if(!no_msg)
+    {LMESSAGE("loaded: "<<file_name<<" ("<<linenum<<" lines;"<<(info.stop==last ? "eof)" : "not eof)"));}
+
+  return !parser.Error();
+}
+//-------------------------------------------------------------------------------------------
+
+bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, bool no_msg)
 {
   using namespace boost::spirit::classic;
   typedef file_iterator<char> TIterator;
@@ -45,28 +72,13 @@ bool ParseFile (const std::string &file_name, TBinaryStack &bin_stack, const TPa
 
   TIterator last= first.make_end();
 
-  int linenum(1);
-  std::string file_name2(file_name);
-  bool error(false);
+  return parse_base(first, last, bin_stack, callbacks, file_name, no_msg);
+}
+//-------------------------------------------------------------------------------------------
 
-  TCodeParser<TIterator> parser;
-  parser.SetBinStack(&bin_stack);
-  parser.SetFileName(&file_name2);
-  parser.SetLineNum(&linenum);
-  parser.SetError(&error);
-  parser.SetCallbacks(callbacks);
-
-  LORA_MESSAGE_FORMAT_FUNCTION tmp_msg_format= message_system::GetFormat<LORA_MESSAGE_FORMAT_FUNCTION>();
-  message_system::SetFormat(LORA_MESSAGE_FORMAT_FUNCTION(boost::bind(&TCodeParser<TIterator>::LoraError,&parser,_1,_2,_3,_4,_5)) );
-
-  parse_info<TIterator> info= parse(first, last, parser);
-  message_system::SetFormat(tmp_msg_format);
-
-
-  LMESSAGE("loaded "<<linenum<<" lines,");
-  LMESSAGE("which is "<<(info.stop==last ? "the last" : "not the last"));
-
-  return !parser.Error();
+bool ParseScript (const std::string &script, TBinaryStack &bin_stack, const TParserCallbacks &callbacks, const std::string &file_name, bool no_msg)
+{
+  return parse_base(script.begin(), script.end(), bin_stack, callbacks, file_name, no_msg);
 }
 //-------------------------------------------------------------------------------------------
 

@@ -23,7 +23,7 @@
 */
 //-------------------------------------------------------------------------------------------
 #include "libmaze2d.h"
-#include <skyai/utility.h>
+#include <skyai/execs/general_agent.h>
 #include <skyai/modules_core/learning_manager.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
@@ -35,14 +35,8 @@ using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
 
 
-int main(int argc, char**argv)
+int Maze2dSkyAIMain(TOptionParser &option, TAgent &agent)
 {
-  TOptionParser option(argc,argv);
-
-  TAgent  agent;
-  std::ofstream debug;
-  if (!ParseCmdLineOption (agent, option, debug))  return 0;
-
   MBasicLearningManager *p_lmanager = dynamic_cast<MBasicLearningManager*>(agent.SearchModule("lmanager"));
   MMazeEnvironment *p_environment = dynamic_cast<MMazeEnvironment*>(agent.SearchModule("environment"));
   if(p_lmanager==NULL)  {LERROR("module `lmanager' is not defined correctly"); return 1;}
@@ -52,14 +46,6 @@ int main(int argc, char**argv)
 
 
   agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
-
-  {
-    stringstream optss;
-    if (option("help")!="")
-      {cerr<<"valid options:"<<endl; option.PrintUsed(); return 0;}
-    if (option.PrintNotAccessed(optss))
-      {cerr<<"invalid options:"<<endl<<optss.str(); return 1;}
-  }
 
   /// start learning:
 
@@ -77,4 +63,6 @@ int main(int argc, char**argv)
 
   return 0;
 }
+//-------------------------------------------------------------------------------------------
+SKYAI_SET_MAIN(Maze2dSkyAIMain)
 //-------------------------------------------------------------------------------------------

@@ -1,0 +1,36 @@
+// agent file for jumping task using Q(lambda)-learning and DCOB-Q
+
+include "env"
+include "task_jump"
+include_once "ql_da"
+include_once "dcob_q"
+
+make_task_jumping(task,env)
+module MTDDiscAct behavior
+module MDCOB1Q dcob
+include "cmn_dcob"
+
+connect  dcob.out_extract_proportional , env.in_ngnet_extract_proportional
+
+/// parameter setting:
+
+include "cmn_ql_param"
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }
+
+behavior.config={
+    // Tau = 1
+    TauDecreasingFactor = 0.001
+  }
+env.config={
+    // NGnetFileName = "humanoid01/ngnet.dat"
+    // NGnetFileName = "humanoid01/ngnet_q3.dat"
+    NGnetFileName = "humanoid01/ngnet_bq01.dat"
+  }
+
+// include_once "log_state1"

@@ -1,0 +1,10 @@
+add_path "libskyai"
+add_path "benchmarks/cmn"
+add_path "benchmarks/maze2d"
+add_path "benchmarks/maze2d/m"
+load "libskyai_mcore"
+load "libskyai_mstd"
+load "libmaze2d"
+load "libmaze2d_main"
+
+dump1 "path_list" ""

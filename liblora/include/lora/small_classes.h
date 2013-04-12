@@ -357,20 +357,6 @@ public:
 class TOptionParser
 //===========================================================================================
 {
-private:
-  struct t_cell
-    {
-      std::string val;
-      bool accessed;
-      t_cell (void) : val(""), accessed(false) {}
-      t_cell (const std::string &s) : val(s), accessed(false) {}
-    };
-  std::map <std::string, t_cell> opt;  //!< options whose format is '-optname optvalue'
-  std::list <std::string>  used_opt;  //!< accessed options
-  std::string cmd_line;
-
-  void parse_from_arglist (int argc, const char *const*const argv); //!< parse from arguments
-
 public:
   std::list <std::string>  Floating;  /*!< options whose format is 'optname' (i.e. singular)
                                           if using such options and PrintNotAccessed, clear Floating
@@ -385,6 +371,9 @@ public:
   TOptionParser (const std::string &argline);
 
   const std::string& CommandLine(void) const {return cmd_line;}
+
+  int ArgC() const {return argc_;}
+  const char *const*const ArgV() const {return argv_;}
 
   //!\brief return the value of an option whose key is equal to the given key
   const std::string& operator[] (const std::string& key)
@@ -409,6 +398,24 @@ public:
   bool PrintNotAccessed (std::ostream &os=std::cerr, const std::string &prefix=std::string("  "), bool including_floating=true);
 
   void PrintUsed (std::ostream &os=std::cerr, const std::string &prefix=std::string("  "));
+
+private:
+  struct t_cell
+    {
+      std::string val;
+      bool accessed;
+      t_cell (void) : val(""), accessed(false) {}
+      t_cell (const std::string &s) : val(s), accessed(false) {}
+    };
+  std::map <std::string, t_cell> opt;  //!< options whose format is '-optname optvalue'
+  std::list <std::string>  used_opt;  //!< accessed options
+  std::string cmd_line;
+
+  int argc_;  //!< stores the original argument count
+  const char *const* argv_;  //!< stores the original argument count
+
+  void parse_from_arglist (int argc, const char *const*const argv); //!< parse from arguments
+
 };
 //-------------------------------------------------------------------------------------------
 

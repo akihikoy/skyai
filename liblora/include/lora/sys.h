@@ -36,6 +36,7 @@
 #include <sys/resource.h> // get cpu time
 #include <sys/types.h>
 #include <termios.h>
+#include <dlfcn.h>  // dlopen, flags
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -106,6 +107,10 @@ bool DirectoryExists (const std::string &dirname);
 bool CreateDirectory (const std::string &dirname, mode_t mode=0755);
 //-------------------------------------------------------------------------------------------
 
+/*! \brief Get the executable's absolute-path */
+std::string GetExecutablePath ();
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
 class TKBHit
@@ -137,6 +142,14 @@ inline void WaitKBHit(int k)
     if(s==k)  break;
   }
 }
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// Dynamic link library support
+//===========================================================================================
+
+void* DLOpen(const char *file_name, int flag=RTLD_LAZY|RTLD_GLOBAL);  // RTLD_NOW or RTLD_LAZY
 //-------------------------------------------------------------------------------------------
 
 
