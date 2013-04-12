@@ -1,0 +1,3 @@
+add_path "dynsim"
+load "libdynsim"
+load "libdynsim_main"

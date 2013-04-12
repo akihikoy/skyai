@@ -83,5 +83,7 @@ install (DIRECTORY materials/ DESTINATION share/skyai/materials
       PATTERN "*.png"
       PATTERN "*.cpp"
       PATTERN "*.h"
-      PATTERN "*.xml")
+      PATTERN "*.xml"
+      PATTERN "*.var"
+      PATTERN "*.py")
 ##-------------------------------------------------------------------------------------------

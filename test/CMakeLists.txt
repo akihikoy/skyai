@@ -24,6 +24,11 @@ include_directories(${SKYAI_INCLUDE_DIRS})
 link_directories (${SKYAI_LIBRARY_DIRS})
 add_skyai_executable(marker-tracker)
 
+use_skyai(ode)
+include_directories(${SKYAI_INCLUDE_DIRS})
+link_directories (${SKYAI_LIBRARY_DIRS})
+add_skyai_executable(robot_model)
+
 use_skyai(skyai)
 include_directories(${SKYAI_INCLUDE_DIRS})
 link_directories (${SKYAI_LIBRARY_DIRS})
@@ -54,9 +59,4 @@ add_skyai_executable(load-lib skyai)
 # NOTE: libskyai is linked, but libskyai_mcore and libskyai_mstd are not linked
 
 
-##------------------------------------------------------------------
-execute_process (COMMAND
-    ln -sf ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR}/bin/skyai/test/src
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
 ##------------------------------------------------------------------

@@ -3,6 +3,7 @@
     \brief   libskyai - define the timer-modules that emits signals at each time step
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Aug.30, 2009-
+    \date    Apr.11, 2013  Modified MUserEmittedTimer::slot_start_step and slot_finish_step to allow the port forwarding (i.e. _finished signal is now available)
 
     Copyright (C) 2009, 2010  Akihiko Yamaguchi
 
@@ -137,9 +138,11 @@ protected:
 
   MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
 
-  MAKE_SLOT_PORT_SPECIFIC(slot_start_step, void, (const TContinuousTime &dt), (dt), TThis, SKYAI_CONNECTION_SIZE_MAX, SKYAI_DISABLED_FWD_PORT_NAME);
+  // MAKE_SLOT_PORT_SPECIFIC(slot_start_step, void, (const TContinuousTime &dt), (dt), TThis, SKYAI_CONNECTION_SIZE_MAX, SKYAI_DISABLED_FWD_PORT_NAME);
+  MAKE_SLOT_PORT(slot_start_step, void, (const TContinuousTime &dt), (dt), TThis);
 
-  MAKE_SLOT_PORT_SPECIFIC(slot_finish_step, void, (const TContinuousTime &dt), (dt), TThis, SKYAI_CONNECTION_SIZE_MAX, SKYAI_DISABLED_FWD_PORT_NAME);
+  // MAKE_SLOT_PORT_SPECIFIC(slot_finish_step, void, (const TContinuousTime &dt), (dt), TThis, SKYAI_CONNECTION_SIZE_MAX, SKYAI_DISABLED_FWD_PORT_NAME);
+  MAKE_SLOT_PORT(slot_finish_step, void, (const TContinuousTime &dt), (dt), TThis);
 
   MAKE_SIGNAL_PORT(signal_start_of_step, void (const TContinuousTime &dt), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_step, void (const TContinuousTime &dt), TThis);

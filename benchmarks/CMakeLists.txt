@@ -1,5 +1,6 @@
 set (BUILD_BENCHMARKS_maze2d ON CACHE BOOL "Build maze2d")
 set (BUILD_BENCHMARKS_humanoid01 ON CACHE BOOL "Build humanoid01")
+set (BUILD_BENCHMARKS_dynsim ON CACHE BOOL "Build dynsim")
 set (BUILD_BENCHMARKS_bioloid ON CACHE BOOL "Build bioloid")
 
 if (BUILD_BENCHMARKS_maze2d)
@@ -28,6 +29,20 @@ if (BUILD_BENCHMARKS_humanoid01)
 
   install (TARGETS humanoid01 LIBRARY DESTINATION lib/skyai)
   install (TARGETS humanoid01_main LIBRARY DESTINATION lib/skyai)
+endif()
+
+if (BUILD_BENCHMARKS_dynsim)
+  use_skyai(skyai ode)
+  include_directories(${SKYAI_INCLUDE_DIRS})
+  link_directories (${SKYAI_LIBRARY_DIRS})
+
+  add_library (dynsim SHARED dynsim/libdynsim.cpp)
+  add_library (dynsim_main SHARED dynsim/dynsim.cpp)
+  target_link_libraries (dynsim ${SKYAI_LIBRARIES})
+  target_link_libraries (dynsim_main dynsim)
+
+  install (TARGETS dynsim LIBRARY DESTINATION lib/skyai)
+  install (TARGETS dynsim_main LIBRARY DESTINATION lib/skyai)
 endif()
 
 if (BUILD_BENCHMARKS_bioloid)

@@ -1,0 +1,65 @@
+finclude(this,"humanoid01.var")
+Robots={
+    ["Humanoid01"]={
+        Position=(0,0,0.242095+2.0e-3)
+        ForceSensors={
+            ["F11"]={
+                Attached="L12"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0+(100.00e-3*0.5-10.00e-3*0.5), 0.033+(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F12"]={
+                Attached="L12"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0+(100.00e-3*0.5-10.00e-3*0.5), 0.033-(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F13"]={
+                Attached="L12"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0-(100.00e-3*0.5-10.00e-3*0.5), 0.033-(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F14"]={
+                Attached="L12"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0-(100.00e-3*0.5-10.00e-3*0.5), 0.033+(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F21"]={
+                Attached="L17"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0+(100.00e-3*0.5-10.00e-3*0.5), -0.033+(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F22"]={
+                Attached="L17"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0+(100.00e-3*0.5-10.00e-3*0.5), -0.033-(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F23"]={
+                Attached="L17"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0-(100.00e-3*0.5-10.00e-3*0.5), -0.033-(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+            ["F24"]={
+                Attached="L17"
+                Geometry={Type= "gtBox"; Lx=10.00e-3; Ly=10.0e-3; Lz=2.0e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 0.1e-10
+                Position= (0-(100.00e-3*0.5-10.00e-3*0.5), -0.033+(61.00e-3*0.5-10.0e-3*0.5), -0.227835-(28.52e-3*0.5+2.0e-3*0.5))
+              }
+          }  // ForceSensors
+        ForceObserver= ("F11","F12","F13","F14", "F21","F22","F23","F24")
+      }  // Robot[]
+  }  // Robots

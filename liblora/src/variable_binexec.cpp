@@ -44,6 +44,25 @@ inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_p
 // built-in functions
 //===========================================================================================
 
+// return void:
+
+// FIXME: following code does not work.  fix me.
+// void dcopy(src_var,dest_var): Copy `src_var' to `dest_var' by using DirectAssign
+// void builtin_function_dcopy (TBinExecutor &context, var_space::TVariableList &argv)
+// {
+  // using namespace loco_rabbits::var_space;
+  // if (argv.size()!=3)
+    // {VAR_SPACE_ERR_EXIT("syntax of " "dcopy" " should be void(src_var,dest_var)");}
+  // TVariableList::iterator itr(argv.begin());
+  // ++itr;  // skip the return (void)
+  // TVariable &arg1(*itr); ++itr;
+  // TVariable &arg2(*itr); ++itr;
+
+// LDBGVAR(arg1);
+// LDBGVAR(arg2);
+  // arg2.DirectAssign(arg1);
+// }
+
 // return real:
 
 static void builtin_function_pi (TBinExecutor &context, TVariableList &argv)
@@ -155,7 +174,7 @@ static void builtin_function_or (TBinExecutor &context, TVariableList &argv)
   res.PrimitiveSetBy<pt_bool>(false);
 }
 
-//! finclude: Functional include
+//! bool finclude(var,str): Functional include: load data to `var' from file `str'
 void builtin_function_finclude (TBinExecutor &context, var_space::TVariableList &argv)
 {
   using namespace loco_rabbits::var_space;
@@ -205,6 +224,10 @@ static void builtin_function_shuffle (TBinExecutor &context, TVariableList &argv
 
 void TBuiltinFunctions::AddDefaultFunctions()
 {
+  #define ADD(x_func)  Add(#x_func, TFunction(rtVoid, &builtin_function_##x_func));
+  // ADD( dcopy  )
+  #undef ADD
+
   #define ADD(x_func)  Add(#x_func, TFunction(rtReal, &builtin_function_##x_func));
   ADD( pi     )
   ADD( acos   )

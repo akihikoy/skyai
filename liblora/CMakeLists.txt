@@ -46,6 +46,7 @@ install (TARGETS lora_oct LIBRARY DESTINATION lib/skyai)
 set(lora_ode_srcs
     src/ode.cpp
     src/ode_ds.cpp
+    src/robot_model.cpp
   )
 use_skyai(ode)
 include_directories (${SKYAI_INCLUDE_DIRS})

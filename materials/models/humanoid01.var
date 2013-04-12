@@ -1,0 +1,216 @@
+Robots={
+    ["Humanoid01"]={
+        RootLink="L0"
+        Position=(0,0,0.242095)
+        Links={
+            ["L0"]={
+                Geometry={Type= "gtBox"; Lx=37.00e-3; Ly=105.37e-3; Lz=93.15e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 219.6e-3 * 1.2/0.739700
+                Position= (0, 0, 0)
+              }
+            ["L1"]={
+                Geometry={Type= "gtBox"; Lx=41.00e-3; Ly=21.00e-3; Lz=39.40e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 32.30e-3 * 1.2/0.739700
+                Position= (0.0184, 0, 0.066275)
+              }
+            ["L2"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=29.61e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 5.44e-3 * 1.2/0.739700
+                Position= (0, 0.06749, 0.031075)
+                Rotation= RFromAxisAndAngle(1,0,0, pi()/2.0)
+              }
+            ["L3"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=59.50e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 40.16e-3 * 1.2/0.739700
+                Position= (0, 0.082295, 0.001325)
+              }
+            ["L4"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=72.27e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 37.40e-3 * 1.2/0.739700
+                Position= (0, 0.082295, -0.06456)
+              }
+            ["L5"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=29.61e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 5.44e-3 * 1.2/0.739700
+                Position= (0, -0.06749, 0.031075)
+                Rotation= RFromAxisAndAngle(1,0,0, pi()/2.0)
+              }
+            ["L6"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=59.50e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 40.16e-3 * 1.2/0.739700
+                Position= (0, -0.082295, 0.001325)
+              }
+            ["L7"]={
+                Geometry={Type= "gtCapsule"; Radius=24.00e-3*0.5; Length=72.27e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 37.40e-3 * 1.2/0.739700
+                Position= (0, -0.082295, -0.06456)
+              }
+            ["L8"]={
+                Geometry={Type= "gtSphere"; Radius=27.00e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 8.95e-3 * 1.2/0.739700
+                Position= (0, 0.0282, -0.05619)
+              }
+            ["L9"]={
+                Geometry={Type= "gtCapsule"; Radius=37.15e-3*0.5; Length=57.99e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 67.84e-3 * 1.2/0.739700
+                Position= (0, 0.0282, -0.10657)
+              }
+            ["L10"]={
+                Geometry={Type= "gtCapsule"; Radius=37.15e-3*0.5; Length=57.48e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 40.16e-3 * 1.2/0.739700
+                Position= (0, 0.0282, -0.164305)
+              }
+            ["L11"]={
+                Geometry={Type= "gtSphere"; Radius=27.00e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 8.95e-3 * 1.2/0.739700
+                Position= (0, 0.0282, -0.208765)
+              }
+            ["L12"]={
+                Geometry={Type= "gtBox"; Lx=100.00e-3; Ly=61.00e-3; Lz=28.52e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 35.00e-3 * 1.2/0.739700
+                Position= (0, 0.033, -0.227835)
+              }
+
+            ["L13"]={
+                Geometry={Type= "gtSphere"; Radius=27.00e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 8.95e-3 * 1.2/0.739700
+                Position= (0, -0.0282, -0.05619)
+              }
+            ["L14"]={
+                Geometry={Type= "gtCapsule"; Radius=37.15e-3*0.5; Length=57.99e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 67.84e-3 * 1.2/0.739700
+                Position= (0, -0.0282, -0.10657)
+              }
+            ["L15"]={
+                Geometry={Type= "gtCapsule"; Radius=37.15e-3*0.5; Length=57.48e-3-2.0*cast<real>(Radius); Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 40.16e-3 * 1.2/0.739700
+                Position= (0, -0.0282, -0.164305)
+              }
+            ["L16"]={
+                Geometry={Type= "gtSphere"; Radius=27.00e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 8.95e-3 * 1.2/0.739700
+                Position= (0, -0.0282, -0.208765)
+              }
+            ["L17"]={
+                Geometry={Type= "gtBox"; Lx=100.00e-3; Ly=61.00e-3; Lz=28.52e-3;}
+                InertiaType= "itFromGeometryWithMass"
+                Mass= 35.00e-3 * 1.2/0.739700
+                Position= (0, -0.033, -0.227835)
+              }
+            [@]= {Geometry={Color=(0.5,0.5,0.8,1.0);};}
+            ["L1"]= {Geometry={Color=(0.5,0.8,0.5,1.0);};}
+            ["L12"]= {Geometry={Color=(0.5,0.8,0.5,1.0);};}
+            ["L17"]= {Geometry={Color=(0.5,0.8,0.5,1.0);};}
+          }  // Links
+
+        Joints={
+            ["J0" ]={Body1="L0" ; Body2="L1" ; Axis1=(0,0,1); Anchor= (0.0084, 0, 0.046575)    ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.5*pi()      ;}; }
+            ["J1" ]={Body1="L0" ; Body2="L2" ; Axis1=(0,1,0); Anchor= (0, 0.052685, 0.031075)  ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.99*pi()     ;}; }
+            ["J2" ]={Body1="L2" ; Body2="L3" ; Axis1=(1,0,0); Anchor= (0, 0.082295, 0.031075)  ; AParam1={LoStop=-0.99*pi()    ; HiStop=+1.0/12.0*pi() ;}; }
+            ["J3" ]={Body1="L3" ; Body2="L4" ; Axis1=(0,1,0); Anchor= (0, 0.082295, -0.028425) ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.5*pi()      ;}; }
+            ["J4" ]={Body1="L0" ; Body2="L5" ; Axis1=(0,1,0); Anchor= (0, -0.052685, 0.031075) ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.99*pi()     ;}; }
+            ["J5" ]={Body1="L5" ; Body2="L6" ; Axis1=(1,0,0); Anchor= (0, -0.082295, 0.031075) ; AParam1={LoStop=-1.0/12.0*pi(); HiStop=+0.99*pi()     ;}; }
+            ["J6" ]={Body1="L6" ; Body2="L7" ; Axis1=(0,1,0); Anchor= (0, -0.082295, -0.028425); AParam1={LoStop=-0.5*pi()     ; HiStop=+0.5*pi()      ;}; }
+            ["J7" ]={Body1="L0" ; Body2="L8" ; Axis1=(1,0,0); Anchor= (0, 0.023, -0.034805)    ; AParam1={LoStop=-0.5*pi()     ; HiStop=+1.0/9.0*pi()  ;}; }
+            ["J8" ]={Body1="L8" ; Body2="L9" ; Axis1=(0,1,0); Anchor= (0, 0.0282, -0.077575)   ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.5*pi()      ;}; }
+            ["J9" ]={Body1="L9" ; Body2="L10"; Axis1=(0,1,0); Anchor= (0, 0.0282, -0.135565)   ; AParam1={LoStop=-0.78*pi()    ; HiStop=+1.0/18.0*pi() ;}; }
+            ["J10"]={Body1="L10"; Body2="L11"; Axis1=(0,1,0); Anchor= (0, 0.0282, -0.193045)   ; AParam1={LoStop=-1.0*pi()     ; HiStop=+1.0*pi()      ;}; }
+            ["J11"]={Body1="L11"; Body2="L12"; Axis1=(1,0,0); Anchor= (0, 0.023, -0.224485)    ; AParam1={LoStop=-1.0*pi()     ; HiStop=+1.0*pi()      ;}; }
+            ["J12"]={Body1="L0" ; Body2="L13"; Axis1=(1,0,0); Anchor= (0, -0.023, -0.034805)   ; AParam1={LoStop=-1.0/9.0*pi() ; HiStop=+0.5*pi()      ;}; }
+            ["J13"]={Body1="L13"; Body2="L14"; Axis1=(0,1,0); Anchor= (0, -0.0282, -0.077575)  ; AParam1={LoStop=-0.5*pi()     ; HiStop=+0.5*pi()      ;}; }
+            ["J14"]={Body1="L14"; Body2="L15"; Axis1=(0,1,0); Anchor= (0, -0.0282, -0.135565)  ; AParam1={LoStop=-0.78*pi()    ; HiStop=+1.0/18.0*pi() ;}; }
+            ["J15"]={Body1="L15"; Body2="L16"; Axis1=(0,1,0); Anchor= (0, -0.0282, -0.193045)  ; AParam1={LoStop=-1.0*pi()     ; HiStop=+1.0*pi()      ;}; }
+            ["J16"]={Body1="L16"; Body2="L17"; Axis1=(1,0,0); Anchor= (0, -0.023, -0.224485)   ; AParam1={LoStop=-1.0*pi()     ; HiStop=+1.0*pi()      ;}; }
+            [@]= {Type="jtHinge"; VizType="jvtCylinder"; VizRadius=0.011; VizLength=0.03; VizColor=(0.8);}
+            ["J0" ]= {VizRadius=0.013;}
+            ["J7" ]= {VizLength=0.05;}
+            ["J8" ]= {VizRadius=0.02; VizLength=0.04;}
+            ["J9" ]= {VizRadius=0.015;VizLength=0.04;}
+            ["J10"]= {VizRadius=0.018;VizLength=0.04;}
+            ["J11"]= {VizRadius=0.015; VizLength=0.05;}
+            ["J12"]= {VizLength=0.05;}
+            ["J13"]= {VizRadius=0.02; VizLength=0.04;}
+            ["J14"]= {VizRadius=0.015;VizLength=0.04;}
+            ["J15"]= {VizRadius=0.018;VizLength=0.04;}
+            ["J16"]= {VizRadius=0.015; VizLength=0.05;}
+          }  // Joints
+
+        JointAngleObserver={
+            []={Name="J0" ;}
+            []={Name="J1" ;}
+            []={Name="J2" ;}
+            []={Name="J3" ;}
+            []={Name="J4" ;}
+            []={Name="J5" ;}
+            []={Name="J6" ;}
+            []={Name="J7" ;}
+            []={Name="J8" ;}
+            []={Name="J9" ;}
+            []={Name="J10";}
+            []={Name="J11";}
+            []={Name="J12";}
+            []={Name="J13";}
+            []={Name="J14";}
+            []={Name="J15";}
+            []={Name="J16";}
+          }
+        JointAngVelObserver={
+            []={Name="J0" ;}
+            []={Name="J1" ;}
+            []={Name="J2" ;}
+            []={Name="J3" ;}
+            []={Name="J4" ;}
+            []={Name="J5" ;}
+            []={Name="J6" ;}
+            []={Name="J7" ;}
+            []={Name="J8" ;}
+            []={Name="J9" ;}
+            []={Name="J10";}
+            []={Name="J11";}
+            []={Name="J12";}
+            []={Name="J13";}
+            []={Name="J14";}
+            []={Name="J15";}
+            []={Name="J16";}
+          }
+        JointTorqueAdder={
+            []={Name="J0" ;}
+            []={Name="J1" ;}
+            []={Name="J2" ;}
+            []={Name="J3" ;}
+            []={Name="J4" ;}
+            []={Name="J5" ;}
+            []={Name="J6" ;}
+            []={Name="J7" ;}
+            []={Name="J8" ;}
+            []={Name="J9" ;}
+            []={Name="J10";}
+            []={Name="J11";}
+            []={Name="J12";}
+            []={Name="J13";}
+            []={Name="J14";}
+            []={Name="J15";}
+            []={Name="J16";}
+          }
+        LinkContactObserver= ("L0","L1","L2","L3","L4","L5","L6","L7","L8","L9",
+                              "L10","L11","L12","L13","L14","L15","L16","L17")
+      }  // Robot[]
+  }  // Robots
+

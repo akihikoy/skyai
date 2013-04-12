@@ -4,7 +4,7 @@
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    GEN_DATE
 
-    Copyright (C) 2012  Akihiko Yamaguchi
+    Copyright (C) 2013  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 

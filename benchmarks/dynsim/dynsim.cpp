@@ -1,10 +1,10 @@
 //-------------------------------------------------------------------------------------------
-/*! \file    humanoid01.cpp
-    \brief   benchmarks - motion learning task of a simulation humanoid robot
+/*! \file    dynsim.cpp
+    \brief   skyai - certain application
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
-    \date    Oct.23, 2009-
+    \date    Mar.28, 2013
 
-    Copyright (C) 2009, 2010  Akihiko Yamaguchi
+    Copyright (C) 2013  Akihiko Yamaguchi
 
     This file is part of SkyAI.
 
@@ -22,9 +22,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 //-------------------------------------------------------------------------------------------
-#include "libhumanoid01.h"
+#include "libdynsim.h"
 #include <skyai/execs/general_agent.h>
 #include <skyai/modules_core/learning_manager.h>
+#include <lora/ode_ds.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -34,7 +35,7 @@ using namespace std;
 using namespace loco_rabbits;
 //-------------------------------------------------------------------------------------------
 
-int Humanoid01SkyAIMain(TOptionParser &option, TAgent &agent)
+int DynSimSkyAIMain(TOptionParser &option, TAgent &agent)
 {
   option["notex"]; option["noshadow"]; option["noshadows"]; option["pause"];  // these options are used by ODE
   bool console_mode= ConvertFromStr<bool>(option("console","false"));
@@ -43,36 +44,40 @@ int Humanoid01SkyAIMain(TOptionParser &option, TAgent &agent)
   int xwindow_width(ConvertFromStr<int>(option("winx","400"))), xwindow_height(ConvertFromStr<int>(option("winy","400")));
 
   MBasicLearningManager *p_lmanager = dynamic_cast<MBasicLearningManager*>(agent.SearchModule("lmanager"));
-  MHumanoidEnvironment *p_environment = dynamic_cast<MHumanoidEnvironment*>(agent.SearchModule("environment"));
+  MDynamicsSimulator *p_environment = dynamic_cast<MDynamicsSimulator*>(agent.SearchModule("environment"));
   if(p_lmanager==NULL)  {LERROR("module `lmanager' is not defined correctly"); return 1;}
   if(p_environment==NULL)  {LERROR("module `environment' is not defined correctly"); return 1;}
   MBasicLearningManager &lmanager(*p_lmanager);
-  MHumanoidEnvironment &environment(*p_environment);
+  MDynamicsSimulator &environment(*p_environment);
 
   agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
 
   //////////////////////////////////////////////////////
   /// start learning:
-  ptr_environment= &environment;
+  ptr_dynamics_simulator= &environment;
   dsFunctions fn;
   fn.version = DS_VERSION;
-  fn.start = &ODEDS_Start;
-  fn.step = &ODEDS_StepLoop;
-  fn.command = &ODEDS_KeyEvent;
-  fn.stop = &ODEDS_Stop;
+  fn.start = &ODEDS_DSStart;
+  fn.step = &ODEDS_DSStep;
+  fn.command = &ODEDS_DSKeyEvent;
+  fn.stop = &ODEDS_DSStop;
   fn.path_to_textures = textures_path.c_str();
 
   lmanager.Initialize();
   lmanager.StartLearning();
 
-  environment.SetConsoleMode(console_mode);
-  while(environment.Executing())
-  {
-    if (!environment.ConsoleMode())
-      {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
-    else
-      {while(environment.Executing()) environment.StepLoop();}
-  }
+  // environment.SetConsoleMode(console_mode);
+  // while(environment.Executing())
+  // {
+    // if (!environment.ConsoleMode())
+      // {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
+    // else
+      // {while(environment.Executing()) environment.StepLoop();}
+  // }
+  if(!console_mode)
+    {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
+  else
+    {while(environment.Executing()) environment.Step();}
   TerminateODE();
   //////////////////////////////////////////////////////
 
@@ -83,5 +88,5 @@ int Humanoid01SkyAIMain(TOptionParser &option, TAgent &agent)
   return 0;
 }
 //-------------------------------------------------------------------------------------------
-SKYAI_SET_MAIN(Humanoid01SkyAIMain)
+SKYAI_SET_MAIN(DynSimSkyAIMain)
 //-------------------------------------------------------------------------------------------

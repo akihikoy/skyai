@@ -1,0 +1,5 @@
+StaticObjects={
+    ["Floor"]={
+        Links={["Floor"]={Geometry={Type= "gtPlane"; A=0; B=0; C=1; D=0;};};}
+      }  // StaticObject[]
+  }

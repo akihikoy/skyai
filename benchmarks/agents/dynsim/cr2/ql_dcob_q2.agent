@@ -1,0 +1,25 @@
+// agent file for crawling task using Q(lambda)-learning and DCOB-Q
+
+include "env"
+// include "task_cr2"
+include "task_cr2f"
+include_once "ql_da"
+include_once "dcob_q"
+
+make_task_cr2(task,env)
+module MTDDiscAct behavior
+module MDCOB1Q dcob
+include "cmn_dcob"
+
+connect  dcob.out_extract_proportional , env.in_ngnet_extract_proportional
+
+/// parameter setting:
+
+include "cmn_ql_param"
+
+behavior.config={
+    Gamma = 0.9
+    Alpha = 0.3
+    AlphaDecreasingFactor = 0.002
+    AlphaMin = 0.05
+  }

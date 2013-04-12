@@ -24,6 +24,7 @@ cells = {
     clear()
     []={x=1;y=2;}
     []={x=-2.5;y=-3.5;}
+    []={;}
   }
 cell = {x=20; y=0.1; z=(1.2,-1,0.0);}
 
@@ -73,3 +74,10 @@ z= cast<list<real> >(this.z)*2.0
 
 // inline_include(this,"../test/test-TTest2.var")
 finclude(this,"test-TTest2.var")
+
+// dcopy(cell,cells[2])
+// dcopy(cells[2],cell)
+// dcopy(cells[1],cells[2])
+// dcopy(this,cells[2])
+// dcopy(cells[2],this)
+

@@ -1,0 +1,204 @@
+Robots={
+    ["R1"]={
+        Links={
+            ["L1"]={
+                Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2; Color=(1,0,0,0.7);}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (0,0,1)
+                Rotation= RFromAxisAndAngle(0,1,0, pi()/12.0)
+              }
+            ["L2"]={
+                Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2; Color=(0,1,0,0.7);}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (0,0,1.5)
+                Rotation= RFromAxisAndAngle(0,1,0, pi()/12.0)
+              }
+            ["L3"]={
+                Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2; Color=(0,0,1,0.7);}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (0,0,2)
+                Rotation= RFromAxisAndAngle(0,1,0, pi()/12.0)
+              }
+            ["L4"]={
+                Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2; Color=(1,0,1,0.7);}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (0,0,2.5)
+                Rotation= RFromAxisAndAngle(0,1,0, pi()/12.0)
+              }
+            ["L5"]={
+                Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2;}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (0,0,3)
+                Rotation= RFromAxisAndAngle(0,1,0, pi()/12.0)
+              }
+          }
+        Joints={
+            ["J1"]={
+                Body1="L1"; Body2="L2"
+                Type="jtHinge"
+                Axis1=(0,1,0)
+                Anchor=(0,0,1.25)
+              }
+            ["J2"]={
+                Body1="L2"; Body2="L3"
+                Type="jtHinge"
+                Axis1=(0,1,0)
+                Anchor=(0,0,1.75)
+              }
+            ["J3"]={
+                Body1="L3"; Body2="L4"
+                Type="jtHinge"
+                Axis1=(0,1,0)
+                Anchor=(0,0,2.25)
+              }
+            ["J4"]={
+                Body1="L4"; Body2="L5"
+                Type="jtHinge"
+                Axis1=(0,1,0)
+                Anchor=(0,0,2.75)
+              }
+          }
+        // ForceSensors
+      }
+
+    ["R2"]={
+        Links={
+            ["L1"]={
+                Geometry={Type= "gtBox"; Lx=0.3;Ly=0.3;Lz=0.3;}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (-0.5,0,0.5)
+                // Rotation
+              }
+            ["L2"]={
+                Geometry={Type= "gtBox"; Lx=0.3;Ly=0.3;Lz=0.3;}
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (-0.8,0,0.8)
+                // Rotation
+              }
+            ["L3"]={
+                Geometry={
+                    Type= "gtTriMesh"
+                    Vertices=(
+                        0.3,0,0,
+                        0,0.3,0,
+                        0,0,0.3,
+                        -0.3,0,0,
+                        0,-0.3,0,
+                        0,0,-0.3
+                      )
+                    Indices=(
+                        0,1,2,
+                        1,3,2,
+                        3,4,2,
+                        4,0,2,
+                        0,4,5,
+                        4,3,5,
+                        3,1,5,
+                        1,0,5
+                      )
+                  }
+                InertiaType= "itFromGeometryWithDensity"
+                Density= 1.0
+                Position= (-1.1,0,1.1)
+                Rotation= RFromAxisAndAngle(0,1,0, 45.0/180.0*pi())
+              }
+          }
+        Joints={
+            ["J1"]={
+                Body1="L1"; Body2="L2"
+                Type= "jtHinge"
+                Axis1= (0,1,0)
+                Anchor= (-0.65,0,0.65)
+              }
+            ["J2"]={
+                Body1="L2"; Body2="L3"
+                Type= "jtHinge"
+                Axis1= (0,1,0)
+                Anchor= (-0.95,0,0.95)
+              }
+          }
+        // ForceSensors
+      }
+
+  }
+
+StaticObjects={
+    ["Floor"]={
+        Links={
+            ["Floor"]={
+                Geometry={Type= "gtPlane"; A=0; B=0; C=1; D=0;}
+              }
+          }  // Links
+      }  // StaticObject[]
+
+    ["Wall"]={
+        Links={
+            ["L0"]={
+                Geometry={Type= "gtBox"; Lx=0.05; Ly=2; Lz=0.25;}
+                Position= (1,0,0.125)
+              }
+            ["L1"]={
+                Geometry={Type= "gtBox"; Lx=0.05; Ly=2; Lz=0.25;}
+                Position= (-1,0,0.125)
+              }
+            ["L2"]={
+                Geometry={Type= "gtBox"; Lx=2; Ly=0.05; Lz=0.25;}
+                Position= (0,1,0.125)
+              }
+            ["L3"]={
+                Geometry={Type= "gtBox"; Lx=2; Ly=0.05; Lz=0.25;}
+                Position= (0,-1,0.125)
+              }
+          }  // Links
+      }  // StaticObject[]
+
+    ["Terrain"]={
+        Links={
+            ["Terrain"]={
+                Geometry={
+                    Type= "gtTriMesh"
+                    Vertices=(
+                        0.1, 0.2, 0.2,
+                        0, 0.8, 0,
+                        0.8, 0, 0,
+                        0, -0.8, 0,
+                        -0.8, 0, 0
+                      )
+                    Indices=(
+                        0,1,2,
+                        0,2,3,
+                        0,3,4,
+                        0,4,1,
+                        1,3,2,
+                        3,1,4
+                      )
+                    // Color=(1,0,1,0.8)  // un-comment Colors to activate this
+                    Colors=(
+                        1,0,0, 0.8,
+                        0,1,0, 0.8,
+                        0,0,1, 0.8,
+                        1,1,0, 0.8,
+                        1,0,1, 0.8,
+                        0,1,1, 0.8
+                      )
+                    Directions={resize(6);[@]=-1;}
+                  }
+              }  // Link[]
+          }  // Links
+      }  // StaticObject[]
+  }  // StaticObjects
+
+
+DefaultSurface={
+  }
+
+TimeStep= 0.005
+// Gravity=(0,0,-9.8)
+

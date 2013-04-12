@@ -3,6 +3,7 @@ add_path "${SKYAI_INSTALL_PREFIX}"
 add_path "lib/skyai"
 add_path "share/skyai/agents"
 add_path "share/skyai/agents/cmn"
+add_path "share/skyai/materials"
 
 load "libskyai_mcore"
 load "libskyai_mstd"

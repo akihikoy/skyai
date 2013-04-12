@@ -1,0 +1,22 @@
+finclude(this,"floor.var")
+finclude(this,"humanoid01.var")
+
+DefaultSurface={
+    ContactBounce= true
+    ContactSoftCFM= true
+    Mu         = inf
+    Mu2        = 0
+    Bounce     = 0.00001
+    BounceVel  = 0.1
+    SoftERP    = 0.0
+    SoftCFM    = 0.001
+    Motion1    = 0.0
+    Motion2    = 0.0
+    Slip1      = 0.0
+    Slip2      = 0.0
+  }
+
+TimeStep= 0.0002
+ViewPoint= (0.35, 0.3, 0.3, -135, -20, 0)
+
+// Gravity=(0,0,-9.8)
