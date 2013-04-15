@@ -665,10 +665,10 @@ protected:
 
 struct TCallbacks
 {
-  boost::function<void (TWorld &world, const TReal &timestep)> StartOfTimeStep;
-  boost::function<void (TWorld &world, const TReal &timestep)> EndOfTimeStep;
-  boost::function<void (TWorld &world, const TReal &timestep)> StartOfDrawing;
-  boost::function<void (TWorld &world, const TReal &timestep)> EndOfDrawing;
+  boost::function<void (TWorld &world, const TReal &timestep)> StartOfTimeStep;  //!< Executed before each simulation time-step
+  boost::function<void (TWorld &world, const TReal &timestep)> EndOfTimeStep;  //!< Executed after each simulation time-step
+  boost::function<void (TWorld &world, const TReal &timestep)> StartOfDrawing;  //!< Executed before each drawing time-step
+  boost::function<void (TWorld &world, const TReal &timestep)> EndOfDrawing;  //!< Executed after each drawing time-step
 };
 //-------------------------------------------------------------------------------------------
 
@@ -681,7 +681,8 @@ public:
       space_(0),
       time_(0.0l),
       old_fps_(0.0l),
-      repaint_time_(0)
+      repaint_time_(0),
+      no_paint_step_(0)
     {}
 
   void Clear();
@@ -689,8 +690,16 @@ public:
   bool Create();
   void Draw() const;
   void Start();
+  void SetupViewer();
   void Stop();
-  void Step(bool pause=false);
+  void StopViewer();
+  void StepSimulation();
+  void StepDrawing();
+
+  /*! Step simulation with drawing (FPS is controlled).
+      If in ConsoleMode, return whether the world is drawn; if not in ConsoleMode, return true always. */
+  bool Step();
+
   void NearCallback(dGeomID o1, dGeomID o2);
 
   bool LoadFromFile(const std::string &file_name);
@@ -701,6 +710,13 @@ public:
 
   TWorldParameters& SetParams()  {return params_;}
   const TWorldParameters& Params() const {return params_;}
+  void SetConsoleMode(bool m)
+    {
+      if(!params_.ConsoleMode && m)  StopViewer();
+      if(params_.ConsoleMode && !m)  SetupViewer();
+      params_.ConsoleMode= m;
+    }
+  bool ConsoleMode() const {return params_.ConsoleMode;}
 
   const TReal& Time() const {return time_;}
 
@@ -893,6 +909,7 @@ protected:
   TReal time_;
   TReal old_fps_;
   int repaint_time_;
+  int no_paint_step_;
 
   struct TElementSize
   {

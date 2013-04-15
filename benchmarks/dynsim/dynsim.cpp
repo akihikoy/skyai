@@ -63,21 +63,19 @@ int DynSimSkyAIMain(TOptionParser &option, TAgent &agent)
   fn.stop = &ODEDS_DSStop;
   fn.path_to_textures = textures_path.c_str();
 
+  InitializeODE();
+
   lmanager.Initialize();
   lmanager.StartLearning();
 
-  // environment.SetConsoleMode(console_mode);
-  // while(environment.Executing())
-  // {
-    // if (!environment.ConsoleMode())
-      // {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
-    // else
-      // {while(environment.Executing()) environment.StepLoop();}
-  // }
-  if(!console_mode)
-    {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
-  else
-    {while(environment.Executing()) environment.Step();}
+  environment.SetConsoleMode(console_mode);
+  while(environment.Executing())
+  {
+    if (!environment.ConsoleMode())
+      {dsSimulationLoop (option.ArgC(),const_cast<char**>(option.ArgV()),xwindow_width,xwindow_height,&fn);}
+    else
+      {while(environment.Executing()) environment.Step();}
+  }
   TerminateODE();
   //////////////////////////////////////////////////////
 

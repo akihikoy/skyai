@@ -50,7 +50,10 @@ void SimStart()
 
 void SimLoop(int pause)
 {
-  world.Step(pause);
+  if(pause)
+    world.StepDrawing();
+  else
+    while(!world.Step()) ;
 }
 
 void StartOfTimeStep(TWorld &w, const TReal &time_step)
@@ -103,7 +106,7 @@ int main(int argc, char**argv)
   fn.stop = 0;
   fn.path_to_textures = "textures";
 
-  dInitODE2(0);
+  InitializeODE();
 
   world.SetCallbacks().StartOfTimeStep= &StartOfTimeStep;
   world.SetCallbacks().EndOfTimeStep= &EndOfTimeStep;
@@ -111,7 +114,10 @@ int main(int argc, char**argv)
   world.Create();
   print(world.TotalMass("Humanoid01"));
 
-  dsSimulationLoop (argc,argv,400,400,&fn);
+  if(!world.ConsoleMode())
+    dsSimulationLoop (argc,argv,400,400,&fn);
+  else
+    while(true)  world.Step();
 
   dCloseODE();
 

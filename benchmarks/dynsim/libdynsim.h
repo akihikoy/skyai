@@ -100,10 +100,15 @@ public:
       world_.Stop();
     }
 
-  void Step(bool pause=false)
+  void StepDrawing()
     {
-      if (!executing_)  {world_.Stop(); return;}
-      world_.Step(pause);
+      world_.StepDrawing();
+    }
+
+  bool Step()
+    {
+      if (!executing_)  {world_.Stop(); return true;}
+      return world_.Step();
     }
 
   void KeyEvent (int cmd)
@@ -111,8 +116,8 @@ public:
     }
 
   bool Executing() const {return executing_;}
-  // bool ConsoleMode() const {return console_mode_;}
-  // void SetConsoleMode(bool m)  {console_mode_= m;}
+  bool ConsoleMode() const {return world_.ConsoleMode();}
+  void SetConsoleMode(bool m)  {world_.SetConsoleMode(m);}
 
 protected:
 
@@ -136,7 +141,6 @@ protected:
 
   virtual void slot_initialize_exec (void)
     {
-      InitializeODE();
       world_.SetCallbacks().StartOfTimeStep= boost::bind(&MDynamicsSimulator::callback_start_of_timestep,this,_1,_2);
       world_.SetCallbacks().EndOfTimeStep= boost::bind(&MDynamicsSimulator::callback_end_of_timestep,this,_1,_2);
       LMESSAGE("Loading model files..");

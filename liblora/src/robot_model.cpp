@@ -1171,6 +1171,14 @@ void TWorld::Start()
 {
   SetupODE();
 
+  SetupViewer();
+
+  time_= 0.0l;
+}
+//-------------------------------------------------------------------------------------------
+
+void TWorld::SetupViewer()
+{
   if (!params_.ConsoleMode)
   {
     float view[6];
@@ -1178,13 +1186,19 @@ void TWorld::Start()
     dsSetViewpoint (view,view+3);
   }
 
-  time_= 0.0l;
   old_fps_= 0.0l;
   repaint_time_= 0;
+  no_paint_step_= 0;
 }
 //-------------------------------------------------------------------------------------------
 
 void TWorld::Stop()
+{
+  StopViewer();
+}
+//-------------------------------------------------------------------------------------------
+
+void TWorld::StopViewer()
 {
   dsStop();
 }
@@ -1198,50 +1212,65 @@ static void near_callback(void *data, dGeomID o1, dGeomID o2)
 }
 //-------------------------------------------------------------------------------------------
 
-void TWorld::Step(bool pause)
+void TWorld::StepSimulation()
 {
-  if (!params_.ConsoleMode && old_fps_!=params_.DisplayFPS)
+  if(callbacks_.StartOfTimeStep)  callbacks_.StartOfTimeStep(*this, params_.TimeStep);
+
+  for(std::vector<std::vector<bool> >::iterator citr(current_contact_.begin()),clast(current_contact_.end());citr!=clast;++citr)
+    std::fill(citr->begin(),citr->end(),false);
+
+  space_.collide(this, &near_callback);
+
+  if (!params_.UsingQuickStep)
+    world_.step (params_.TimeStep);
+  else
   {
-    repaint_time_= int(real_round(1.0l/params_.TimeStep/params_.DisplayFPS));
-    old_fps_= params_.DisplayFPS;
+    world_.setQuickStepNumIterations (params_.QuickStepIterationNum);
+    world_.quickStep (params_.TimeStep);
   }
+  time_+= params_.TimeStep;
 
-  if (!pause)
-  {
-    int rptime= (params_.ConsoleMode ? 1 : repaint_time_);
-    for(; rptime>0;--rptime)
-    {
-      if(callbacks_.StartOfTimeStep)  callbacks_.StartOfTimeStep(*this, params_.TimeStep);
+  contactgroup_.empty();
 
-      for(std::vector<std::vector<bool> >::iterator citr(current_contact_.begin()),clast(current_contact_.end());citr!=clast;++citr)
-        std::fill(citr->begin(),citr->end(),false);
+  if(callbacks_.EndOfTimeStep)  callbacks_.EndOfTimeStep(*this, params_.TimeStep);
+}
+//-------------------------------------------------------------------------------------------
 
-      space_.collide(this, &near_callback);
+void TWorld::StepDrawing()
+{
+  TReal draw_timestep= 1.0l/params_.DisplayFPS;
+  if(callbacks_.StartOfDrawing)  callbacks_.StartOfDrawing(*this, draw_timestep);
+  Draw();
+  if(callbacks_.EndOfDrawing)  callbacks_.EndOfDrawing(*this, draw_timestep);
+  no_paint_step_= 0;
+}
+//-------------------------------------------------------------------------------------------
 
-      if (!params_.UsingQuickStep)
-        world_.step (params_.TimeStep);
-      else
-      {
-        world_.setQuickStepNumIterations (params_.QuickStepIterationNum);
-        world_.quickStep (params_.TimeStep);
-      }
-      time_+= params_.TimeStep;
-
-      contactgroup_.empty();
-
-      if(callbacks_.EndOfTimeStep)  callbacks_.EndOfTimeStep(*this, params_.TimeStep);
-
-      // if (params_.ConsoleMode || !executing_)  {dsStop(); break;}
-    }
-  }
+/*! Step simulation with drawing (FPS is controlled).
+    If in ConsoleMode, return whether the world is drawn; if not in ConsoleMode, return true always. */
+bool TWorld::Step()
+{
+  StepSimulation();
 
   if(!params_.ConsoleMode)
   {
-    TReal draw_timestep= 1.0l/params_.DisplayFPS;
-    if(callbacks_.StartOfDrawing)  callbacks_.StartOfDrawing(*this, draw_timestep);
-    Draw();
-    if(callbacks_.EndOfDrawing)  callbacks_.EndOfDrawing(*this, draw_timestep);
+    if(no_paint_step_==0 && old_fps_!=params_.DisplayFPS)
+    {
+      repaint_time_= int(real_round(1.0l/params_.TimeStep/params_.DisplayFPS));
+      old_fps_= params_.DisplayFPS;
+    }
+
+    ++no_paint_step_;
+
+    if(no_paint_step_==repaint_time_)
+    {
+      StepDrawing();
+      return true;
+    }
+    else
+      return false;
   }
+  return true;
 }
 //-------------------------------------------------------------------------------------------
 

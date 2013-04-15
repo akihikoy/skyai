@@ -119,7 +119,10 @@ void ODEDS_DSKeyEvent (int cmd)
 }
 void ODEDS_DSStep (int ds_pause)
 {
-  ptr_dynamics_simulator->Step(ds_pause);
+  if(ds_pause)
+    ptr_dynamics_simulator->StepDrawing();
+  else
+    while(!ptr_dynamics_simulator->Step()) ;
 }
 //-------------------------------------------------------------------------------------------
 
