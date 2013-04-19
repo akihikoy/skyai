@@ -15,6 +15,8 @@ if(NOT LIBOCTAVE_octave_LIBRARY)
   message (WARNING "liboctave not found.")
 endif()
 
+find_library(LIBOCTAVE_cruft_LIBRARY NAMES cruft PATHS ${LIBOCTAVE_octave_PATHS} ${LIBOCTAVE_INSTALL_DIR}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+
 set(LIBOCTAVE_dl_LIBRARY ${CMAKE_DL_LIBS})
 
 find_library(LIBOCTAVE_fttw3_LIBRARY  NAMES fttw3  PATHS ${LIBOCTAVE_INSTALL_DIR}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
@@ -35,6 +37,7 @@ endif()
 
 mark_as_advanced(LIBOCTAVE_octave_INCLUDE_DIR)
 mark_as_advanced(LIBOCTAVE_octave_LIBRARY)
+mark_as_advanced(LIBOCTAVE_cruft_LIBRARY)
 mark_as_advanced(LIBOCTAVE_dl_LIBRARY)
 mark_as_advanced(LIBOCTAVE_fttw3_LIBRARY)
 mark_as_advanced(LIBOCTAVE_atlas_LIBRARY)
@@ -44,6 +47,7 @@ mark_as_advanced(LIBOCTAVE_blas_LIBRARY)
 set (LIBOCTAVE_INCLUDE_DIRS ${LIBOCTAVE_octave_INCLUDE_DIR}/..)
 set (LIBOCTAVE_LIBRARIES
     ${LIBOCTAVE_octave_LIBRARY}
+    ${LIBOCTAVE_cruft_LIBRARY}
     ${LIBOCTAVE_dl_LIBRARY}
     ${LIBOCTAVE_fttw3_LIBRARY}
     ${LIBOCTAVE_atlas_LIBRARY}

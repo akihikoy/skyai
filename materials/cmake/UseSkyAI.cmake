@@ -15,6 +15,7 @@ if(WITH_BOOST)
   find_package(Boost COMPONENTS
     filesystem
     regex
+    system
     REQUIRED)
   if(NOT Boost_FOUND)
     message(WARNING, " Boost library is not found." )
@@ -24,6 +25,9 @@ if(WITH_BOOST)
   endif()
   if(NOT Boost_REGEX_FOUND)
     message(WARNING, " Boost-regex library is not found." )
+  endif()
+  if(NOT Boost_SYSTEM_FOUND)
+    message(WARNING, " Boost-system library is not found." )
   endif()
 endif()
 
