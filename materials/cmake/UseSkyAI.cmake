@@ -149,6 +149,7 @@ function(use_skyai)
       ${L_LIBRARIES}
       lora_std
       ${Boost_LIBRARIES}
+      ${CMAKE_DL_LIBS}
     )
 
   if(USING_OCT)

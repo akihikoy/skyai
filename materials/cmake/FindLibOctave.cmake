@@ -14,10 +14,9 @@ if(NOT LIBOCTAVE_octave_LIBRARY)
   set(LIBOCTAVE_octave_LIBRARY "LIBOCTAVE_octave_LIBRARY-NOTFOUND" CACHE PATH "Path to liboctave" FORCE)
   message (WARNING "liboctave not found.")
 endif()
-find_library(LIBOCTAVE_dl_LIBRARY     NAMES dl     PATHS ${LIBOCTAVE_INSTALL_DIR}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
-if(NOT LIBOCTAVE_dl_LIBRARY)
-  set(LIBOCTAVE_dl_LIBRARY "")
-endif()
+
+set(LIBOCTAVE_dl_LIBRARY ${CMAKE_DL_LIBS})
+
 find_library(LIBOCTAVE_fttw3_LIBRARY  NAMES fttw3  PATHS ${LIBOCTAVE_INSTALL_DIR}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
 if(NOT LIBOCTAVE_fttw3_LIBRARY)
   set(LIBOCTAVE_fttw3_LIBRARY "")
