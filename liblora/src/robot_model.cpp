@@ -968,7 +968,7 @@ bool TWorld::Create()
   LASSERT1op1(params_.Gravity.size(),==,3);
   Clear();
 
-  contactgroup_.create(0);
+  contactgroup_.create();
   world_.setGravity(params_.Gravity[0],params_.Gravity[1],params_.Gravity[2]);
   dWorldSetCFM (world_.id(),params_.WorldCFM);
 
