@@ -284,6 +284,7 @@ void TWorld::Clear()
   time_= 0.0l;
   old_fps_= 0.0l;
   repaint_time_= 0;
+  no_paint_step_= 0;
 
   body_.clear();
   geom_bx_.clear();
@@ -1257,6 +1258,7 @@ bool TWorld::Step()
     if(no_paint_step_==0 && old_fps_!=params_.DisplayFPS)
     {
       repaint_time_= int(real_round(1.0l/params_.TimeStep/params_.DisplayFPS));
+      if(repaint_time_<=0)  repaint_time_= 1;
       old_fps_= params_.DisplayFPS;
     }
 

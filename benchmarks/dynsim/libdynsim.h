@@ -43,8 +43,11 @@ class TDynamicsSimulatorConfigurations
 public:
 
   std::list<TString>         ModelFiles;
+  TBool                      EnableDefaultKeyEvent;
 
   TDynamicsSimulatorConfigurations (var_space::TVariableMap &mmap)
+    :
+      EnableDefaultKeyEvent(true)
     {
       Register(mmap);
     }
@@ -53,6 +56,7 @@ public:
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
       ADD( ModelFiles                 );
+      ADD( EnableDefaultKeyEvent      );
       #undef ADD
     }
 };
@@ -79,6 +83,7 @@ public:
         slot_finish_loop            (*this),
         signal_start_of_timestep    (*this),
         signal_end_of_timestep      (*this),
+        signal_key_event            (*this),
         out_world                   (*this)
     {
       add_slot_port   (slot_initialize            );
@@ -86,6 +91,7 @@ public:
       add_slot_port   (slot_finish_loop           );
       add_signal_port (signal_start_of_timestep   );
       add_signal_port (signal_end_of_timestep     );
+      add_signal_port (signal_key_event           );
       add_out_port    (out_world                  );
     }
 
@@ -111,9 +117,7 @@ public:
       return world_.Step();
     }
 
-  void KeyEvent (int cmd)
-    {
-    }
+  void KeyEvent (int cmd);
 
   bool Executing() const {return executing_;}
   bool ConsoleMode() const {return world_.ConsoleMode();}
@@ -126,7 +130,6 @@ protected:
   mutable xode::TWorld world_;
 
   bool   executing_;
-  // bool   console_mode_;
 
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
@@ -136,6 +139,8 @@ protected:
 
   MAKE_SIGNAL_PORT(signal_start_of_timestep, void (const TContinuousTime &), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_timestep, void (const TContinuousTime &), TThis);
+
+  MAKE_SIGNAL_PORT(signal_key_event, void (const TInt &cmd), TThis);
 
   MAKE_OUT_PORT(out_world, xode::TWorld&, (void), (), TThis);
 
@@ -176,12 +181,6 @@ protected:
 
 };  // end of MDynamicsSimulator
 //-------------------------------------------------------------------------------------------
-
-
-///////////////////
-
-
-
 
 
 
@@ -235,7 +234,7 @@ public:
 //-------------------------------------------------------------------------------------------
 
 //===========================================================================================
-/*!\brief Robot probe for MDynamicsSimulator that provides accessors to a robot in the models </b> */
+/*!\brief Robot probe for MDynamicsSimulator that provides accessors to a robot in the models */
 class MRobotProbe
     : public TModuleInterface
 //===========================================================================================
@@ -259,8 +258,6 @@ public:
       slot_execute_command_des_qd (*this),
       slot_start_time_step        (*this),
       slot_finish_time_step       (*this),
-      signal_start_of_timestep    (*this),
-      signal_end_of_timestep      (*this),
       in_world                    (*this),
       out_base_pose               (*this),
       out_base_vel                (*this),
@@ -277,8 +274,6 @@ public:
       add_slot_port   (slot_execute_command_des_qd);
       add_slot_port   (slot_start_time_step       );
       add_slot_port   (slot_finish_time_step      );
-      add_signal_port (signal_start_of_timestep   );
-      add_signal_port (signal_end_of_timestep     );
       add_in_port     (in_world                   );
       add_out_port    (out_base_pose              );
       add_out_port    (out_base_vel               );
@@ -318,13 +313,10 @@ protected:
   MAKE_SLOT_PORT(slot_execute_command_des_qd, void, (const TRealVector &u), (u), TThis);
 
 
-  MAKE_SLOT_PORT(slot_start_time_step, void, (const TContinuousTime &), (), TThis);
+  MAKE_SLOT_PORT(slot_start_time_step, void, (const TContinuousTime &dt), (dt), TThis);
 
-  MAKE_SLOT_PORT(slot_finish_time_step, void, (const TContinuousTime &), (), TThis);
+  MAKE_SLOT_PORT(slot_finish_time_step, void, (const TContinuousTime &dt), (dt), TThis);
 
-
-  MAKE_SIGNAL_PORT(signal_start_of_timestep, void (const TContinuousTime &), TThis);
-  MAKE_SIGNAL_PORT(signal_end_of_timestep, void (const TContinuousTime &), TThis);
 
   MAKE_IN_PORT(in_world, xode::TWorld& (void), TThis);
 
@@ -344,8 +336,6 @@ protected:
   MAKE_OUT_PORT(out_force, const TContinuousState&, (void), (), TThis);
   MAKE_OUT_PORT(out_contact_raw, const TBoolVector&, (void), (), TThis);
   MAKE_OUT_PORT(out_contact, const TBoolVector&, (void), (), TThis);
-
-  void set_global_config (void);
 
   virtual void slot_initialize_exec (void)
     {
@@ -408,7 +398,7 @@ protected:
       current_command_= tmp_joint_angle_ + u;
     }
 
-  virtual void slot_start_time_step_exec (void)
+  virtual void slot_start_time_step_exec (const TContinuousTime &dt)
     {
       LASSERT1op1(robot_index_,>=,0);
       if(GenSize(current_command_)>0)
@@ -425,7 +415,7 @@ protected:
       }
     }
 
-  virtual void slot_finish_time_step_exec (void)
+  virtual void slot_finish_time_step_exec (const TContinuousTime &dt)
     {
       if(out_contact.ConnectionSize()>0)
       {
@@ -449,15 +439,6 @@ protected:
 
 };  // end of MRobotProbe
 //-------------------------------------------------------------------------------------------
-
-
-
-//////////////////////////
-
-
-
-
-
 
 
 //===========================================================================================

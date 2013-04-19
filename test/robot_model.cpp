@@ -79,8 +79,8 @@ void EndOfTimeStep(TWorld &w, const TReal &time_step)
   static int ridx= w.RobotIndex("Humanoid01");
   if(ridx<0)  return;
 
-  const std::vector<bool> &c= w.LinkContacts(ridx);
-  PrintContainer(c,"");
+  // const std::vector<bool> &c= w.LinkContacts(ridx);
+  // PrintContainer(c,"");
 
   // std::vector<TReal> f(w.ForceObservationNum(ridx),0.0l);
   // w.GetForces(ridx,f.begin(),f.end());
@@ -89,9 +89,27 @@ void EndOfTimeStep(TWorld &w, const TReal &time_step)
 
 void KeyEvent(int command)
 {
-  if(command=='r' || command=='R')
+  static int bidx= world.RootLinkBodyIndex("Humanoid01");
+  const dReal f(50.0);
+  switch(command)
   {
+  case 'r': case 'R':
     world.Create();
+    break;
+  case 'a': case 'A':
+    world.Body(bidx).addForce(f,0.0,0.0);
+    break;
+  case 'd': case 'D':
+    world.Body(bidx).addForce(-f,0.0,0.0);
+    break;
+  case 'w': case 'W':
+    world.Body(bidx).addForce(0.0,f,0.0);
+    break;
+  case 's': case 'S':
+    world.Body(bidx).addForce(0.0,-f,0.0);
+    break;
+  default:
+    cout<<"key:"<<command<<endl;
   }
 }
 

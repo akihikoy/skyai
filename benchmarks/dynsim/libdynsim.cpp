@@ -23,10 +23,88 @@
 */
 //-------------------------------------------------------------------------------------------
 #include "libdynsim.h"
+#include <lora/ode_ds.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
 
+//===========================================================================================
+// class MDynamicsSimulator
+//===========================================================================================
+
+void MDynamicsSimulator::KeyEvent(int cmd)
+{
+  using namespace std;
+  if (conf_.EnableDefaultKeyEvent)
+  {
+    if (cmd=='s'||cmd=='S')
+    {
+      // DRAW_SEQUENCE_MODE= !DRAW_SEQUENCE_MODE;
+      // _SEQUENCE_LIST.clear();
+      // if(DRAW_SEQUENCE_MODE)  LMESSAGE("DRAW_SEQUENCE_MODE is \"on\".");
+      // else                    LMESSAGE("DRAW_SEQUENCE_MODE is \"off\".");
+      LWARNING("DRAW_SEQUENCE_MODE is not implemented yet");
+    }
+    else if (cmd=='a')
+    {
+      // AUTO_VIEWPOINT_MODE=(AUTO_VIEWPOINT_MODE==GetAutoViewpointModeCount())?0:AUTO_VIEWPOINT_MODE+1;
+      // LMESSAGE("AUTO_VIEWPOINT_MODE= "<<AUTO_VIEWPOINT_MODE<<".");
+      LWARNING("AUTO_VIEWPOINT_MODE is not implemented yet");
+    }
+    else if (cmd=='A')
+    {
+      // cout<<"setting viewpoint mode..."<<endl;
+      // cout<<"  0: manual view"<<endl;
+      // cout<<"  1: following x-position of robot"<<endl;
+      // cout<<"  2: following y-position of robot"<<endl;
+      // cout<<"  3: tracking robot from static camera position"<<endl;
+      // cout<<"  4: following x,y-position of robot (camera is just above the robot)"<<endl;
+      // cout<<"input number: ";
+      // cin>>AUTO_VIEWPOINT_MODE;
+      // AUTO_VIEWPOINT_MODE=ApplyRange(AUTO_VIEWPOINT_MODE,0,GetAutoViewpointModeCount());
+      // LMESSAGE("AUTO_VIEWPOINT_MODE= "<<AUTO_VIEWPOINT_MODE<<".");
+      LWARNING("AUTO_VIEWPOINT_MODE is not implemented yet");
+    }
+    else if (cmd=='v')
+    {
+      float view[6];
+      dsGetViewpoint (view,view+3);
+      cout<<"Current viewpoint XYZHPR is: "<<view[0]<<","<<view[1]<<","<<view[2]<<", ";
+      cout<<view[3]<<","<<view[4]<<","<<view[5]<<endl;
+    }
+    else if (cmd=='V')
+    {
+      float view[6];
+      cout<<"Input viewpoint XYZHPR: ";
+      for(int i(0);i<6;++i)  cin>>view[i];
+      dsSetViewpoint (view,view+3);
+    }
+    else if (cmd=='f')
+    {
+      // --display_fps_index;
+      // if(display_fps_index<0) display_fps_index=sizeof(display_fps_set)/sizeof(display_fps_set[0])-1;
+      // conf_.FPS = display_fps_set[display_fps_index];
+      // LMESSAGE("current FPS= "<<conf_.FPS);
+      LWARNING("Key `f' is reserved, but is not implemented yet");
+    }
+    else if (cmd=='F')
+    {
+      int fps(world_.SetParams().DisplayFPS);
+      cout<<"input FPS(current: "<<fps<<"): ";
+      cin>>fps;
+      world_.SetParams().DisplayFPS= fps;
+      LMESSAGE("current FPS= "<<fps);
+    }
+  }  // conf_.EnableDefaultKeyEvent
+
+  signal_key_event.ExecAll(cmd);
+}
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+// class MRobotProbe
+//===========================================================================================
 
 /*virtual*/const TContinuousState& MRobotProbe::out_base_pose_get() const
 {

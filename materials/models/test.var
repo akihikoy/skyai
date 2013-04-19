@@ -1,5 +1,6 @@
 Robots={
     ["R1"]={
+        RootLink= "L1"
         Links={
             ["L1"]={
                 Geometry={Type= "gtCapsule"; Radius=0.1; Length=0.5-0.1*2; Color=(1,0,0,0.7);}
