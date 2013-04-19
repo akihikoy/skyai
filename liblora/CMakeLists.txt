@@ -38,29 +38,35 @@ set(lora_oct_srcs
     src/type_gen_oct.cpp
     src/variable_space_oct.cpp
   )
-use_skyai(oct)
-include_directories (${SKYAI_INCLUDE_DIRS})
-add_library (lora_oct SHARED ${lora_oct_srcs})
-install (TARGETS lora_oct LIBRARY DESTINATION lib/skyai)
+if(WITH_LIBOCTAVE)
+  use_skyai(oct)
+  include_directories (${SKYAI_INCLUDE_DIRS})
+  add_library (lora_oct SHARED ${lora_oct_srcs})
+  install (TARGETS lora_oct LIBRARY DESTINATION lib/skyai)
+endif()
 ##------------------------------------------------------------------
 set(lora_ode_srcs
     src/ode.cpp
     src/ode_ds.cpp
     src/robot_model.cpp
   )
-use_skyai(ode)
-include_directories (${SKYAI_INCLUDE_DIRS})
-add_library (lora_ode SHARED ${lora_ode_srcs})
-install (TARGETS lora_ode LIBRARY DESTINATION lib/skyai)
+if(WITH_ODE)
+  use_skyai(ode)
+  include_directories (${SKYAI_INCLUDE_DIRS})
+  add_library (lora_ode SHARED ${lora_ode_srcs})
+  install (TARGETS lora_ode LIBRARY DESTINATION lib/skyai)
+endif()
 ##------------------------------------------------------------------
 set(lora_cv_srcs
     src/cv.cpp
     src/marker_tracker.cpp
   )
-use_skyai(cv)
-include_directories (${SKYAI_INCLUDE_DIRS})
-add_library (lora_cv SHARED ${lora_cv_srcs})
-install (TARGETS lora_cv LIBRARY DESTINATION lib/skyai)
+if(WITH_OPENCV)
+  use_skyai(cv)
+  include_directories (${SKYAI_INCLUDE_DIRS})
+  add_library (lora_cv SHARED ${lora_cv_srcs})
+  install (TARGETS lora_cv LIBRARY DESTINATION lib/skyai)
+endif()
 ##------------------------------------------------------------------
 execute_process (
     COMMAND mkdir -p include/skyai
