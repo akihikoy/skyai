@@ -28,6 +28,7 @@ set(lora_std_srcs
 use_skyai()
 include_directories (${SKYAI_INCLUDE_DIRS})
 add_library (lora_std SHARED ${lora_std_srcs})
+target_link_libraries (lora_std ${SKYAI_LIBRARIES})
 install (TARGETS lora_std LIBRARY DESTINATION lib/skyai)
 ##------------------------------------------------------------------
 set(lora_oct_srcs
@@ -42,6 +43,7 @@ if(WITH_LIBOCTAVE)
   use_skyai(oct)
   include_directories (${SKYAI_INCLUDE_DIRS})
   add_library (lora_oct SHARED ${lora_oct_srcs})
+  target_link_libraries (lora_oct ${SKYAI_LIBRARIES})
   install (TARGETS lora_oct LIBRARY DESTINATION lib/skyai)
 endif()
 ##------------------------------------------------------------------
@@ -54,6 +56,7 @@ if(WITH_ODE)
   use_skyai(ode)
   include_directories (${SKYAI_INCLUDE_DIRS})
   add_library (lora_ode SHARED ${lora_ode_srcs})
+  target_link_libraries (lora_ode ${SKYAI_LIBRARIES})
   install (TARGETS lora_ode LIBRARY DESTINATION lib/skyai)
 endif()
 ##------------------------------------------------------------------
@@ -65,6 +68,7 @@ if(WITH_OPENCV)
   use_skyai(cv)
   include_directories (${SKYAI_INCLUDE_DIRS})
   add_library (lora_cv SHARED ${lora_cv_srcs})
+  target_link_libraries (lora_cv ${SKYAI_LIBRARIES})
   install (TARGETS lora_cv LIBRARY DESTINATION lib/skyai)
 endif()
 ##------------------------------------------------------------------

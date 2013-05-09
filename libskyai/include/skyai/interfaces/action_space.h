@@ -56,14 +56,14 @@ public:
       signal_end_of_action    (*this),
       signal_execute_command  (*this)
     {
-      add_slot_port   (slot_initialize         );
-      add_slot_port   (slot_reset              );
-      add_slot_port   (slot_execute_action     );
-      add_slot_port   (slot_start_time_step    );
-      add_slot_port   (slot_finish_time_step   );
-      add_slot_port   (slot_finish_action_immediately);
-      add_signal_port (signal_end_of_action    );
-      add_signal_port (signal_execute_command  );
+      this->add_slot_port   (slot_initialize         );
+      this->add_slot_port   (slot_reset              );
+      this->add_slot_port   (slot_execute_action     );
+      this->add_slot_port   (slot_start_time_step    );
+      this->add_slot_port   (slot_finish_time_step   );
+      this->add_slot_port   (slot_finish_action_immediately);
+      this->add_signal_port (signal_end_of_action    );
+      this->add_signal_port (signal_execute_command  );
     }
 
   virtual ~MActionSpaceInterface() {}
@@ -124,7 +124,7 @@ public:
     : TParent              (v_instance_name),
       out_action_set_size  (*this)
     {
-      add_out_port (out_action_set_size);
+      this->add_out_port (out_action_set_size);
     }
 
   virtual ~MDiscreteActionSpaceInterface() {}

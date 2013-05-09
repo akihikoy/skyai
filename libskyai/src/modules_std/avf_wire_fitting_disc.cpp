@@ -115,7 +115,7 @@ override void MAVFWireFittingGridBase::slot_add_to_parameter_exec (const TParame
       double norm= GetNorm(du);
       if (norm>1.0)
       {
-        du*=(1.0/norm);
+        loco_rabbits::operator*=(du,1.0/norm);
         for (double *duptr(GenBegin(du)), *r_itr(GenBegin(conf_grid_.Radiuses)); duptr!=GenEnd(du); ++duptr,++r_itr)
           (*duptr)=(*duptr)*(*r_itr);
         *desitr = *cou_itr + du;

@@ -64,13 +64,13 @@ public:
       signal_update_lower           (*this),
       signal_clear_flag_greedy      (*this)
     {
-      add_slot_port   (slot_execute_higher_action   );
-      add_slot_port   (slot_update                  );
-      add_slot_port   (slot_clear_flag_greedy       );
-      add_signal_port (signal_reset_lower           );
-      add_signal_port (signal_end_of_higher_action  );
-      add_signal_port (signal_update_lower          );
-      add_signal_port (signal_clear_flag_greedy     );
+      this->add_slot_port   (slot_execute_higher_action   );
+      this->add_slot_port   (slot_update                  );
+      this->add_slot_port   (slot_clear_flag_greedy       );
+      this->add_signal_port (signal_reset_lower           );
+      this->add_signal_port (signal_end_of_higher_action  );
+      this->add_signal_port (signal_update_lower          );
+      this->add_signal_port (signal_clear_flag_greedy     );
     }
 
 protected:

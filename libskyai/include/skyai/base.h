@@ -38,12 +38,13 @@
 #include <set>
 #include <boost/function.hpp>
 //-------------------------------------------------------------------------------------------
-// forward declarations:
-namespace boost {namespace filesystem {
-  struct path_traits;
-  template<class String, class Traits> class basic_path;
-  typedef basic_path< std::string, path_traits > path;
-}}
+#include <boost/filesystem.hpp>
+// forward declarations: (does not work with boost 1.49)
+// namespace boost {namespace filesystem {
+//   struct path_traits;
+//   template<class String, class Traits> class basic_path;
+//   typedef basic_path< std::string, path_traits > path;
+// }}
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

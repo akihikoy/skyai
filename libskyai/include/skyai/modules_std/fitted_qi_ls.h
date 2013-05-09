@@ -220,26 +220,26 @@ public:
       out_current_action_value      (*this),
       fqi_data_                     (TFQIData<TState,TAction>::T::soAscending)
     {
-      add_in_port (in_state);
-      add_slot_port (slot_puppet_action);
-      add_signal_port (signal_avf_add_to_parameter);
+      this->add_in_port (in_state);
+      this->add_slot_port (slot_puppet_action);
+      this->add_signal_port (signal_avf_add_to_parameter);
 
-      // add_in_port (in_avf_parameter_ref    );
-      // add_in_port (in_avf_parameter_val    );
-      add_in_port (in_avf_evaluate         );
-      add_in_port (in_avf_greedy           );
-      add_in_port (in_avf_select_action    );
-      // add_in_port (in_avf_replacing_trace  );
-      add_in_port (in_avf_create_parameter );
-      add_in_port (in_avf_zero_parameter   );
+      // this->add_in_port (in_avf_parameter_ref    );
+      // this->add_in_port (in_avf_parameter_val    );
+      this->add_in_port (in_avf_evaluate         );
+      this->add_in_port (in_avf_greedy           );
+      this->add_in_port (in_avf_select_action    );
+      // this->add_in_port (in_avf_replacing_trace  );
+      this->add_in_port (in_avf_create_parameter );
+      this->add_in_port (in_avf_zero_parameter   );
 
-      add_out_port (out_episode_number);
-      add_out_port (out_return_in_episode);
-      add_out_port (out_td_error);
-      add_out_port (out_current_action_value);
+      this->add_out_port (out_episode_number);
+      this->add_out_port (out_return_in_episode);
+      this->add_out_port (out_td_error);
+      this->add_out_port (out_current_action_value);
 
-      gradient_      .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));
-      difference_    .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));
+      this->gradient_      .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));
+      this->difference_    .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));
     }
 
 protected:

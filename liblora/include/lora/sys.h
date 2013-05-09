@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <dlfcn.h>  // dlopen, flags
+#include <unistd.h>  // usleep
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

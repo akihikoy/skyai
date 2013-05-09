@@ -26,8 +26,8 @@
 //-------------------------------------------------------------------------------------------
 #include <lora/small_classes.h>
 #include <lora/type_gen.h>
-#include <lora/stl_math.h>
 #include <lora/rand.h>
+#include <lora/stl_math.h>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {

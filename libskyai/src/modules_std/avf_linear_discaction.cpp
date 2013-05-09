@@ -115,7 +115,7 @@ override const TActionValueFuncParamInterface&
 override const TActionValueFuncParamInterface&
     TAVFLinearDiscActionParameter::operator*= (const TReal &rhs)
 {
-  VCFOR(Theta,itr)   {(*itr)*= rhs;}
+  VCFOR(Theta,itr)   {loco_rabbits::operator*=(*itr,rhs);}
   return *this;
 }
 //-------------------------------------------------------------------------------------------

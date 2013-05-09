@@ -175,21 +175,21 @@ public:
       out_td_error                  (*this),
       out_current_action_value      (*this)
     {
-      add_signal_port (signal_avf_add_to_parameter);
+      this->add_signal_port (signal_avf_add_to_parameter);
 
-      // add_in_port (in_avf_parameter_ref    );
-      // add_in_port (in_avf_parameter_val    );
-      // add_in_port (in_avf_evaluate         );
-      // add_in_port (in_avf_greedy           );
-      add_in_port (in_avf_select_action    );
-      add_in_port (in_avf_replacing_trace  );
-      add_in_port (in_avf_create_parameter );
-      add_in_port (in_avf_zero_parameter   );
+      // this->add_in_port (in_avf_parameter_ref    );
+      // this->add_in_port (in_avf_parameter_val    );
+      // this->add_in_port (in_avf_evaluate         );
+      // this->add_in_port (in_avf_greedy           );
+      this->add_in_port (in_avf_select_action    );
+      this->add_in_port (in_avf_replacing_trace  );
+      this->add_in_port (in_avf_create_parameter );
+      this->add_in_port (in_avf_zero_parameter   );
 
-      add_out_port (out_episode_number);
-      add_out_port (out_return_in_episode);
-      add_out_port (out_td_error);
-      add_out_port (out_current_action_value);
+      this->add_out_port (out_episode_number);
+      this->add_out_port (out_return_in_episode);
+      this->add_out_port (out_td_error);
+      this->add_out_port (out_current_action_value);
 
       old_grad       .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));
       next_grad      .SetAllocator (boost::bind(&TThis::get_avf_create_parameter,this));

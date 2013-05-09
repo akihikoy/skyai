@@ -463,6 +463,7 @@ bool TBinExecutor::SearchFile (const boost::filesystem::path &file_path, boost::
       argv_var.push_back(Variable(*itr));
 
     builtin_f->F(*this,argv_var);
+    return true;
   }
   else
   {

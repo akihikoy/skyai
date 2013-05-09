@@ -56,13 +56,13 @@ public:
       slot_x           (*this),
       signal_y         (*this)
     {
-      add_slot_port  (slot_initialize );
-      add_out_port   (out_f1          );
-      add_out_port   (out_f2          );
-      add_in_port    (in_x            );
-      add_out_port   (out_y           );
-      add_slot_port  (slot_x          );
-      add_signal_port(signal_y        );
+      this->add_slot_port  (slot_initialize );
+      this->add_out_port   (out_f1          );
+      this->add_out_port   (out_f2          );
+      this->add_in_port    (in_x            );
+      this->add_out_port   (out_y           );
+      this->add_slot_port  (slot_x          );
+      this->add_signal_port(signal_y        );
     }
 
   virtual ~MFunctionSISOInterface() {}
@@ -162,14 +162,14 @@ public:
       slot_x           (*this),
       signal_y         (*this)
     {
-      add_slot_port  (slot_initialize );
-      add_out_port   (out_f1          );
-      add_out_port   (out_f2          );
-      add_in_port    (in_x1           );
-      add_in_port    (in_x2           );
-      add_out_port   (out_y           );
-      add_slot_port  (slot_x          );
-      add_signal_port(signal_y        );
+      this->add_slot_port  (slot_initialize );
+      this->add_out_port   (out_f1          );
+      this->add_out_port   (out_f2          );
+      this->add_in_port    (in_x1           );
+      this->add_in_port    (in_x2           );
+      this->add_out_port   (out_y           );
+      this->add_slot_port  (slot_x          );
+      this->add_signal_port(signal_y        );
     }
 
   virtual ~MFunction2ISOInterface() {}
@@ -267,11 +267,11 @@ public:
       in_x             (*this),
       out_y            (*this)
     {
-      add_slot_port  (slot_initialize );
-      add_out_port   (out_f1          );
-      add_out_port   (out_f2          );
-      add_in_port    (in_x            );
-      add_out_port   (out_y           );
+      this->add_slot_port  (slot_initialize );
+      this->add_out_port   (out_f1          );
+      this->add_out_port   (out_f2          );
+      this->add_in_port    (in_x            );
+      this->add_out_port   (out_y           );
     }
 
   virtual ~MFunctionMISOInterface() {}
@@ -350,7 +350,7 @@ public:
     : TParent           (v_instance_name),
       out_feature_dim   (*this)
     {
-      add_out_port (out_feature_dim);
+      this->add_out_port (out_feature_dim);
     }
 
   virtual ~MBasisFunctionsInterface() {}

@@ -1,12 +1,15 @@
 set (LIBOCTAVE_INSTALL_DIR "" CACHE PATH "Path to the directory where you installed LibOctave")
 
-find_path(LIBOCTAVE_octave_INCLUDE_DIR NAMES octave.h PATH_SUFFIXES octave PATHS ${LIBOCTAVE_INSTALL_DIR}/include /usr/include /usr/local/include  NO_DEFAULT_PATH)
+file(GLOB LIBOCTAVE_octave_INCLUDE_PATHS ${LIBOCTAVE_INSTALL_DIR}/include/octave*;/usr/include/octave*;/usr/local/include/octave*)
+# message(STATUS "LIBOCTAVE_octave_INCLUDE_PATHS: ${LIBOCTAVE_octave_INCLUDE_PATHS}")
+find_path(LIBOCTAVE_octave_INCLUDE_DIR NAMES octave.h PATH_SUFFIXES octave PATHS ${LIBOCTAVE_octave_INCLUDE_PATHS} ${LIBOCTAVE_INSTALL_DIR}/include /usr/include /usr/local/include  NO_DEFAULT_PATH)
+message(STATUS "LIBOCTAVE_octave_INCLUDE_DIR: ${LIBOCTAVE_octave_INCLUDE_DIR}")
 if(NOT LIBOCTAVE_octave_INCLUDE_DIR)
   set(LIBOCTAVE_octave_INCLUDE_DIR "LIBOCTAVE_octave_INCLUDE_DIR-NOTFOUND" CACHE PATH "Path to the directory that contains octave.h" FORCE)
   message (WARNING "octave.h not found.")
 endif()
 
-file(GLOB LIBOCTAVE_octave_PATHS "${LIBOCTAVE_INSTALL_DIR}"/lib/octave*;/usr/lib/octave*;/usr/local/lib/octave*)
+file(GLOB LIBOCTAVE_octave_PATHS ${LIBOCTAVE_INSTALL_DIR}/lib/octave*;/usr/lib/octave*;/usr/local/lib/octave*;/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 # message(STATUS "LIBOCTAVE_octave_PATHS: ${LIBOCTAVE_octave_PATHS}")
 
 find_library(LIBOCTAVE_octave_LIBRARY NAMES octave PATHS ${LIBOCTAVE_octave_PATHS} ${LIBOCTAVE_INSTALL_DIR}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)

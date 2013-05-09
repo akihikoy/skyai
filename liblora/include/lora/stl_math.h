@@ -179,7 +179,7 @@ inline typename TypeExt<t_vector>::value_type  GetMaxNorm (const t_vector &w)
 template <typename t_vector>
 inline void Normalize (t_vector &vec)
 {
-  vec /= GetNorm(vec);
+  loco_rabbits::operator/=(vec,GetNorm(vec));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -251,7 +251,7 @@ inline t_vec1 VectorElemDiv (const t_vec1 &lhs, const t_vec2 &rhs)
 //-------------------------------------------------------------------------------------------
 
 
-//! need to include lora/rand.h to use
+//! To use this function, need to include lora/rand.h before including this header
 template <typename t_vec1, typename t_vec2>
 void GenerateRandomVector (t_vec1 &vec, const t_vec2 &min, const t_vec2 &max)
 {

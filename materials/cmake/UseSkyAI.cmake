@@ -29,6 +29,7 @@ if(WITH_BOOST)
   if(NOT Boost_SYSTEM_FOUND)
     message(WARNING, " Boost-system library is not found." )
   endif()
+  add_definitions(-DBOOST_FILESYSTEM_VERSION=2)
 endif()
 
 if(WITH_ODE)
@@ -140,88 +141,88 @@ function(use_skyai)
   endforeach()
 
   set(L_INCLUDE_DIRS
-      ${L_INCLUDE_DIRS}
       ${LORA_INCLUDE_DIR}
       ${Boost_INCLUDE_DIRS}
+      ${L_INCLUDE_DIRS}
     )
   set(L_LIBRARY_DIRS
-      ${L_LIBRARY_DIRS}
       ${LORA_LIBRARY_DIR}
       ${Boost_LIBRARY_DIRS}
+      ${L_LIBRARY_DIRS}
     )
   set(L_LIBRARIES
-      ${L_LIBRARIES}
       lora_std
       ${Boost_LIBRARIES}
       ${CMAKE_DL_LIBS}
+      ${L_LIBRARIES}
     )
 
   if(USING_OCT)
     set(L_INCLUDE_DIRS
-        ${L_INCLUDE_DIRS}
         ${LIBOCTAVE_INCLUDE_DIRS}
+        ${L_INCLUDE_DIRS}
       )
     set(L_LIBRARY_DIRS
-        ${L_LIBRARY_DIRS}
         ${LIBOCTAVE_LIBRARY_DIRS}
+        ${L_LIBRARY_DIRS}
       )
     set(L_LIBRARIES
-        ${L_LIBRARIES}
         lora_oct
         ${LIBOCTAVE_LIBRARIES}
+        ${L_LIBRARIES}
       )
   endif()
 
   if(USING_ODE)
     set(L_INCLUDE_DIRS
-        ${L_INCLUDE_DIRS}
         ${ODE_INCLUDE_DIRS}
         ${OPENGL_INCLUDE_DIRS}
+        ${L_INCLUDE_DIRS}
       )
     set(L_LIBRARY_DIRS
-        ${L_LIBRARY_DIRS}
         ${ODE_LIBRARY_DIRS}
         ${OPENGL_LIBRARY_DIRS}
+        ${L_LIBRARY_DIRS}
       )
     set(L_LIBRARIES
-        ${L_LIBRARIES}
         lora_ode
         ${ODE_LIBRARIES}
         ${OPENGL_LIBRARIES}
+        ${L_LIBRARIES}
       )
   endif()
 
   if(USING_CV)
     set(L_INCLUDE_DIRS
-        ${L_INCLUDE_DIRS}
         ${OPENCV_INCLUDE_DIRS}
         ${MARKERDETECTION_INCLUDE_DIRS}
+        ${L_INCLUDE_DIRS}
       )
     set(L_LIBRARY_DIRS
-        ${L_LIBRARY_DIRS}
         ${OPENCV_LIBRARY_DIRS}
         ${MARKERDETECTION_LIBRARY_DIRS}
+        ${L_LIBRARY_DIRS}
       )
     set(L_LIBRARIES
-        ${L_LIBRARIES}
         lora_cv
         ${OPENCV_LIBRARIES}
         ${MARKERDETECTION_LIBRARIES}
+        ${L_LIBRARIES}
       )
   endif()
 
   if(USING_SKYAI)
     set(L_INCLUDE_DIRS
-        ${L_INCLUDE_DIRS}
         ${SKYAI_INCLUDE_DIR}
+        ${L_INCLUDE_DIRS}
       )
     set(L_LIBRARY_DIRS
-        ${L_LIBRARY_DIRS}
         ${SKYAI_LIBRARY_DIR}
+        ${L_LIBRARY_DIRS}
       )
     set(L_LIBRARIES
-        ${L_LIBRARIES}
         skyai
+        ${L_LIBRARIES}
       )
   endif()
 

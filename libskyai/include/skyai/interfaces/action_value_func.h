@@ -176,18 +176,18 @@ public:
       out_create_parameter   (*this),
       out_zero_parameter     (*this)
     {
-      add_slot_port (slot_initialize       );
-      add_slot_port (slot_reset            );
-      add_slot_port (slot_add_to_parameter );
+      this->add_slot_port (slot_initialize       );
+      this->add_slot_port (slot_reset            );
+      this->add_slot_port (slot_add_to_parameter );
 
-      add_out_port (out_parameter_ref    );
-      add_out_port (out_parameter_val    );
-      add_out_port (out_evaluate         );
-      add_out_port (out_greedy           );
-      add_out_port (out_select_action    );
-      add_out_port (out_replacing_trace  );
-      add_out_port (out_create_parameter );
-      add_out_port (out_zero_parameter   );
+      this->add_out_port (out_parameter_ref    );
+      this->add_out_port (out_parameter_val    );
+      this->add_out_port (out_evaluate         );
+      this->add_out_port (out_greedy           );
+      this->add_out_port (out_select_action    );
+      this->add_out_port (out_replacing_trace  );
+      this->add_out_port (out_create_parameter );
+      this->add_out_port (out_zero_parameter   );
     }
 
 protected:

@@ -58,18 +58,18 @@ public:
       // in_state                         (*this),
       in_updatable                     (*this)
     {
-      add_slot_port (slot_initialize);
-      add_slot_port (slot_start_episode);
-      add_slot_port (slot_finish_episode);
-      add_slot_port (slot_finish_episode_immediately);
-      add_slot_port (slot_finish_action);
+      this->add_slot_port (slot_initialize);
+      this->add_slot_port (slot_start_episode);
+      this->add_slot_port (slot_finish_episode);
+      this->add_slot_port (slot_finish_episode_immediately);
+      this->add_slot_port (slot_finish_action);
 
-      add_signal_port (signal_end_of_episode);
-      add_signal_port (signal_execute_action);
-      add_signal_port (signal_end_of_action);
+      this->add_signal_port (signal_end_of_episode);
+      this->add_signal_port (signal_execute_action);
+      this->add_signal_port (signal_end_of_action);
 
       // add_in_port (in_state);
-      add_in_port (in_updatable);
+      this->add_in_port (in_updatable);
     }
 
   virtual ~MBehaviorInterface() {}
@@ -136,7 +136,7 @@ public:
     : TParent                       (v_instance_name),
       in_reward                     (*this)
     {
-      add_in_port (in_reward);
+      this->add_in_port (in_reward);
     }
 
   virtual ~MReinforcementLearningInterface() {}
@@ -164,7 +164,7 @@ public:
     : TParent                       (v_instance_name),
       in_action_set_size            (*this)
     {
-      add_in_port (in_action_set_size);
+      this->add_in_port (in_action_set_size);
     }
 
   virtual ~MRLInterface_TDiscreteAction() {}
