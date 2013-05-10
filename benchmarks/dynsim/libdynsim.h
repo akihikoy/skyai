@@ -422,7 +422,7 @@ protected:
         const std::vector<bool> &contacts= in_world.GetFirst().LinkContacts(robot_index_);
         tmp_contact_float_.resize(contacts.size());
         std::vector<bool>::const_iterator bitr(contacts.begin());
-        for(std::vector<float>::iterator itr(tmp_contact_float_.begin()),last(tmp_contact_float_.end());itr!=last;++itr)
+        for(std::vector<float>::iterator itr(tmp_contact_float_.begin()),last(tmp_contact_float_.end());itr!=last;++itr,++bitr)
           *itr= (*bitr ? 1.0 : 0.0);
         contact_LPF_ (tmp_contact_float_);
       }
