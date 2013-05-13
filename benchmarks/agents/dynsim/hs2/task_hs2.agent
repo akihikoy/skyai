@@ -1,0 +1,63 @@
+// Handstand task's agent file
+def episode_start_hs2(task_id)
+{
+  task_id.memory ={TmpR2= 0.0;}  // total-time
+}
+def action_start_hs2(task_id)
+{
+}
+def timestep_end_hs2(task_id)
+{
+  // reward from height (z-position of the body link)
+  // reward only when the hands and the head contact with the ground
+  if(and(shuffle(cast<list<bool> >(task_id.memory.Contact),(1,4,7))))
+  {
+    task_id.memory ={
+        Reward= cast<real>(Reward) + 0.01*cast<real>(BasePose[2])
+      }
+  }
+  // if the body or the legs touch the ground, subtract the reward
+  if(or(shuffle(cast<list<bool> >(task_id.memory.Contact),(0,8,9,10,11,12,13,14,15,16,17))))
+  {
+    task_id.memory ={
+        Reward= cast<real>(Reward) - 0.01*cast<real>(BasePose[2])
+      }
+  }
+  task_id.memory ={
+      Reward= cast<real>(Reward) - 0.0001*norm(shuffle(cast<list<real> >(BaseVel),(0,1)))  // penalty for xy-movement
+      TmpR2= cast<real>(TmpR2) + cast<real>(TimeStep)  // update total-time
+    }
+  if(cast<real>(task_id.memory.TmpR2) > 5.0)
+  {
+    task_id.memory ={EndOfEps= true;}  // end of episode
+  }
+}
+
+def make_task_hs2(task_id,env_id)
+{
+  module  MDynSimUnivTask task_id
+
+  task_id.config ={
+      SensingAtEpisodeStart  = false
+      SensingAtActionStart   = false
+      // SensingAtTimeStepStart = false
+      SensingAtTimeStepEnd   = true
+
+      FEpisodeStart   = "episode_start_hs2"
+      FActionStart    = "action_start_hs2"
+      // FTimeStepStart  = "timestep_start_hs2"
+      FTimeStepEnd    = "timestep_end_hs2"
+      ForwardStepCost = true
+    }
+
+  // slot_finish_episode  and  slot_end_of_action are not connected
+  connect env_id.signal_start_of_system_timestep , task_id.slot_start_time_step
+  connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  // connect env_id.signal_end_of_ctrl_timestep     , task_id.slot_finish_time_step
+
+  connect env_id.out_base_pose                   , task_id.in_base_pose
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_base_rot                    , task_id.in_base_rot
+  connect env_id.out_force                       , task_id.in_force
+  connect env_id.out_contact                     , task_id.in_contact
+}
