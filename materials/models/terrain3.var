@@ -1,0 +1,14 @@
+StaticObjects={
+    ["Terrain"]={
+        Links={
+            ["Terrain"]={
+                Geometry={
+                    Type="gtTriMesh"
+                    finclude(this,"terrain_mesh03.var")
+                    // Vertices= cast<list<real> >(Vertices)*0.2
+                  }
+                Position= (-2.5,-2.5,0)
+              }
+          }  // Links
+      }  // StaticObject[]
+  }  // StaticObjects

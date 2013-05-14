@@ -1,0 +1,11 @@
+finclude(this,"terrain2.var")
+
+Robots={
+    ["Humanoid01"]={
+        Position=(0.0426676,-0.0209187,0.117686)
+        // Rotation= RFromAxisAndAngle(0,1,0, pi()/2.0)
+        Rotation= RFromQ(0.746825,-0.00884398,0.664293,-0.0298164)
+        // InitialJointAngles=(0, 2,0,0, 2,0,0, 0,0,0,0,0, 0,0,0,0,0)
+        InitialJointAngles=(-0.000,2.011,0.014,0.007,2.030,-0.114,0.018,-0.048,0.034,0.017,0.0187,0.008,-0.036,-0.032,-0.007,0.003,0.004)
+      }  // Robot[]
+  }  // Robots
