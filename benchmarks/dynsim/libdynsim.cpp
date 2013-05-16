@@ -95,9 +95,24 @@ void MDynamicsSimulator::KeyEvent(int cmd)
       world_.SetParams().DisplayFPS= fps;
       LMESSAGE("current FPS= "<<fps);
     }
+    else if (cmd=='l'||cmd=='L')
+    {
+      SaveAgent();
+    }
   }  // conf_.EnableDefaultKeyEvent
 
   signal_key_event.ExecAll(cmd);
+}
+//-------------------------------------------------------------------------------------------
+
+void MDynamicsSimulator::SaveAgent()
+{
+  static int file_index(0);
+  std::string  suffix(IntToStr(file_index));
+  std::string  filename(Agent().GetDataFileName("dynsim"+suffix+".agent"));
+  LMESSAGE("Writing the current agent to: "<<filename);
+  Agent().SaveToFile(filename,"dynsim"+suffix+"-");
+  ++file_index;
 }
 //-------------------------------------------------------------------------------------------
 

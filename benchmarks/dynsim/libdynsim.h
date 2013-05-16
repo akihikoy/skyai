@@ -117,7 +117,9 @@ public:
       return world_.Step();
     }
 
-  void KeyEvent (int cmd);
+  void KeyEvent(int cmd);
+
+  void SaveAgent();
 
   bool Executing() const {return executing_;}
   bool ConsoleMode() const {return world_.ConsoleMode();}
