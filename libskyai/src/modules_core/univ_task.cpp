@@ -33,9 +33,8 @@ namespace loco_rabbits
 //===========================================================================================
 
 #define DEF_SLOT(x_event,x_time_step_assign)   \
-    if(conf_.F##x_event!="")                        \
+    if(conf_.F##x_event!="" && is_used())           \
     {                                               \
-      if(!is_used())  return;                       \
       x_time_step_assign                            \
       if(conf_.SensingAt##x_event)                  \
         sense_at_##x_event();                       \
@@ -43,11 +42,19 @@ namespace loco_rabbits
       argv.push_back(var_space::LiteralId(InstanceName()));  \
       mem_.Reward= 0.0l;                            \
       mem_.EndOfEps= false;                         \
+      if(!conf_.AlwaysEmitResetOnEOE)               \
+        mem_.Reset= false;                          \
       if(!ExecuteFunction(conf_.F##x_event, argv))  \
         lexit(df);                                  \
       signal_reward.ExecAll(mem_.Reward);           \
       if(mem_.EndOfEps)                             \
+      {                                             \
         signal_end_of_episode.ExecAll();            \
+        if(conf_.AlwaysEmitResetOnEOE)              \
+          signal_reset.ExecAll();                   \
+      }                                             \
+      if(!conf_.AlwaysEmitResetOnEOE && mem_.Reset) \
+        signal_reset.ExecAll();                     \
     }
 
 /*virtual*/void MUniversalContTimeTask::slot_start_episode_exec (void)

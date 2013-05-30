@@ -66,6 +66,7 @@ def make_task_jp2(task_id,env_id)
   connect env_id.signal_start_of_system_timestep , task_id.slot_start_time_step
   // connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
   connect env_id.signal_end_of_ctrl_timestep     , task_id.slot_finish_time_step
+  connect task_id.signal_reset                   , env_id.slot_reset
 
   connect env_id.out_base_pose                   , task_id.in_base_pose
   connect env_id.out_base_vel                    , task_id.in_base_vel

@@ -80,6 +80,7 @@ public:
         conf_                       (TParent::param_box_config_map()),
         slot_initialize             (*this),
         slot_start_episode          (*this),
+        slot_reset                  (*this),
         slot_finish_loop            (*this),
         signal_start_of_timestep    (*this),
         signal_end_of_timestep      (*this),
@@ -88,6 +89,7 @@ public:
     {
       add_slot_port   (slot_initialize            );
       add_slot_port   (slot_start_episode         );
+      add_slot_port   (slot_reset                 );
       add_slot_port   (slot_finish_loop           );
       add_signal_port (signal_start_of_timestep   );
       add_signal_port (signal_end_of_timestep     );
@@ -132,9 +134,13 @@ protected:
   mutable xode::TWorld world_;
 
   bool   executing_;
+  bool   reset_request_;
 
   MAKE_SLOT_PORT(slot_initialize, void, (void), (), TThis);
   MAKE_SLOT_PORT(slot_start_episode, void, (void), (), TThis);
+
+  //! If this port catches a signal, the environment is reset at the next execution of slot_start_episode
+  MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
 
   MAKE_SLOT_PORT(slot_finish_loop, void, (void), (), TThis);
 
@@ -156,10 +162,20 @@ protected:
       world_.Create();
       LMESSAGE("Starting simulation..");
       executing_= true;
+      reset_request_= true;
     }
   virtual void slot_start_episode_exec (void)
     {
-      world_.Create();
+      if(reset_request_)
+      {
+        world_.Create();
+        reset_request_= false;
+      }
+    }
+
+  virtual void slot_reset_exec (void)
+    {
+      reset_request_= true;
     }
 
   virtual void slot_finish_loop_exec (void)

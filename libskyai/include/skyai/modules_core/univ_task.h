@@ -38,6 +38,10 @@ class TUniversalContTimeTaskConfigurations
 {
 public:
 
+  /*! If true (default), the module always emit the signal_reset on end-of-episode (when memory.EndOfEps is true).
+      If false, the signal_reset is emitted only when specified in user-defined callbacks (memory.Reset is true). */
+  TBool AlwaysEmitResetOnEOE;
+
   //! Decide if sensing the robot state at each event; default is true; setting false reduces the execution time
   TBool SensingAtEpisodeStart   ;
   TBool SensingAtEpisodeEnd     ;  //!< See SensingAtEpisodeStart
@@ -46,12 +50,13 @@ public:
   TBool SensingAtTimeStepStart  ;  //!< See SensingAtEpisodeStart
   TBool SensingAtTimeStepEnd    ;  //!< See SensingAtEpisodeStart
 
-  /*! User-defined functions; before calling each function,
-      memory.Reward is set to be 0 and memory
-      memory.EndOfEps is set to be false.
-      these functions should have an argument storing the task module's id and no return.
+  /*! User-defined functions (callbacks); before calling each function,
+        memory.Reward is set to 0 and memory,
+        memory.EndOfEps is set to false,
+        memory.Reset is set to false.
+      These functions should have an argument storing the task module's id and no return.
 
-      \note If no ports are connected to neither signal_end_of_episode nor signal_reward,
+      \note If no ports are connected to signal_end_of_episode, signal_reward, and signal_reset,
          these functions are not executed. */
   TString FEpisodeStart   ;
   TString FEpisodeEnd     ;  //!< See FEpisodeStart
@@ -68,6 +73,7 @@ public:
 
 
   TUniversalContTimeTaskConfigurations (var_space::TVariableMap &mmap) :
+      AlwaysEmitResetOnEOE    (true),
       SensingAtEpisodeStart   (true),
       SensingAtEpisodeEnd     (true),
       SensingAtActionStart    (true),
@@ -88,6 +94,7 @@ public:
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( AlwaysEmitResetOnEOE   );
       ADD( SensingAtEpisodeStart  );
       ADD( SensingAtEpisodeEnd    );
       ADD( SensingAtActionStart   );
@@ -123,14 +130,22 @@ public:
 
   TReal        TimeStep;
 
-  //! variable to store the reward; user-defined functions should assign to this variable
+  /*! Variable to store the reward; user-defined functions may assign to this variable.
+      The assigned value is sent through the signal_reward port. */
   TReal        Reward;
-  //! variable to store the end-of-episode condition; user-defined functions should assign to this variable
+  /*! Variable to store the end-of-episode condition; user-defined functions may assign to this variable.
+      If the assigned value is true, the signal_end_of_episode is emitted. */
   TBool        EndOfEps;
 
-  //! temporary variables for user-defined functions
+  /*! Variable to store the reset condition; user-defined functions may assign to this variable.
+      If the assigned value is true, the signal_reset is emitted.
+      Note that this variable is valid only when config.AlwaysEmitResetOnEOE==false;
+      otherwise (config.AlwaysEmitResetOnEOE==true), the signal_reset is always emitted together with the signal_end_of_episode. */
+  TBool        Reset;
+
+  //! Temporary variables for user-defined functions.
   TInt         TmpI1,TmpI2;
-  TReal        TmpR1,TmpR2;
+  TReal        TmpR1,TmpR2,TmpR3,TmpR4;
   TBool        TmpB1,TmpB2;
   TRealVector  TmpRV1,TmpRV2;
 
@@ -139,10 +154,13 @@ public:
       TimeStep  (0.0l),
       Reward    (0.0l),
       EndOfEps  (false),
+      Reset     (false),
       TmpI1     (0),
       TmpI2     (0),
       TmpR1     (0.0l),
       TmpR2     (0.0l),
+      TmpR3     (0.0l),
+      TmpR4     (0.0l),
       TmpB1     (false),
       TmpB2     (false)
     {
@@ -154,10 +172,13 @@ public:
       ADD( TimeStep          );
       ADD( Reward            );
       ADD( EndOfEps          );
+      ADD( Reset             );
       ADD( TmpI1             );
       ADD( TmpI2             );
       ADD( TmpR1             );
       ADD( TmpR2             );
+      ADD( TmpR3             );
+      ADD( TmpR4             );
       ADD( TmpB1             );
       ADD( TmpB2             );
       ADD( TmpRV1            );
@@ -189,7 +210,8 @@ public:
       slot_start_time_step   (*this),
       slot_finish_time_step  (*this),
       signal_reward          (*this),
-      signal_end_of_episode  (*this)
+      signal_end_of_episode  (*this),
+      signal_reset           (*this)
     {
       add_slot_port   (slot_start_episode     );
       add_slot_port   (slot_finish_episode    );
@@ -199,6 +221,7 @@ public:
       add_slot_port   (slot_finish_time_step  );
       add_signal_port (signal_reward          );
       add_signal_port (signal_end_of_episode  );
+      add_signal_port (signal_reset           );
     }
 
 protected:
@@ -217,11 +240,14 @@ protected:
 
   MAKE_SIGNAL_PORT(signal_reward, void (const TSingleReward &), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
+  MAKE_SIGNAL_PORT(signal_reset, void (void), TThis);
 
   //! Return true if this module is in use
   bool is_used(void)
     {
-      return (signal_end_of_episode.ConnectionSize()>0) || (signal_reward.ConnectionSize()>0);
+      return (signal_end_of_episode.ConnectionSize()>0)
+              || (signal_reward.ConnectionSize()>0)
+              || (signal_reset.ConnectionSize()>0);
     }
 
   virtual void slot_start_episode_exec (void);
