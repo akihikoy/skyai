@@ -10,6 +10,8 @@ if (BUILD_BENCHMARKS_maze2d)
 
   add_library (maze2d SHARED maze2d/libmaze2d.cpp)
   add_library (maze2d_main SHARED maze2d/maze2d.cpp)
+  set_target_properties (maze2d PROPERTIES SOVERSION ${SKYAI_SOVERSION})
+  set_target_properties (maze2d_main PROPERTIES SOVERSION ${SKYAI_SOVERSION})
   target_link_libraries (maze2d ${SKYAI_LIBRARIES})
   target_link_libraries (maze2d_main maze2d)
 
@@ -24,6 +26,8 @@ if (BUILD_BENCHMARKS_humanoid01)
 
   add_library (humanoid01 SHARED humanoid01/libhumanoid01.cpp)
   add_library (humanoid01_main SHARED humanoid01/humanoid01.cpp)
+  set_target_properties (humanoid01 PROPERTIES SOVERSION ${SKYAI_SOVERSION})
+  set_target_properties (humanoid01_main PROPERTIES SOVERSION ${SKYAI_SOVERSION})
   target_link_libraries (humanoid01 ${SKYAI_LIBRARIES})
   target_link_libraries (humanoid01_main humanoid01)
 
@@ -38,6 +42,8 @@ if (BUILD_BENCHMARKS_dynsim)
 
   add_library (dynsim SHARED dynsim/libdynsim.cpp)
   add_library (dynsim_main SHARED dynsim/dynsim.cpp)
+  set_target_properties (dynsim PROPERTIES SOVERSION ${SKYAI_SOVERSION})
+  set_target_properties (dynsim_main PROPERTIES SOVERSION ${SKYAI_SOVERSION})
   target_link_libraries (dynsim ${SKYAI_LIBRARIES})
   target_link_libraries (dynsim_main dynsim)
 
@@ -59,6 +65,8 @@ if (BUILD_BENCHMARKS_bioloid)
 
   add_library (bioloid SHARED bioloid/libbioloid.cpp)
   add_library (bioloid_main SHARED bioloid/bioloid.cpp)
+  set_target_properties (bioloid PROPERTIES SOVERSION ${SKYAI_SOVERSION})
+  set_target_properties (bioloid_main PROPERTIES SOVERSION ${SKYAI_SOVERSION})
   target_link_libraries (bioloid ${SKYAI_LIBRARIES})
   target_link_libraries (bioloid_main bioloid)
 

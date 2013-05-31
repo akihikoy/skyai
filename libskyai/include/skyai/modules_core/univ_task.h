@@ -38,6 +38,8 @@ class TUniversalContTimeTaskConfigurations
 {
 public:
 
+  TBool IsActive;  //!< If true (default), the module works; if false, no slot ports are executed
+
   /*! If true (default), the module always emit the signal_reset on end-of-episode (when memory.EndOfEps is true).
       If false, the signal_reset is emitted only when specified in user-defined callbacks (memory.Reset is true). */
   TBool AlwaysEmitResetOnEOE;
@@ -56,8 +58,7 @@ public:
         memory.Reset is set to false.
       These functions should have an argument storing the task module's id and no return.
 
-      \note If no ports are connected to signal_end_of_episode, signal_reward, and signal_reset,
-         these functions are not executed. */
+      \note If IsActive is false, these functions are not executed. */
   TString FEpisodeStart   ;
   TString FEpisodeEnd     ;  //!< See FEpisodeStart
   TString FActionStart    ;  //!< See FEpisodeStart
@@ -73,6 +74,7 @@ public:
 
 
   TUniversalContTimeTaskConfigurations (var_space::TVariableMap &mmap) :
+      IsActive                (true),
       AlwaysEmitResetOnEOE    (true),
       SensingAtEpisodeStart   (true),
       SensingAtEpisodeEnd     (true),
@@ -94,6 +96,7 @@ public:
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( IsActive               );
       ADD( AlwaysEmitResetOnEOE   );
       ADD( SensingAtEpisodeStart  );
       ADD( SensingAtEpisodeEnd    );
@@ -241,14 +244,6 @@ protected:
   MAKE_SIGNAL_PORT(signal_reward, void (const TSingleReward &), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
   MAKE_SIGNAL_PORT(signal_reset, void (void), TThis);
-
-  //! Return true if this module is in use
-  bool is_used(void)
-    {
-      return (signal_end_of_episode.ConnectionSize()>0)
-              || (signal_reward.ConnectionSize()>0)
-              || (signal_reset.ConnectionSize()>0);
-    }
 
   virtual void slot_start_episode_exec (void);
   virtual void slot_finish_episode_exec (void);
