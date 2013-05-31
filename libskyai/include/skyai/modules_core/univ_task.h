@@ -38,6 +38,8 @@ class TUniversalContTimeTaskConfigurations
 {
 public:
 
+  TBool IsActive;  //!< If true (default), the module works; if false, no slot ports are executed
+
   //! Decide if sensing the robot state at each event; default is true; setting false reduces the execution time
   TBool SensingAtEpisodeStart   ;
   TBool SensingAtEpisodeEnd     ;  //!< See SensingAtEpisodeStart
@@ -51,8 +53,7 @@ public:
       memory.EndOfEps is set to be false.
       these functions should have an argument storing the task module's id and no return.
 
-      \note If no ports are connected to neither signal_end_of_episode nor signal_reward,
-         these functions are not executed. */
+      \note If IsActive is false, these functions are not executed. */
   TString FEpisodeStart   ;
   TString FEpisodeEnd     ;  //!< See FEpisodeStart
   TString FActionStart    ;  //!< See FEpisodeStart
@@ -68,6 +69,7 @@ public:
 
 
   TUniversalContTimeTaskConfigurations (var_space::TVariableMap &mmap) :
+      IsActive                (true),
       SensingAtEpisodeStart   (true),
       SensingAtEpisodeEnd     (true),
       SensingAtActionStart    (true),
@@ -88,6 +90,7 @@ public:
   void Register (var_space::TVariableMap &mmap)
     {
       #define ADD(x_member)  AddToVarMap(mmap, #x_member, x_member)
+      ADD( IsActive               );
       ADD( SensingAtEpisodeStart  );
       ADD( SensingAtEpisodeEnd    );
       ADD( SensingAtActionStart   );
@@ -217,12 +220,6 @@ protected:
 
   MAKE_SIGNAL_PORT(signal_reward, void (const TSingleReward &), TThis);
   MAKE_SIGNAL_PORT(signal_end_of_episode, void (void), TThis);
-
-  //! Return true if this module is in use
-  bool is_used(void)
-    {
-      return (signal_end_of_episode.ConnectionSize()>0) || (signal_reward.ConnectionSize()>0);
-    }
 
   virtual void slot_start_episode_exec (void);
   virtual void slot_finish_episode_exec (void);

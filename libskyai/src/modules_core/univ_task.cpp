@@ -33,9 +33,9 @@ namespace loco_rabbits
 //===========================================================================================
 
 #define DEF_SLOT(x_event,x_time_step_assign)   \
+    if(!conf_.IsActive)  return;                    \
     if(conf_.F##x_event!="")                        \
     {                                               \
-      if(!is_used())  return;                       \
       x_time_step_assign                            \
       if(conf_.SensingAt##x_event)                  \
         sense_at_##x_event();                       \

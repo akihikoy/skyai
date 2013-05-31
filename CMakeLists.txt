@@ -21,15 +21,14 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 ##-------------------------------------------------------------------------------------------
 project (SKYAI)
 ##-------------------------------------------------------------------------------------------
-set(SKYAI_VERSION "0.2.0")
+set(SKYAI_VERSION "0.3.0")
+set(SKYAI_SOVERSION "1")
 
 string(REGEX MATCHALL "[0-9]" SKYAI_VERSION_PARTS "${SKYAI_VERSION}")
 
 list(GET SKYAI_VERSION_PARTS 0 SKYAI_VERSION_MAJOR)
 list(GET SKYAI_VERSION_PARTS 1 SKYAI_VERSION_MINOR)
 list(GET SKYAI_VERSION_PARTS 2 SKYAI_VERSION_PATCH)
-
-set(SKYAI_SOVERSION "${SKYAI_VERSION_MAJOR}.${SKYAI_VERSION_MINOR}")
 ##-------------------------------------------------------------------------------------------
 set (BUILD_3RDPARTY ON CACHE BOOL "Build 3rdparty")
 set (BUILD_LORA ON CACHE BOOL "Build liblora")
