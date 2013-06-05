@@ -39,9 +39,11 @@ using namespace loco_rabbits;
 
 struct TCell
 {
+  enum TMode {mA=0, mB, mC};
   int x;
   double y;
   vector<double> z;
+  TMode mode;
 };
 namespace loco_rabbits{ namespace var_space{
   void Register (TCell &test, TVariableMap &mmap)
@@ -51,9 +53,21 @@ namespace loco_rabbits{ namespace var_space{
     ADD( x );
     ADD( y );
     ADD( z );
+    ADD( mode );
     #undef ADD
   }
 }}
+
+// registration of TCell::TMode
+namespace loco_rabbits
+{
+  ENUM_STR_MAP_BEGIN_NS(TCell,TMode)
+    ENUM_STR_MAP_ADD_NS(TCell,mA )
+    ENUM_STR_MAP_ADD_NS(TCell,mB )
+    ENUM_STR_MAP_ADD_NS(TCell,mC )
+  ENUM_STR_MAP_END_NS  (TCell,TMode)
+  SPECIALIZE_TVARIABLE_TO_ENUM(TCell::TMode)
+}
 
 struct TTest
 {

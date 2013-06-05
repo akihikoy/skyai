@@ -56,6 +56,7 @@ namespace var_space
       generator(TVariable &outer) : o(outer) {}                                                          \
       void operator() (x_type &x)                                                                        \
       {                                                                                                  \
+        o.is_primitive_ = true;                                                                          \
         o.f_primitive_get_as_int_      = boost::bind(converter_generator_pr<x_type, pt_int    >,&x,_1);  \
         o.f_primitive_get_as_bool_     = boost::bind(converter_generator_pr<x_type, pt_bool   >,&x,_1);  \
         o.f_primitive_get_as_string_   = boost::bind(converter_generator_pr<x_type, pt_string >,&x,_1);  \
@@ -136,7 +137,8 @@ void enum_write_to_stream_generator (t_var *x, const TVariableMap &members, std:
 template <typename t_var>
 void enum_write_to_binary_generator (t_var *x, const TVariableMap &members, TBinaryStack &bstack)
 {
-  AddPushLiteral(bstack,static_cast<int>(*x));
+  // AddPushLiteral(bstack,static_cast<int>(*x));
+  AddPushLiteral(bstack,ConvertToStr(*x));
 }
 //-------------------------------------------------------------------------------------------
 

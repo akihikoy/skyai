@@ -26,7 +26,7 @@ cells = {
     []={x=-2.5;y=-3.5;}
     []={;}
   }
-cell = {x=20; y=0.1; z=(1.2,-1,0.0);}
+cell = {x=20; y=0.1; z=(1.2,-1,0.0); mode="mB";}
 
 x= cast<real>(cell.y) * cast<real>(cell.x) + cast<int>(y) + cast<int>(true)
 x= cast<int>(x)+1+cast<int>(cells[0].y)
