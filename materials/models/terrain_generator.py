@@ -3,10 +3,10 @@
 from random import random
 
 #Parameters:
-size= 5.0
-z_var= 0.1
-cols= 50 # of x-points of grid
-rows= 50 # of y-points of grid
+size= 10.0
+z_var= 0.05
+cols= 100 # of x-points of grid
+rows= 100 # of y-points of grid
 
 vertex_count= rows*cols
 index_count= (rows-1)*2*(cols-1) * 3

@@ -1,0 +1,4 @@
+// include_once "env"
+env.config={
+    ModelFiles={[]="models/hm_terrain5.var";}
+  }
