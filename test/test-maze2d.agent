@@ -7,4 +7,27 @@ load "libskyai_mstd"
 load "libmaze2d"
 load "libmaze2d_main"
 
+module  MMazeEnvironment environment
+
+print "path_list:"
 dump1 "path_list" ""
+
+print "mod_list:"
+dump1 "mod_list" ""
+
+dump2 "mod" "environment" ""
+
+if (cast<int>(environment.config.MapKind)==0)
+{
+  print "MapKind is zero"
+}
+else
+{
+  print "MapKind is not zero, but "+cast<str>(environment.config.MapKind)
+}
+
+def get_id_str(arg)
+{
+  return cast<str>(arg)
+}
+print get_id_str("environment")
