@@ -31,6 +31,7 @@ connect  dcob.signal_end_of_action             , behavior.slot_finish_action
 
 connect  task.signal_reward                    , behavior.slot_add_to_reward
 connect  task.signal_end_of_episode            , behavior.slot_finish_episode
+connect  env.signal_end_of_episode             , behavior.slot_finish_episode
 
 connect  behavior.signal_end_of_episode        , env.slot_finalize_episode
 

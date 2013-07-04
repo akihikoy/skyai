@@ -9,8 +9,8 @@ def action_start_mtcr(task_id)
 def timestep_end_mtcr(task_id)
 {
   task_id.memory ={
-      Reward= -5.0*0.01*(cast<real>(BaseVel[0])*cast<real>(BaseRot[(0,1)]) + cast<real>(BaseVel[1])*cast<real>(BaseRot[(1,1)]))
-      Reward= cast<real>(Reward) - 25.0*0.001*fabs(cast<real>(BaseVel[5]))
+      Reward= -3.0*0.01*(cast<real>(BaseVel[0])*cast<real>(BaseRot[(0,1)]) + cast<real>(BaseVel[1])*cast<real>(BaseRot[(1,1)]))
+      Reward= cast<real>(Reward) - 3.0*0.001*fabs(cast<real>(BaseVel[5]))
     }
   task_id.memory ={
       TmpR2= cast<real>(TmpR2) + cast<real>(TimeStep)  // update total-time
