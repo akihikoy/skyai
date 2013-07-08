@@ -94,8 +94,9 @@ void sig_handler(int signo)
       }
       else if(res=='i' || res=='I')
       {
-        PtrBioloidCtrl->Connect(BIOL_PORT);
-        PtrBioloidCtrl->TossMode();
+        // PtrBioloidCtrl->Connect(BIOL_PORT);
+        // PtrBioloidCtrl->TossMode();
+        PtrBioloidCtrl->ConnectBS(BIOL_PORT);
         break;
       }
       else {std::cerr<<"unknown action."<<std::endl;}
@@ -119,11 +120,13 @@ int main(int argc, char**argv)
   // ios.c_cflag = B57600 | CREAD | CLOCAL | CS8;  /* control mode flags */
 
   TBioloidController  bioloid;
-  bioloid.Connect(BIOL_PORT);
+  // bioloid.Connect(BIOL_PORT);
+  // bioloid.TossMode();
+  // // bioloid.TossTest();
+  bioloid.ConnectBS(BIOL_PORT);
+
   PtrBioloidCtrl= &bioloid;
 
-  bioloid.TossMode();
-  // bioloid.TossTest();
 
   #if 0
   bioloid.SetLightDetectCompare (100,128);
@@ -153,7 +156,7 @@ int main(int argc, char**argv)
   while (Executing)
   {
     t= time-time_offset;
-    goal= 30.0*sin(2.0*M_PI*0.2*t);
+    goal= 30.0*sin(2.0*M_PI*2.2*t);
     LMESSAGE(t<<"[s]: ("<<goal<<") ");
 
     #if 1
