@@ -3,6 +3,7 @@
     \brief   liblora - ROBOTIS bioloid control library (header)
     \author  Akihiko Yamaguchi, akihiko-y@is.naist.jp / ay@akiyam.sakura.ne.jp
     \date    Mar.08, 2010-
+    \date    Jul.08, 2013-  Added virtual angles.
 
     Copyright (C) 2010  Akihiko Yamaguchi
 
@@ -31,6 +32,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
+#include <vector>
 //-------------------------------------------------------------------------------------------
 namespace loco_rabbits
 {
@@ -195,7 +197,10 @@ class TBioloidController
 {
 public:
 
-  TBioloidController() : serial_type_(sctNone), serial_(NULL) {}
+  TBioloidController() : serial_type_(sctNone), serial_(NULL), using_virtual_angles_(true) {}
+
+  bool UsingVirtualAngles() const {return using_virtual_angles_;}
+  void SetUsingVirtualAngles(bool val)  {using_virtual_angles_= val;}
 
   //! using TSerialCom for serial communication (CM-5,(CM-500))
   void Connect (const std::string &v_tty, const termios &v_ios=GetDefaultTermios());
@@ -236,6 +241,9 @@ public:
   template <typename t_angle_fwditr, typename t_id_fwditr>
   int GetAllAngles (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle_fwditr angle_begin);
 
+  template <typename t_angle_fwditr, typename t_id_fwditr>
+  void GetVirtualAngles (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle_fwditr angle_begin);
+
   /*!\brief get distance to an object via IR-sensor
       \param [in]sensor_pos  : -1:left, 0:center, 1:right  */
   int GetDistance (unsigned char id, int sensor_pos, double &distance);
@@ -252,6 +260,9 @@ protected:
   TSyncWriteStream             sync_writes_;
   unsigned char buffer_[BUFFER_SIZE];
 
+  bool                 using_virtual_angles_;
+  std::vector<double>  virtual_angles_;
+
 };
 //-------------------------------------------------------------------------------------------
 
@@ -259,6 +270,17 @@ protected:
 template <typename t_angle_fwditr, typename t_id_fwditr>
 void TBioloidController::GoTo (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle_fwditr angle_begin)
 {
+  if (id_begin==id_end)  return;
+  if (using_virtual_angles_)
+  {
+    t_id_fwditr id_tmp(id_end);
+    do
+    {
+      --id_tmp;
+      if (virtual_angles_.size()<=*id_tmp)
+        virtual_angles_.resize(*id_tmp+1, 0.0);
+    } while (id_tmp!=id_begin);
+  }
   LASSERT(serial_!=NULL);
   sync_writes_.Init (0x1e, 2);
   int command, hi, lo;
@@ -268,6 +290,8 @@ void TBioloidController::GoTo (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle
     lo= command % 256;
     hi= (command-lo) / 256;
     sync_writes_<<*id_begin<<lo<<hi;
+    if (using_virtual_angles_)
+      virtual_angles_[*id_begin]= *angle_begin;
   }
   sync_writes_>>*serial_;
   // NOTE: no status packet
@@ -286,6 +310,18 @@ int TBioloidController::GetAllAngles (t_id_fwditr id_begin, t_id_fwditr id_end, 
     else
       ++err;
   return err;
+}
+//-------------------------------------------------------------------------------------------
+
+template <typename t_angle_fwditr, typename t_id_fwditr>
+void TBioloidController::GetVirtualAngles (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle_fwditr angle_begin)
+{
+  LASSERT(using_virtual_angles_);
+  for (; id_begin!=id_end; ++id_begin,++angle_begin)
+    if (*id_begin<virtual_angles_.size())
+      *angle_begin= virtual_angles_[*id_begin];
+    else
+      *angle_begin= 0.0;
 }
 //-------------------------------------------------------------------------------------------
 

@@ -25,6 +25,7 @@
 #include <lora/bioloid.h>
 #include <lora/stl_ext.h>
 #include <lora/sys.h>
+#include <lora/rand.h>
 #include <fstream>
 #include <csignal>
 //-------------------------------------------------------------------------------------------
@@ -58,6 +59,8 @@ const char *BIOL_PORT("/dev/ttyUSB0");
 static bool Executing(true);
 static TBioloidController *PtrBioloidCtrl(NULL);
 static bool ReadAngleSignal(false);
+static bool ReadVAngleSignal(false);
+static bool RandomAngles(false);
 
 void sig_handler(int signo)
 {
@@ -70,7 +73,9 @@ void sig_handler(int signo)
     std::cerr<<ioscc::blue<<"interrupted."<<std::endl;
     std::cerr<<
       "  'A':  read all angles"<<std::endl<<
+      "  'V':  read virtual angles"<<std::endl<<
       "  'I':  initialize communication"<<std::endl<<
+      "  'G':  switch random/sin angles"<<std::endl<<
       "  Space:  continue"<<std::endl<<
       "  'Q':  quit"<<std::endl;
     while(true)
@@ -92,11 +97,21 @@ void sig_handler(int signo)
         ReadAngleSignal=true;
         break;
       }
+      else if(res=='v' || res=='V')
+      {
+        ReadVAngleSignal=true;
+        break;
+      }
       else if(res=='i' || res=='I')
       {
         // PtrBioloidCtrl->Connect(BIOL_PORT);
         // PtrBioloidCtrl->TossMode();
         PtrBioloidCtrl->ConnectBS(BIOL_PORT);
+        break;
+      }
+      else if(res=='g' || res=='G')
+      {
+        RandomAngles= !RandomAngles;
         break;
       }
       else {std::cerr<<"unknown action."<<std::endl;}
@@ -138,9 +153,11 @@ int main(int argc, char**argv)
 
   ofstream ofs_goal("res/goal.dat");
   ofstream ofs_angle("res/angle.dat");
+  ofstream ofs_vangle("res/vangle.dat");
   int skip(0);
   double goal, distance_c;
   double time_offset(GetCurrentTime()), time(GetCurrentTime()), t;
+  int    disc_time(0);
 
   #if 0
   while (time-time_offset<2.0)
@@ -156,8 +173,21 @@ int main(int argc, char**argv)
   while (Executing)
   {
     t= time-time_offset;
-    goal= 30.0*sin(2.0*M_PI*2.2*t);
-    LMESSAGE(t<<"[s]: ("<<goal<<") ");
+    if (!RandomAngles)
+    {
+      goal= 30.0*sin(2.0*M_PI*0.2*t);
+      LMESSAGE(t<<"[s]: ("<<goal<<") ");
+      std::fill (angles,angles+SIZE_OF_ARRAY(angles),goal);
+    }
+    else
+    {
+      LMESSAGE(t<<"[s]");
+      if (disc_time%10==0)
+      {
+        for (int j(0); j<SIZE_OF_ARRAY(angles); ++j)
+          angles[j]= Rand(-60.0,60.0);
+      }
+    }
 
     #if 1
     // bioloid.GetAngle(1);
@@ -169,6 +199,10 @@ int main(int argc, char**argv)
       // bioloid.GetAllAngles (ids,ids+5, angles_observed);
       // ofs_angle<<t<<" "<<ContainerToStr(angles_observed,angles_observed+5)<<endl;
       #endif
+      #if 0
+      bioloid.GetVirtualAngles (ids,ids+SIZE_OF_ARRAY(ids), angles_observed);
+      ofs_vangle<<t<<" "<<ContainerToStr(angles_observed,angles_observed+SIZE_OF_ARRAY(angles_observed))<<endl;
+      #endif
       skip=0;
     } else{--skip;}
 
@@ -179,7 +213,16 @@ int main(int argc, char**argv)
       ReadAngleSignal=false;
     }
 
-    std::fill (angles,angles+SIZE_OF_ARRAY(angles),goal);
+    if(ReadVAngleSignal)
+    {
+      PtrBioloidCtrl->GetAllAngles (ids,ids+SIZE_OF_ARRAY(ids), angles_observed);
+      cout<<" "<<ContainerToStr(angles_observed,angles_observed+SIZE_OF_ARRAY(angles_observed))<<endl;
+
+      PtrBioloidCtrl->GetVirtualAngles (ids,ids+SIZE_OF_ARRAY(ids), angles_observed);
+      cout<<" "<<ContainerToStr(angles_observed,angles_observed+SIZE_OF_ARRAY(angles_observed))<<endl;
+      ReadVAngleSignal=false;
+    }
+
     ConstrainAngles (angles,angles+SIZE_OF_ARRAY(angles));
     bioloid.GoTo (ids,ids+SIZE_OF_ARRAY(ids), angles);
     ofs_goal<<t<<" "<<ContainerToStr(angles,angles+SIZE_OF_ARRAY(angles))<<endl;
@@ -198,10 +241,12 @@ int main(int argc, char**argv)
     // usleep(50000);
     usleep(100000);
     time= GetCurrentTime();
+    ++disc_time;
   }
 
   ofs_goal.close();
   ofs_angle.close();
+  ofs_vangle.close();
 
   bioloid.Disconnect();
 

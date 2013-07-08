@@ -64,6 +64,8 @@ public:
   TRealVector       AngleMax;
   TRealVector       AngleMin;
 
+  TBool             UsingVirtualAngles;
+
   TReal             InitSleepTime;
   TReal             TimeStep;
   TReal             UserPenalty;
@@ -74,6 +76,7 @@ public:
       SerialPort            ("/dev/ttyUSB0"),
       BioloidControllerKind (bckUSB2Dynamixel),
       DistanceSensorIndex (-1),
+      UsingVirtualAngles  (false),
       InitSleepTime   (2.0l),
       TimeStep        (0.1l),
       UserPenalty     (-4.0l)
@@ -89,6 +92,7 @@ public:
       ADD( DistanceSensorIndex      );
       ADD( AngleMax                 );
       ADD( AngleMin                 );
+      ADD( UsingVirtualAngles       );
       ADD( InitSleepTime            );
       ADD( TimeStep                 );
       ADD( UserPenalty              );
@@ -259,7 +263,11 @@ protected:
       double time_offset(GetCurrentTime()), time(GetCurrentTime());
       while (time-time_offset<conf_.InitSleepTime)
       {
-        bioloid_.GetAllAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+        if(!conf_.UsingVirtualAngles)
+          bioloid_.GetAllAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+        else
+          bioloid_.GetVirtualAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+
         for(TypeExt<TRealVector>::iterator itr(GenBegin(tmp_angles_)); itr!=GenEnd(tmp_angles_); ++itr)
           *itr= (*itr)/180.0*M_PI;
         constrain_angles (target_angle);
@@ -347,7 +355,11 @@ std::cout<<distance_lpf_()(0)<<"\t"<<distance_lpf_()(1)<<"\t"<<distance_lpf_()(2
   virtual const TRealVector& out_sensor_angles_get () const
     {
       tmp_angles_.resize(conf_.SensingAngleIndexes.size());
-      bioloid_.GetAllAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+      if(!conf_.UsingVirtualAngles)
+        bioloid_.GetAllAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+      else
+        bioloid_.GetVirtualAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+
       for(TypeExt<TRealVector>::iterator itr(GenBegin(tmp_angles_)); itr!=GenEnd(tmp_angles_); ++itr)
         *itr= (*itr)/180.0*M_PI;
       return tmp_angles_;
