@@ -627,12 +627,14 @@ bool TMarkerTracker::Initialize()
 bool TMarkerTracker::Step()
 {
   cv::Mat current_frame;
-  camera_ >> current_frame;
+  if(camera_.isOpened())
+    camera_ >> current_frame;
 
   bool captured(true);
   if(current_frame.cols*current_frame.rows==0)
   {
-    LERROR("camera capture failed");
+    if(camera_.isOpened())
+      LERROR("camera capture failed");
     captured= false;
   }
 
