@@ -44,6 +44,7 @@ static bool Executing(true);
 int ExitCode(0);
 const TAgent *PtrAgent(NULL);
 MBioloidEnvironment  *PtrEnvironment(NULL);
+MMarkerTracker       *PtrMarkerTracker(NULL);
 void SaveLearningParams ();
 void FinishLearningProc ();
 
@@ -59,13 +60,14 @@ void sig_handler(int signo)
     std::cerr<<
       "  Q:  quit with returning a failure code"<<std::endl<<
       "  X:  quit with returning a success code"<<std::endl<<
+      "  d/D:  device configuration mode"<<std::endl<<
       "  l/L:  save the learned valuetable"<<std::endl<<
       "  r/R:  reset the simulation (including connection setup) and start a new episode"<<std::endl<<
       "  g/G:  emit a penalty signal, reset the simulation, and start a new episode"<<std::endl<<
       "  a/A:  set a success flag on the episode"<<std::endl;
     while(true)
     {
-      std::cerr<<"  Q|X|l|r|g|a > "<<std::flush;
+      std::cerr<<"  Q|X|d|l|r|g|a > "<<std::flush;
       int res= WaitKBHit();
       if(res=='Q')
       {
@@ -79,6 +81,59 @@ void sig_handler(int signo)
         Executing=false;
         ExitCode=0;
         FinishLearningProc();
+        break;
+      }
+      else if(res=='d'||res=='D')
+      {
+        std::stringstream s_camid;
+        if(PtrMarkerTracker)  s_camid<<PtrMarkerTracker->CameraDeviceID();
+        else                  s_camid<<"(no camera)";
+        std::cerr<<"this is the device configuration mode."<<std::endl;
+        std::cerr<<
+          "  x/X:  quit this mode and return to the execution. a new episode is started"<<std::endl<<
+          "  b/B:  reset the bioloid communication"<<std::endl<<
+          "  s/S:  change the bioloid serial port. now: "<<PtrEnvironment->SerialPort()<<std::endl<<
+          "  c/C:  reset the camera"<<std::endl<<
+          "  i/I:  change the camera device ID. now: "<<s_camid.str()<<std::endl;
+        while(true)
+        {
+          std::cerr<<"  x|b|s|c|i > "<<std::flush;
+          int res= WaitKBHit();
+          if(res=='x'||res=='X')
+          {
+            std::cerr<<"done."<<std::endl;
+            break;
+          }
+          else if(res=='b'||res=='B')
+          {
+            std::cerr<<"reset the bioloid communication..."<<std::endl;
+            PtrEnvironment->Setup();
+          }
+          else if(res=='s'||res=='S')
+          {
+            TString serial_port;
+            std::cerr<<"  type new serial port > "<<std::flush;
+            std::cin>>serial_port;
+            PtrEnvironment->SetSerialPort(serial_port);
+            std::cerr<<"reset the bioloid communication..."<<std::endl;
+            PtrEnvironment->Setup();
+          }
+          else if(res=='c'||res=='C')
+          {
+            std::cerr<<"reset the camera..."<<std::endl;
+            PtrMarkerTracker->RequestInitialize();
+          }
+          else if(res=='i'||res=='I')
+          {
+            int camid;
+            std::cerr<<"  type new camera ID > "<<std::flush;
+            std::cin>>camid;
+            PtrMarkerTracker->SetCameraDeviceID(camid);
+            std::cerr<<"reset the camera..."<<std::endl;
+            PtrMarkerTracker->RequestInitialize();
+          }
+        }  // while
+        PtrEnvironment->ForceFinishEpisode();
         break;
       }
       else if(res=='l'||res=='L')
@@ -165,6 +220,8 @@ int Maze2dSkyAIMain(TOptionParser &option, TAgent &agent)
   MManualLearningManager &lmanager(*p_lmanager);
   MBioloidEnvironment &environment(*p_environment);
 
+  PtrMarkerTracker = dynamic_cast<MMarkerTracker*>(agent.SearchModule("mtracker"));
+  // we do not care if PtrMarkerTracker is NULL
 
   agent.SaveToFile (agent.GetDataFileName("before.agent"),"before-");
 

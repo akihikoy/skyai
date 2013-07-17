@@ -198,6 +198,11 @@ public:
       LMESSAGE("start experiment..");
     }
 
+
+  const TString& SerialPort() const {return conf_.SerialPort;}
+  void SetSerialPort(const TString &port)  {conf_.SerialPort= port;}
+
+
 protected:
 
   TBioloidEnvironmentConfigurations conf_;
@@ -633,6 +638,7 @@ public:
       thread_unobserved_count_(0),
       thread_               (NULL),
       thread_running_       (false),
+      initialize_requested_ (false),
       slot_initialization   (*this),
       slot_step             (*this),
       slot_finish           (*this),
@@ -658,6 +664,11 @@ public:
       clear_thread();
     }
 
+  void RequestInitialize()  {initialize_requested_= true;}
+
+  int CameraDeviceID() const {return mtracker_.Config().CameraDeviceID;}
+  void SetCameraDeviceID(int id) {mtracker_.Config().CameraDeviceID= id;}
+
 protected:
 
   marker_tracker::TMarkerTracker mtracker_;
@@ -671,6 +682,7 @@ protected:
   boost::thread *thread_;
   mutable boost::mutex mutex_;
   bool thread_running_;
+  bool initialize_requested_;
 
 
   MAKE_SLOT_PORT(slot_initialization, void, (void), (), TThis);
@@ -695,6 +707,7 @@ protected:
       initialize_mtracker();
 
       thread_running_= true;
+      initialize_requested_= false;
       thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
     }
 
@@ -745,6 +758,7 @@ protected:
       mtracker_.Initialize();
       mtracker_.Config().MarkerFileName= tmp_file_name;
       LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+      initialize_requested_= false;
     }
 
   void clear_thread()
@@ -800,7 +814,7 @@ protected:
           std::copy(CVBegin(p.W),CVEnd(p.W),OctBegin(thread_vel_)+3);
         }
 
-        if((mtracker_.Key()&0xFF) =='R')
+        if(initialize_requested_ || (mtracker_.Key()&0xFF) =='R')
         {
           LMESSAGE("resetting marker-tracker..");
           initialize_mtracker();
