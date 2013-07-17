@@ -198,6 +198,7 @@ public:
       LMESSAGE("start experiment..");
     }
 
+  void Disconnect() {bioloid_.Disconnect();}
 
   const TString& SerialPort() const {return conf_.SerialPort;}
   void SetSerialPort(const TString &port)  {conf_.SerialPort= port;}
@@ -639,6 +640,7 @@ public:
       thread_               (NULL),
       thread_running_       (false),
       initialize_requested_ (false),
+      release_camera_requested_(false),
       slot_initialization   (*this),
       slot_step             (*this),
       slot_finish           (*this),
@@ -664,7 +666,11 @@ public:
       clear_thread();
     }
 
+  // works only when the thread is running
   void RequestInitialize()  {initialize_requested_= true;}
+
+  // works only when the thread is running
+  void RequestReleaseCamera()  {release_camera_requested_= true;}
 
   int CameraDeviceID() const {return mtracker_.Config().CameraDeviceID;}
   void SetCameraDeviceID(int id) {mtracker_.Config().CameraDeviceID= id;}
@@ -682,7 +688,7 @@ protected:
   boost::thread *thread_;
   mutable boost::mutex mutex_;
   bool thread_running_;
-  bool initialize_requested_;
+  bool initialize_requested_, release_camera_requested_;
 
 
   MAKE_SLOT_PORT(slot_initialization, void, (void), (), TThis);
@@ -708,6 +714,7 @@ protected:
 
       thread_running_= true;
       initialize_requested_= false;
+      release_camera_requested_= false;
       thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
     }
 
@@ -819,6 +826,11 @@ protected:
           LMESSAGE("resetting marker-tracker..");
           initialize_mtracker();
           LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+        }
+        if(release_camera_requested_)
+        {
+          mtracker_.Clear();
+          release_camera_requested_= false;
         }
 
         usleep(1000);

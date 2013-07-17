@@ -344,7 +344,11 @@ void TBioloidController::Disconnect ()
 //!\brief read from where the data starts with 0xffff
 int TBioloidController::ReadFromFFFF (unsigned char *buf, int N, int max_trial, const int pr_max_trial)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return 0;
+  }
   int dn,offset(N);
   for(;max_trial>0;--max_trial)
   {
@@ -403,7 +407,11 @@ int TBioloidController::ReadStatusPacket (unsigned char id)
 
 void TBioloidController::ReadAndEcho (int N)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   // memset(buffer_,0,sizeof(buffer_));
   N= serial_->Read (buffer_, N);
   const char *rbufptr(reinterpret_cast<const char*>(buffer_));
@@ -417,7 +425,11 @@ void TBioloidController::ReadAndEcho (int N)
 //!\brief binary communicating mode
 void TBioloidController::TossMode(void)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   str_writes_<<"t\n";
   str_writes_>>*serial_;
   /*dbg*/ReadAndEcho();
@@ -427,7 +439,11 @@ void TBioloidController::TossMode(void)
 //! LED of (#1,#2) changes (on,off),(off,on),(on,off),(off,on),...
 void TBioloidController::TossTest (void)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   for (int i(0);i<20;++i)
   {
     sync_writes_.Init (0x19, 1);
@@ -446,7 +462,11 @@ void TBioloidController::TossTest (void)
 
 int TBioloidController::Ping (unsigned char id)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return -1;
+  }
   biol_writes_.Init(id);
   biol_writes_<<0x01;
   biol_writes_>>*serial_;
@@ -464,7 +484,11 @@ int TBioloidController::Ping (unsigned char id)
 //! state:0:off, 1:on
 void TBioloidController::LED (unsigned char id, unsigned int state)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   biol_writes_.Init(id);
   biol_writes_<<0x03<<0x19<<state;
   biol_writes_>>*serial_;
@@ -479,7 +503,11 @@ void TBioloidController::LED (unsigned char id, unsigned int state)
 
 void TBioloidController::SetLightDetectCompare (unsigned char id, unsigned char value)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   biol_writes_.Init(id);
   biol_writes_<<0x03<<0x35<<value;
   biol_writes_>>*serial_;
@@ -494,7 +522,11 @@ void TBioloidController::SetLightDetectCompare (unsigned char id, unsigned char 
 
 bool TBioloidController::EnableTorque (unsigned char id)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return false;
+  }
   biol_writes_.Init(id);
   biol_writes_<<0x03<<0x18<<1;
   biol_writes_>>*serial_;
@@ -511,7 +543,11 @@ bool TBioloidController::EnableTorque (unsigned char id)
 
 int TBioloidController::GetAngle (unsigned char id, double &angle)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return 0;
+  }
   biol_writes_.Init(id);
   biol_writes_<<0x02<<0x24<<2;
   biol_writes_>>*serial_;
@@ -562,7 +598,11 @@ int TBioloidController::PersistingGetAngle (unsigned char id, double &angle, int
     \param [in]sensor_pos  : -1:left, 0:center, 1:right  */
 int TBioloidController::GetDistance (unsigned char id, int sensor_pos, double &distance)
 {
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return 0;
+  }
   if (sensor_pos<-1 || sensor_pos>1)
     {LERROR("in GetDistance: invalid sensor_pos: "<<sensor_pos);  return -1;}
   biol_writes_.Init(id);

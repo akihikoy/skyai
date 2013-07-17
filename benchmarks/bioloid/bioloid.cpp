@@ -48,6 +48,84 @@ MMarkerTracker       *PtrMarkerTracker(NULL);
 void SaveLearningParams ();
 void FinishLearningProc ();
 
+void do_device_configuration_mode()
+{
+  std::stringstream s_camid;
+  if(PtrMarkerTracker)  s_camid<<PtrMarkerTracker->CameraDeviceID();
+  else                  s_camid<<"(no marker-tracker)";
+  std::cerr<<"device configuration mode:"<<std::endl;
+  std::cerr<<
+    "  x/X:  quit this mode and return to the execution. a new episode is started"<<std::endl<<
+    "  b/B:  reset the bioloid communication"<<std::endl<<
+    "  d/D:  disconnect the bioloid communication"<<std::endl<<
+    "  s/S:  change the bioloid serial port. now: "<<PtrEnvironment->SerialPort()<<std::endl<<
+    "  c/C:  reset the camera"<<std::endl<<
+    "  t/T:  release the camera"<<std::endl<<
+    "  i/I:  change the camera device ID. now: "<<s_camid.str()<<std::endl;
+  while(true)
+  {
+    std::cerr<<"  x|b|d|s|c|t|i > "<<std::flush;
+    int res= WaitKBHit();
+    if(res=='x'||res=='X')
+    {
+      std::cerr<<"done."<<std::endl;
+      break;
+    }
+    else if(res=='b'||res=='B')
+    {
+      std::cerr<<"reset the bioloid communication..."<<std::endl;
+      PtrEnvironment->Setup();
+    }
+    else if(res=='d'||res=='D')
+    {
+      std::cerr<<"disconnect the bioloid communication..."<<std::endl;
+      PtrEnvironment->Disconnect();
+    }
+    else if(res=='s'||res=='S')
+    {
+      TString serial_port;
+      std::cerr<<"  type new serial port > "<<std::flush;
+      std::cin>>serial_port;
+      PtrEnvironment->SetSerialPort(serial_port);
+      std::cerr<<"reset the bioloid communication..."<<std::endl;
+      PtrEnvironment->Setup();
+    }
+    else if(res=='c'||res=='C')
+    {
+      if(PtrMarkerTracker)
+      {
+        std::cerr<<"reset the camera..."<<std::endl;
+        PtrMarkerTracker->RequestInitialize();
+      }
+      else {std::cerr<<"no marker tracker."<<std::endl;}
+    }
+    else if(res=='t'||res=='T')
+    {
+      if(PtrMarkerTracker)
+      {
+        std::cerr<<"release the camera..."<<std::endl;
+        PtrMarkerTracker->RequestReleaseCamera();
+      }
+      else {std::cerr<<"no marker tracker."<<std::endl;}
+    }
+    else if(res=='i'||res=='I')
+    {
+      if(PtrMarkerTracker)
+      {
+        int camid;
+        std::cerr<<"  type new camera ID > "<<std::flush;
+        std::cin>>camid;
+        PtrMarkerTracker->SetCameraDeviceID(camid);
+        std::cerr<<"reset the camera..."<<std::endl;
+        PtrMarkerTracker->RequestInitialize();
+      }
+      else {std::cerr<<"no marker tracker."<<std::endl;}
+    }
+    else {std::cerr<<"unknown action."<<std::endl;}
+  }  // while
+}
+//-------------------------------------------------------------------------------------------
+
 void sig_handler(int signo)
 {
   using namespace std;
@@ -85,54 +163,7 @@ void sig_handler(int signo)
       }
       else if(res=='d'||res=='D')
       {
-        std::stringstream s_camid;
-        if(PtrMarkerTracker)  s_camid<<PtrMarkerTracker->CameraDeviceID();
-        else                  s_camid<<"(no camera)";
-        std::cerr<<"this is the device configuration mode."<<std::endl;
-        std::cerr<<
-          "  x/X:  quit this mode and return to the execution. a new episode is started"<<std::endl<<
-          "  b/B:  reset the bioloid communication"<<std::endl<<
-          "  s/S:  change the bioloid serial port. now: "<<PtrEnvironment->SerialPort()<<std::endl<<
-          "  c/C:  reset the camera"<<std::endl<<
-          "  i/I:  change the camera device ID. now: "<<s_camid.str()<<std::endl;
-        while(true)
-        {
-          std::cerr<<"  x|b|s|c|i > "<<std::flush;
-          int res= WaitKBHit();
-          if(res=='x'||res=='X')
-          {
-            std::cerr<<"done."<<std::endl;
-            break;
-          }
-          else if(res=='b'||res=='B')
-          {
-            std::cerr<<"reset the bioloid communication..."<<std::endl;
-            PtrEnvironment->Setup();
-          }
-          else if(res=='s'||res=='S')
-          {
-            TString serial_port;
-            std::cerr<<"  type new serial port > "<<std::flush;
-            std::cin>>serial_port;
-            PtrEnvironment->SetSerialPort(serial_port);
-            std::cerr<<"reset the bioloid communication..."<<std::endl;
-            PtrEnvironment->Setup();
-          }
-          else if(res=='c'||res=='C')
-          {
-            std::cerr<<"reset the camera..."<<std::endl;
-            PtrMarkerTracker->RequestInitialize();
-          }
-          else if(res=='i'||res=='I')
-          {
-            int camid;
-            std::cerr<<"  type new camera ID > "<<std::flush;
-            std::cin>>camid;
-            PtrMarkerTracker->SetCameraDeviceID(camid);
-            std::cerr<<"reset the camera..."<<std::endl;
-            PtrMarkerTracker->RequestInitialize();
-          }
-        }  // while
+        do_device_configuration_mode();
         PtrEnvironment->ForceFinishEpisode();
         break;
       }

@@ -281,7 +281,11 @@ void TBioloidController::GoTo (t_id_fwditr id_begin, t_id_fwditr id_end, t_angle
         virtual_angles_.resize(*id_tmp+1, 0.0);
     } while (id_tmp!=id_begin);
   }
-  LASSERT(serial_!=NULL);
+  if(serial_==NULL)
+  {
+    LWARNING("TBioloidController: the serial communication is not established");
+    return;
+  }
   sync_writes_.Init (0x1e, 2);
   int command, hi, lo;
   for (; id_begin!=id_end; ++id_begin,++angle_begin)
