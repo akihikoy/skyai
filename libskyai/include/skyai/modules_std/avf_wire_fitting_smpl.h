@@ -282,13 +282,13 @@ public:
 /*!\brief wire-fitting module to approximate an action value function (simple version)
     \note this AVF receives a feature vector (output of basis functions) as the state. */
 class MAVFWireFittingSimple
-    : public MActionValueFuncInterface <TRealVector, TContinuousAction>
+    : public MParamManipulableActionValueFuncInterface <TRealVector, TContinuousAction>
 //===========================================================================================
 {
 public:
-  typedef MActionValueFuncInterface <
-            TRealVector, TContinuousAction>  TParent;
-  typedef MAVFWireFittingSimple              TThis;
+  typedef MParamManipulableActionValueFuncInterface <
+                        TRealVector, TContinuousAction>  TParent;
+  typedef MAVFWireFittingSimple                          TThis;
   SKYAI_MODULE_NAMES(MAVFWireFittingSimple)
 
   MAVFWireFittingSimple (const std::string &v_instance_name)

@@ -192,13 +192,13 @@ public:
     \note this AVF receives a feature vector (output of basis functions) as the state.
           i.e. TState == TFeature */
 class MAVFLinearDiscAction
-    : public MActionValueFuncInterface <TRealVector, TDiscreteAction>
+    : public MParamManipulableActionValueFuncInterface <TRealVector, TDiscreteAction>
 //===========================================================================================
 {
 public:
-  typedef MActionValueFuncInterface <
-            TRealVector, TDiscreteAction>    TParent;
-  typedef MAVFLinearDiscAction               TThis;
+  typedef MParamManipulableActionValueFuncInterface <
+                          TRealVector, TDiscreteAction> TParent;
+  typedef MAVFLinearDiscAction                          TThis;
   SKYAI_MODULE_NAMES(MAVFLinearDiscAction)
 
   MAVFLinearDiscAction (const std::string &v_instance_name)
