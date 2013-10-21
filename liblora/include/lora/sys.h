@@ -118,15 +118,16 @@ class TKBHit
 //===========================================================================================
 {
 public:
-  TKBHit (void) : is_open_(false)  {Open();}
+  TKBHit (bool wait_mode=true) : is_open_(false), wait_mode_(wait_mode)  {Open(wait_mode);}
   ~TKBHit (void)  {Close();}
-  void Open (void);
+  void Open (bool wait_mode=true);
   void Close (void);
   int operator() (void) const;
 private:
   termios old_tios_;
   termios raw_tios_;
   bool is_open_;
+  bool wait_mode_;
 };
 //-------------------------------------------------------------------------------------------
 inline int WaitKBHit(void)
@@ -142,6 +143,11 @@ inline void WaitKBHit(int k)
     int s= kbhit();
     if(s==k)  break;
   }
+}
+inline int KBHit(void)
+{
+  TKBHit kbhit(false);
+  return kbhit();
 }
 //-------------------------------------------------------------------------------------------
 
