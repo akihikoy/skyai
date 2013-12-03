@@ -64,6 +64,8 @@ public:
   TRealVector       AngleMax;
   TRealVector       AngleMin;
 
+  TBool             UsingVirtualAngles;
+
   TReal             InitSleepTime;
   TReal             TimeStep;
   TReal             UserPenalty;
@@ -74,6 +76,7 @@ public:
       SerialPort            ("/dev/ttyUSB0"),
       BioloidControllerKind (bckUSB2Dynamixel),
       DistanceSensorIndex (-1),
+      UsingVirtualAngles  (false),
       InitSleepTime   (2.0l),
       TimeStep        (0.1l),
       UserPenalty     (-4.0l)
@@ -89,6 +92,7 @@ public:
       ADD( DistanceSensorIndex      );
       ADD( AngleMax                 );
       ADD( AngleMin                 );
+      ADD( UsingVirtualAngles       );
       ADD( InitSleepTime            );
       ADD( TimeStep                 );
       ADD( UserPenalty              );
@@ -194,6 +198,12 @@ public:
       LMESSAGE("start experiment..");
     }
 
+  void Disconnect() {bioloid_.Disconnect();}
+
+  const TString& SerialPort() const {return conf_.SerialPort;}
+  void SetSerialPort(const TString &port)  {conf_.SerialPort= port;}
+
+
 protected:
 
   TBioloidEnvironmentConfigurations conf_;
@@ -259,7 +269,11 @@ protected:
       double time_offset(GetCurrentTime()), time(GetCurrentTime());
       while (time-time_offset<conf_.InitSleepTime)
       {
-        bioloid_.GetAllAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+        if(!conf_.UsingVirtualAngles)
+          bioloid_.GetAllAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+        else
+          bioloid_.GetVirtualAngles (conf_.ActuatorIndexes.begin(),conf_.ActuatorIndexes.end(), GenBegin(observed_angle));
+
         for(TypeExt<TRealVector>::iterator itr(GenBegin(tmp_angles_)); itr!=GenEnd(tmp_angles_); ++itr)
           *itr= (*itr)/180.0*M_PI;
         constrain_angles (target_angle);
@@ -347,7 +361,11 @@ std::cout<<distance_lpf_()(0)<<"\t"<<distance_lpf_()(1)<<"\t"<<distance_lpf_()(2
   virtual const TRealVector& out_sensor_angles_get () const
     {
       tmp_angles_.resize(conf_.SensingAngleIndexes.size());
-      bioloid_.GetAllAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+      if(!conf_.UsingVirtualAngles)
+        bioloid_.GetAllAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+      else
+        bioloid_.GetVirtualAngles (conf_.SensingAngleIndexes.begin(),conf_.SensingAngleIndexes.end(), GenBegin(tmp_angles_));
+
       for(TypeExt<TRealVector>::iterator itr(GenBegin(tmp_angles_)); itr!=GenEnd(tmp_angles_); ++itr)
         *itr= (*itr)/180.0*M_PI;
       return tmp_angles_;
@@ -621,6 +639,8 @@ public:
       thread_unobserved_count_(0),
       thread_               (NULL),
       thread_running_       (false),
+      initialize_requested_ (false),
+      release_camera_requested_(false),
       slot_initialization   (*this),
       slot_step             (*this),
       slot_finish           (*this),
@@ -646,6 +666,15 @@ public:
       clear_thread();
     }
 
+  // works only when the thread is running
+  void RequestInitialize()  {initialize_requested_= true;}
+
+  // works only when the thread is running
+  void RequestReleaseCamera()  {release_camera_requested_= true;}
+
+  int CameraDeviceID() const {return mtracker_.Config().CameraDeviceID;}
+  void SetCameraDeviceID(int id) {mtracker_.Config().CameraDeviceID= id;}
+
 protected:
 
   marker_tracker::TMarkerTracker mtracker_;
@@ -659,6 +688,7 @@ protected:
   boost::thread *thread_;
   mutable boost::mutex mutex_;
   bool thread_running_;
+  bool initialize_requested_, release_camera_requested_;
 
 
   MAKE_SLOT_PORT(slot_initialization, void, (void), (), TThis);
@@ -683,6 +713,8 @@ protected:
       initialize_mtracker();
 
       thread_running_= true;
+      initialize_requested_= false;
+      release_camera_requested_= false;
       thread_= new boost::thread(boost::bind(&MMarkerTracker::run,this));
     }
 
@@ -733,6 +765,7 @@ protected:
       mtracker_.Initialize();
       mtracker_.Config().MarkerFileName= tmp_file_name;
       LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+      initialize_requested_= false;
     }
 
   void clear_thread()
@@ -788,11 +821,16 @@ protected:
           std::copy(CVBegin(p.W),CVEnd(p.W),OctBegin(thread_vel_)+3);
         }
 
-        if((mtracker_.Key()&0xFF) =='R')
+        if(initialize_requested_ || (mtracker_.Key()&0xFF) =='R')
         {
           LMESSAGE("resetting marker-tracker..");
           initialize_mtracker();
           LMESSAGE("info: marker-tracker can be reset by pressing 'R' on the window");
+        }
+        if(release_camera_requested_)
+        {
+          mtracker_.Clear();
+          release_camera_requested_= false;
         }
 
         usleep(1000);

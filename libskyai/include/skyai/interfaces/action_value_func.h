@@ -145,49 +145,50 @@ struct TStateActionAttribute
 };
 //-------------------------------------------------------------------------------------------
 
+template <typename t_state, typename t_action>
+struct TActionValueFuncTrainingSample
+{
+  t_state         State;
+  t_action        Action;
+  TValue          Q;  // the target state-action value for Action at State
+  TActionValueFuncTrainingSample (const t_state &v_state, const t_action &v_action, const TValue &v_q)
+    : State(v_state), Action(v_action), Q(v_q)  {}
+};
+//-------------------------------------------------------------------------------------------
+
 
 //===========================================================================================
-/*!\brief interface module of a generic function approximator that approximates Q~f(x,a; param)
-    \note parameter of the function should be a subclass of TActionValueFuncParamInterface */
+/*!\brief interface module of a generic function approximator that approximates Q~f(x,a; param).
+    \note parameter of the function is better to be a subclass of TActionValueFuncParamInterface
+      in order to provide TStateActionAttribute::Gradient in out_evaluate, etc. */
 template <typename t_state, typename t_action>
 class MActionValueFuncInterface
     : public TModuleInterface
 //===========================================================================================
 {
 public:
-  typedef TModuleInterface                TParent;
-  typedef t_state                         TState;
-  typedef t_action                        TAction;
-  typedef TActionValueFuncParamInterface  TParameter;
-  typedef MActionValueFuncInterface       TThis;
+  typedef TModuleInterface           TParent;
+  typedef t_state                    TState;
+  typedef t_action                   TAction;
+  typedef MActionValueFuncInterface  TThis;
   SKYAI_MODULE_NAMES(MActionValueFuncInterface)
 
   MActionValueFuncInterface (const std::string &v_instance_name)
     : TParent        (v_instance_name),
       slot_initialize        (*this),
       slot_reset             (*this),
-      slot_add_to_parameter  (*this),
-      out_parameter_ref      (*this),
-      out_parameter_val      (*this),
+      slot_train_with_data   (*this),
       out_evaluate           (*this),
       out_greedy             (*this),
-      out_select_action      (*this),
-      out_replacing_trace    (*this),
-      out_create_parameter   (*this),
-      out_zero_parameter     (*this)
+      out_select_action      (*this)
     {
       this->add_slot_port (slot_initialize       );
       this->add_slot_port (slot_reset            );
-      this->add_slot_port (slot_add_to_parameter );
+      this->add_slot_port (slot_train_with_data  );
 
-      this->add_out_port (out_parameter_ref    );
-      this->add_out_port (out_parameter_val    );
       this->add_out_port (out_evaluate         );
       this->add_out_port (out_greedy           );
       this->add_out_port (out_select_action    );
-      this->add_out_port (out_replacing_trace  );
-      this->add_out_port (out_create_parameter );
-      this->add_out_port (out_zero_parameter   );
     }
 
 protected:
@@ -196,6 +197,71 @@ protected:
 
   //!\brief will be called at the beginning of each episode
   MAKE_SLOT_PORT(slot_reset, void, (void), (), TThis);
+
+  /*!\brief update the parameter from the training sample data
+      \note implementing this port is not mandatory. */
+  MAKE_SLOT_PORT(slot_train_with_data, void, (const std::list<TActionValueFuncTrainingSample<TState,TAction> > &data), (data), TThis);
+
+  // i/o
+
+  MAKE_OUT_PORT(out_evaluate, void, (const TState &x, const TAction &a, TStateActionAttribute attrib), (x,a,attrib), TThis);
+
+  //!\brief calculate a greedy action at x, assign it into *greedy (if not NULL), assign its attribute into attrib
+  MAKE_OUT_PORT(out_greedy, void, (const TState &x, TAction *greedy, TStateActionAttribute attrib), (x,greedy,attrib), TThis);
+
+  /*!\brief select an action at the current state by the current polocy
+      \param [out]a  : if not NULL, selected action is stored
+      \param [out]attrib  : the action value, the state value, and the gradient are stored */
+  MAKE_OUT_PORT(out_select_action, void, (TAction *a, TStateActionAttribute attrib), (a,attrib), TThis);
+
+
+  virtual void slot_initialize_exec (void) = 0;
+  virtual void slot_reset_exec (void) = 0;
+
+  virtual void slot_train_with_data_exec (const std::list<TActionValueFuncTrainingSample<TState,TAction> > &data)  {}
+
+  virtual void out_evaluate_get (const TState &x, const TAction &a, TStateActionAttribute attrib) const = 0;
+  virtual void out_greedy_get (const TState &x, TAction *greedy, TStateActionAttribute attrib) const = 0;
+  virtual void out_select_action_get (TAction *a, TStateActionAttribute attrib) const = 0;
+
+};  // end of MActionValueFuncInterface
+//-------------------------------------------------------------------------------------------
+
+
+//===========================================================================================
+/*!\brief interface module of a generic function approximator that approximates Q~f(x,a; param)
+    where the parameter param is manipulable.
+    \note parameter of the function should be a subclass of TActionValueFuncParamInterface */
+template <typename t_state, typename t_action>
+class MParamManipulableActionValueFuncInterface
+    : public MActionValueFuncInterface<t_state,t_action>
+//===========================================================================================
+{
+public:
+  typedef MActionValueFuncInterface<t_state,t_action> TParent;
+  typedef TActionValueFuncParamInterface              TParameter;
+  typedef MParamManipulableActionValueFuncInterface   TThis;
+  SKYAI_MODULE_NAMES(MParamManipulableActionValueFuncInterface)
+
+  MParamManipulableActionValueFuncInterface (const std::string &v_instance_name)
+    : TParent        (v_instance_name),
+      slot_add_to_parameter  (*this),
+      out_parameter_ref      (*this),
+      out_parameter_val      (*this),
+      out_replacing_trace    (*this),
+      out_create_parameter   (*this),
+      out_zero_parameter     (*this)
+    {
+      this->add_slot_port (slot_add_to_parameter );
+
+      this->add_out_port (out_parameter_ref    );
+      this->add_out_port (out_parameter_val    );
+      this->add_out_port (out_replacing_trace  );
+      this->add_out_port (out_create_parameter );
+      this->add_out_port (out_zero_parameter   );
+    }
+
+protected:
 
   //!\brief add diff to the parameter
   MAKE_SLOT_PORT(slot_add_to_parameter, void, (const TParameter &diff), (diff), TThis);
@@ -213,16 +279,6 @@ protected:
   // //!\brief calculate a greedy action at x, assign it into *greedy (if not NULL), assign its action value into q (if not NULL)
   // MAKE_OUT_PORT(out_greedy, void, (const TState &x, TAction *greedy, TValue *q), (x,greedy,q), TThis);
 
-  MAKE_OUT_PORT(out_evaluate, void, (const TState &x, const TAction &a, TStateActionAttribute attrib), (x,a,attrib), TThis);
-
-  //!\brief calculate a greedy action at x, assign it into *greedy (if not NULL), assign its attribute into attrib
-  MAKE_OUT_PORT(out_greedy, void, (const TState &x, TAction *greedy, TStateActionAttribute attrib), (x,greedy,attrib), TThis);
-
-  /*!\brief select an action at the current state by the current polocy
-      \param [out]a  : if not NULL, selected action is stored
-      \param [out]attrib  : the action value, the state value, and the gradient are stored */
-  MAKE_OUT_PORT(out_select_action, void, (TAction *a, TStateActionAttribute attrib), (a,attrib), TThis);
-
   //!\brief apply a replacing trace to an eligibility trace eligibility_trace
   MAKE_OUT_PORT(out_replacing_trace, void, (TParameter &eligibility_trace), (eligibility_trace), TThis);
 
@@ -235,23 +291,18 @@ protected:
   MAKE_OUT_PORT(out_zero_parameter, void, (TParameter &outerparam), (outerparam), TThis);
 
 
-  virtual void slot_initialize_exec (void) = 0;
-  virtual void slot_reset_exec (void) = 0;
   virtual void slot_add_to_parameter_exec (const TParameter &diff) = 0;
 
   virtual const TParameter& out_parameter_ref_get (void) const = 0;
   virtual void out_parameter_val_get (TParameter &outerparam) const = 0;
   // virtual const TValue& out_action_value_get (const TState &x, const TAction &a) const = 0;
   // virtual void out_gradient_get (const TState &x, const TAction &a, TParameter &grad) const = 0;
-  virtual void out_evaluate_get (const TState &x, const TAction &a, TStateActionAttribute attrib) const = 0;
-  virtual void out_greedy_get (const TState &x, TAction *greedy, TStateActionAttribute attrib) const = 0;
-  virtual void out_select_action_get (TAction *a, TStateActionAttribute attrib) const = 0;
   virtual void out_replacing_trace_get (TParameter &eligibility_trace) const = 0;
 
   virtual TParameter* out_create_parameter_get (void) const = 0;
   virtual void out_zero_parameter_get (TParameter &outerparam) const = 0;
 
-};  // end of MActionValueFuncInterface
+};  // end of MParamManipulableActionValueFuncInterface
 //-------------------------------------------------------------------------------------------
 
 

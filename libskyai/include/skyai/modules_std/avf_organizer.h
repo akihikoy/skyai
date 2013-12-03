@@ -192,13 +192,13 @@ public:
 //===========================================================================================
 /*!\brief Action-value-function organizer that organizes (structures) lower AVF modules */
 class MAVFOrganizer
-    : public MActionValueFuncInterface <TCompositeState, TCompositeAction>
+    : public MParamManipulableActionValueFuncInterface <TCompositeState, TCompositeAction>
 //===========================================================================================
 {
 public:
-  typedef MActionValueFuncInterface <
-            TCompositeState, TCompositeAction>  TParent;
-  typedef MAVFOrganizer                         TThis;
+  typedef MParamManipulableActionValueFuncInterface <
+                    TCompositeState, TCompositeAction>  TParent;
+  typedef MAVFOrganizer                                 TThis;
   SKYAI_MODULE_NAMES(MAVFOrganizer)
 
   MAVFOrganizer (const std::string &v_instance_name)

@@ -77,13 +77,19 @@ std::string GetExecutablePath ()
 // class TKBHit
 //===========================================================================================
 
-void TKBHit::Open (void)
+void TKBHit::Open (bool wait_mode)
 {
   if (is_open_)  Close();
   tcgetattr(STDIN_FILENO, &old_tios_);
 
   raw_tios_= old_tios_;
   cfmakeraw(&raw_tios_);
+  wait_mode_= wait_mode;
+  if(!wait_mode_)
+  {
+    raw_tios_.c_cc[VMIN] = 0;
+    raw_tios_.c_cc[VTIME] = 1;
+  }
 
   tcsetattr(STDIN_FILENO, 0, &raw_tios_);
   is_open_= true;
@@ -94,14 +100,22 @@ void TKBHit::Close (void)
 {
   if (!is_open_)  return;
   tcsetattr(STDIN_FILENO, 0, &old_tios_);
-  std::cout<<std::endl;
+  if(wait_mode_)
+    std::cout<<std::endl;
   is_open_= false;
 }
 //-------------------------------------------------------------------------------------------
 
 int TKBHit::operator() (void) const
 {
-  return getchar();
+  if(wait_mode_)
+    return getchar();
+  else
+  {
+    char c(0);
+    read(0, &c, 1);
+    return c;
+  }
 }
 //-------------------------------------------------------------------------------------------
 

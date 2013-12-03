@@ -1,0 +1,21 @@
+// test by generating random commands
+include_once "env"
+
+module MBioloidLearningEnvironment env
+env.config ={
+    DistanceSensorIndex= -1
+  }
+
+include_once "ks1"
+
+module MLCRandom_TRealVector rand_cmd
+rand_cmd.config={
+    Interval = 2.0
+    Max = (3.14, 3.14, 3.14, 3.14, 3.14)
+    Min = (-3.14, -3.14, -3.14, -3.14, -3.14)
+  }
+
+connect env.signal_start_of_episode , rand_cmd.slot_execute
+connect env.signal_start_of_timestep , rand_cmd.slot_start_time_step
+connect env.signal_end_of_timestep , rand_cmd.slot_finish_time_step
+connect rand_cmd.signal_execute_command , env.slot_execute_command_des_cq

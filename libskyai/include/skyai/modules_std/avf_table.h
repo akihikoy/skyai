@@ -117,13 +117,13 @@ public:
 //===========================================================================================
 /*!\brief table-lookup function approximator for an action value function over a discrete state and a discrete action space */
 class MAVFTable
-    : public MActionValueFuncInterface <TDiscreteState, TDiscreteAction>
+    : public MParamManipulableActionValueFuncInterface <TDiscreteState, TDiscreteAction>
 //===========================================================================================
 {
 public:
-  typedef MActionValueFuncInterface <
-            TDiscreteState, TDiscreteAction> TParent;
-  typedef MAVFTable                          TThis;
+  typedef MParamManipulableActionValueFuncInterface <
+                      TDiscreteState, TDiscreteAction>  TParent;
+  typedef MAVFTable                                     TThis;
   SKYAI_MODULE_NAMES(MAVFTable)
 
   typedef avf_linear_discaction_detail::TAVFLinearDiscActionConfigurations  TAVFTableConfigurations;

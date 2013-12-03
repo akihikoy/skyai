@@ -593,19 +593,31 @@ DEF_NC(FixedJoint)
 class TTriMeshGeom : public dGeom
 {
 public:
-  TTriMeshGeom() : dGeom() {}
+  TTriMeshGeom() : dGeom(), tm_data_(NULL) {}
+  ~TTriMeshGeom()
+    {
+      mesh_destroy();
+    }
 
-  TTriMeshGeom(const TTriMeshGeom&) : dGeom() {}
+  TTriMeshGeom(const TTriMeshGeom&) : dGeom(), tm_data_(NULL) {}
   const TTriMeshGeom& operator=(const TTriMeshGeom&) {return *this;}
+
+  void destroy()
+    {
+      mesh_destroy();
+      dGeom::destroy();
+      _id= NULL;
+    }
 
   dGeomID& create() {return _id;}
 
   void create(dSpaceID space)
     {
-      dTriMeshDataID new_tmdata= dGeomTriMeshDataCreate();
-      dGeomTriMeshDataBuildSingle(new_tmdata, &vertices_[0], 3*sizeof(float), vertices_.size()/3,
+      mesh_destroy();
+      tm_data_= dGeomTriMeshDataCreate();
+      dGeomTriMeshDataBuildSingle(tm_data_, &vertices_[0], 3*sizeof(float), vertices_.size()/3,
                   &indices_[0], indices_.size(), 3*sizeof(dTriIndex));
-      _id= dCreateTriMesh(space, new_tmdata, NULL, NULL, NULL);
+      _id= dCreateTriMesh(space, tm_data_, NULL, NULL, NULL);
     }
   void setBody(dBodyID body)  {dGeomSetBody (_id,body);}
 
@@ -659,6 +671,14 @@ protected:
 
   std::valarray<float> vertices_;
   std::valarray<dTriIndex> indices_;
+
+  dTriMeshDataID tm_data_;
+
+  void mesh_destroy()
+    {
+      if(tm_data_)  dGeomTriMeshDataDestroy(tm_data_);
+      tm_data_= NULL;
+    }
 
 };
 //-------------------------------------------------------------------------------------------
