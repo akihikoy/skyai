@@ -88,7 +88,7 @@ void TKBHit::Open (bool wait_mode)
   if(!wait_mode_)
   {
     raw_tios_.c_cc[VMIN] = 0;
-    raw_tios_.c_cc[VTIME] = 1;
+    raw_tios_.c_cc[VTIME] = 0;  // 1;
   }
 
   tcsetattr(STDIN_FILENO, 0, &raw_tios_);
@@ -113,8 +113,8 @@ int TKBHit::operator() (void) const
   else
   {
     char c(0);
-    read(0, &c, 1);
-    return c;
+    int n= read(0, &c, 1);
+    return (n==1)?c:0;
   }
 }
 //-------------------------------------------------------------------------------------------
