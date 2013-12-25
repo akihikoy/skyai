@@ -32,6 +32,7 @@ for c in range(0,cols-1):
     indices[3*(2*(c*(rows-1)+r)+1)+1]= (c+1)*rows+r
     indices[3*(2*(c*(rows-1)+r)+1)+2]= (c+1)*rows+(r+1)
 
+print '// generator: '+ __file__
 print '// size= '+str(size)+'; z_var= '+str(z_var)+'; cols= '+str(cols)+'; rows= '+str(rows)
 print 'Vertices=('
 eol=','

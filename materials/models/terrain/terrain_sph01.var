@@ -1,0 +1,7 @@
+StaticObjects={
+    ["Terrain"]={
+        Links={
+            finclude(this,"terrain_sph01_obj.var")
+          }  // Links
+      }  // StaticObject[]
+  }  // StaticObjects
