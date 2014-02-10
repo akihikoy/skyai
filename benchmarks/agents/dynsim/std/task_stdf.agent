@@ -1,0 +1,81 @@
+// Standing-up task's agent file
+// using faster time-step
+def episode_start_std(task_id)
+{
+  task_id.memory ={TmpR2= 0.0;}  // total-time
+}
+def action_start_std(task_id)
+{
+  task_id.memory ={TmpB1= false;}  // no jumping or no falling down
+}
+def timestep_end_std(task_id)
+{
+// print cast<list<bool> >(task_id.memory.Contact)
+  // reward from height (z-position is near to 0.242)
+  // given only when r&l foot links contact with the ground
+  if(and(shuffle(cast<list<bool> >(task_id.memory.Contact),(12,17))))
+  {
+    task_id.memory ={
+        Reward= cast<real>(Reward) + 2.0*0.01*exp(-100*pow(0.242-cast<real>(BasePose[2]),2))
+      }
+    // print cast<real>(task_id.memory.Reward)
+  }
+  // penalty for jumping (r&l foot links leave away from the ground)
+  if(cast<real>(task_id.memory.TmpR2) > 0.05)  // every Contact is zero just after the reset
+  {
+    if(!cast<bool>(task_id.memory.TmpB1) && !or(shuffle(cast<list<bool> >(task_id.memory.Contact),(12,17))))
+    {
+      task_id.memory ={
+          TmpB1= true  // jumping
+          Reward= cast<real>(Reward) - 4.0  // jumping penalty
+          EndOfEps= true
+        }
+      // print -4
+    }
+    // penalty for falling down (base link/head link/hand links)
+    if(!cast<bool>(task_id.memory.TmpB1) && or(shuffle(cast<list<bool> >(task_id.memory.Contact),(0,1,4,7))))
+    {
+      task_id.memory ={
+          TmpB1= true  // falling down
+          Reward= cast<real>(Reward) - 4.0  // falling-down penalty
+          EndOfEps= true
+        }
+    }
+  }
+  task_id.memory ={
+      TmpR2= cast<real>(TmpR2) + cast<real>(TimeStep)  // update total-time
+    }
+  if(cast<real>(task_id.memory.TmpR2) > 5.0)
+  {
+    task_id.memory ={EndOfEps= true;}  // end of episode
+  }
+}
+
+def make_task_std(task_id,env_id)
+{
+  module  MDynSimUnivTask task_id
+
+  task_id.config ={
+      SensingAtEpisodeStart  = false
+      SensingAtActionStart   = false
+      // SensingAtTimeStepStart = false
+      SensingAtTimeStepEnd   = true
+
+      FEpisodeStart   = "episode_start_std"
+      FActionStart    = "action_start_std"
+      // FTimeStepStart  = "timestep_start_std"
+      FTimeStepEnd    = "timestep_end_std"
+      ForwardStepCost = true
+    }
+
+  // slot_finish_episode  and  slot_end_of_action are not connected
+  connect env_id.signal_start_of_system_timestep , task_id.slot_start_time_step
+  // connect env_id.signal_end_of_system_timestep   , task_id.slot_finish_time_step
+  connect env_id.signal_end_of_ctrl_timestep     , task_id.slot_finish_time_step
+
+  connect env_id.out_base_pose                   , task_id.in_base_pose
+  connect env_id.out_base_vel                    , task_id.in_base_vel
+  connect env_id.out_base_rot                    , task_id.in_base_rot
+  connect env_id.out_force                       , task_id.in_force
+  connect env_id.out_contact                     , task_id.in_contact
+}
