@@ -74,6 +74,7 @@ static void i_rot_succeeding_bodies (dBodyID ib, dJointID parent, const dVector3
     if(ij==parent) continue;
     dBodyID     ib2=dJointGetBody(ij,0);
     if(ib2==ib) ib2=dJointGetBody(ij,1);
+    if(ib2==0) continue;  // Attached to the space
     if(ib2==ib) {LERROR("fatal!"); exit(1);}
     i_rot_succeeding_bodies(ib2, ij, pos, rot);
   }
@@ -92,6 +93,7 @@ static void i_move_succeeding_bodies (dBodyID ib, dJointID parent, const dVector
 
     dBodyID     ib2=dJointGetBody(ij,0);
     if(ib2==ib) ib2=dJointGetBody(ij,1);
+    if(ib2==0) continue;  // Attached to the space
     if(ib2==ib) {LERROR("fatal!"); exit(1);}
     i_move_succeeding_bodies(ib2, ij, d);
   }
@@ -110,6 +112,7 @@ static void i_set_joint_angles (dBodyID ib, dJointID parent, const TODEJointAngl
     dReal  sign (1.0);
     dBodyID     ib2=dJointGetBody(ij,0);
     if(ib2==ib) {ib2=dJointGetBody(ij,1); sign=-1.0;}
+    if(ib2==0) continue;  // Attached to the space
     if(ib2==ib) {LERROR("fatal!"); exit(1);}
 
     TODEJointAngleMap::const_iterator itr_angle= angle_map.find(ij);

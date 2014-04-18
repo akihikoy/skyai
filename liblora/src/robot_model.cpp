@@ -558,15 +558,27 @@ void TWorld::create_link(const std::string &link_name, TLinkParameters &link, TE
 
 dJointID TWorld::create_joint(const std::string &joint_name, TJointParameters &joint, TElementSize &idx, const std::string &robot_name)
 {
-  int b1= LinkBodyIndex(robot_name, joint.Body1);
-  int b2= LinkBodyIndex(robot_name, joint.Body2);
-  if(b1<0 || b2<0)
+  dBodyID body1(NULL), body2(NULL);
   {
-    LERROR("In joint "<<robot_name<<"::"<<joint_name<<": cannot attach joint between "<<joint.Body1<<" and "<<joint.Body2);
-    lexit(df);
+    bool attachable(true);
+    if(joint.Body1!="-")  // "-" indicates the space (i.e. the joint is attached to the space)
+    {
+      int b1= LinkBodyIndex(robot_name, joint.Body1);
+      if(b1<0)  attachable= false;
+      else      body1= body_[b1];
+    }
+    if(joint.Body2!="-")  // "-" indicates the space (i.e. the joint is attached to the space)
+    {
+      int b2= LinkBodyIndex(robot_name, joint.Body2);
+      if(b2<0)  attachable= false;
+      else      body2= body_[b2];
+    }
+    if(!attachable)
+    {
+      LERROR("In joint "<<robot_name<<"::"<<joint_name<<": cannot attach joint between "<<joint.Body1<<" and "<<joint.Body2);
+      lexit(df);
+    }
   }
-  TNCBody &body1(body_[b1]);
-  TNCBody &body2(body_[b2]);
   dJointID res(NULL);
   switch(joint.Type)
   {
@@ -697,7 +709,7 @@ void TWorld::create_robot(TNamedParam<TRobotParameters>::P::iterator irobot, TEl
         VectorToPosition(robot.Position, pos);
       else
         {pos[0]=0.0;pos[1]=0.0;pos[2]=0.0;}
-      if(robot.Rotation.size())
+      if(robot.Rotation.size()>0)
         VectorToRotation(robot.Rotation, R);
       else
         dRSetIdentity(R);

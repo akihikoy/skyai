@@ -740,6 +740,11 @@ public:
 
   const TReal& Time() const {return time_;}
 
+  const TRobotParameters& RobotParams(int robot_index)
+    {
+      return *idx_to_robotparams_[robot_index];
+    }
+
   /*! Return body index of specified robot_name and link_name.
       \note The body index is unique in TWorld object. */
   int LinkBodyIndex(const std::string &robot_name, const std::string &link_name) const
