@@ -26,6 +26,7 @@
 #include <lora/variable_parser.h>
 #include <lora/stl_ext.h>
 #include <lora/string_impl.h>  // NumericalContainerToString
+#include <lora/boost_filesystem_ext.h>
 #include <boost/bind.hpp>
 #include <boost/filesystem/operations.hpp>
 //-------------------------------------------------------------------------------------------
@@ -36,7 +37,8 @@ namespace var_space
 
 inline boost::filesystem::path  operator+ (const boost::filesystem::path &file_path, const std::string &rhs)
 {
-  return file_path.parent_path()/(file_path.filename()+rhs);
+  // return file_path.parent_path()/(file_path.filename()+rhs);
+  return ConcatenatePath(file_path,rhs);
 }
 
 
@@ -194,8 +196,8 @@ void builtin_function_finclude (TBinExecutor &context, var_space::TVariableList 
   }
 
   bool load_res;
-  if(!(load_res= var_space::LoadFromFile(file_path.file_string(),arg1,context.LiteralTable(),&context.BuiltinFunctions())))
-    LERROR("Failed to load: "<<file_path.file_string());
+  if(!(load_res= var_space::LoadFromFile(file_path.string(),arg1,context.LiteralTable(),&context.BuiltinFunctions())))
+    LERROR("Failed to load: "<<file_path.string());
   res.PrimitiveSetBy<pt_bool>(load_res);
 }
 
@@ -377,7 +379,7 @@ bool TBinExecutor::AddPath (const std::string &dir_name)
   }
   boost::filesystem::path absolute_dir;
   if(!SearchFile(dir_name,absolute_dir))
-    path_list_->push_back (complete(path(dir_name,native)));
+    path_list_->push_back (absolute(path(dir_name/*,native*/)));
   else
     path_list_->push_back (absolute_dir);
   return true;
@@ -387,7 +389,7 @@ bool TBinExecutor::AddPath (const std::string &dir_name)
 bool TBinExecutor::SearchFile (const boost::filesystem::path &file_path, boost::filesystem::path &absolute_path, const char *extension) const
 {
   using namespace boost::filesystem;
-  if (file_path.is_complete())
+  if (file_path.is_absolute())
   {
     if (exists((absolute_path= file_path)))  return true;
     if (extension && exists((absolute_path= file_path.parent_path()/(file_path.filename()+extension))))  return true;
@@ -1352,7 +1354,7 @@ static void partially_execute(TBinExecutor *executor, TBinaryStack *bin_stack, c
 bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &literal_table, const TBuiltinFunctions *additional_funcs)
 {
   boost::filesystem::path file_path
-    = boost::filesystem::complete(boost::filesystem::path(file_name,boost::filesystem::native));
+    = boost::filesystem::absolute(boost::filesystem::path(file_name/*,boost::filesystem::native*/));
 
   if (boost::filesystem::exists(file_path) && boost::filesystem::is_empty(file_path))  // if file is empty...
     return true;
@@ -1369,9 +1371,9 @@ bool LoadFromFile (const std::string &file_name, TVariable &var, TLiteralTable &
   TParserCallbacks callbacks;
   // callbacks.OnCommandPushed= callback;
   callbacks.OnEndOfLine= boost::bind(&partially_execute,&executor,&bin_stack,_1,_2,_3);
-  if(ParseFile(file_path.file_string(),bin_stack,callbacks))
+  if(ParseFile(file_path.string(),bin_stack,callbacks))
   {
-    partially_execute(&executor,&bin_stack,file_path.file_string(),-1,false);
+    partially_execute(&executor,&bin_stack,file_path.string(),-1,false);
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopVariable();
     LASSERT(executor.VariableStackSize()==0);

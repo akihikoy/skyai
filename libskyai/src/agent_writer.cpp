@@ -110,8 +110,8 @@ static bool save_cmp_params_to_stream_base (const TModuleInterface *module, ostr
       = string(SKYAI_EXT_STORAGE_DIR)
         +"/"+module->Agent().Config().ExtFilePrefix+module->GlobalUniqueCode()+"."SKYAI_DEFAULT_AGENT_SCRIPT_EXT;
     string ext_file_path
-      = complete(path(module->Agent().Config().DataDir,native)
-        / path(ext_filename)).file_string();
+      = absolute(path(module->Agent().Config().DataDir/*,native*/)
+        / path(ext_filename)).string();
     if(CanOpenFile(ext_file_path,fopAsk))
     {
       ex_ofs.open(ext_file_path.c_str());
@@ -411,7 +411,7 @@ bool TFunctionManager::WriteToBinary (TBinaryStack &bstack) const
 bool TAgent::SaveToFile (const std::string &filename, const std::string &ext_file_prefix) const
 //===========================================================================================
 {
-  boost::filesystem::path  file_path (filename, boost::filesystem::native);
+  boost::filesystem::path  file_path (filename/*, boost::filesystem::native*/);
   return SaveAgentToFile (*this, file_path, ext_file_prefix);
 }
 //-------------------------------------------------------------------------------------------
@@ -425,12 +425,12 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
 
   if (!exists(file_path.parent_path()))
   {
-    LERROR("Cannot save data into the file: "<<file_path.file_string()
-            <<" because the parent path: "<<file_path.parent_path().file_string()
+    LERROR("Cannot save data into the file: "<<file_path.string()
+            <<" because the parent path: "<<file_path.parent_path().string()
             <<" does not exist.");
     return false;
   }
-  if (!CanOpenFile(file_path.file_string(),fopAsk))  return false;
+  if (!CanOpenFile(file_path.string(),fopAsk))  return false;
 
   string tmp_ext_file_prefix;
   if (ext_file_prefix!="")
@@ -439,7 +439,7 @@ bool SaveAgentToFile (const TAgent &agent, const boost::filesystem::path &file_p
     std::swap(const_cast<string&>(agent.Config().ExtFilePrefix), tmp_ext_file_prefix);  // we need to use const_cast since `agent' should be const
   }
 
-  ofstream  ofs(file_path.file_string().c_str());
+  ofstream  ofs(file_path.string().c_str());
   bool res= WriteAgentToStream(agent, ofs, true);
 
   if (ext_file_prefix!="")

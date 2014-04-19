@@ -25,6 +25,7 @@
 #include <skyai/base.h>
 #include <lora/string.h>
 #include <lora/small_classes.h>
+#include <lora/boost_filesystem_ext.h>
 #include <boost/bind.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -35,6 +36,15 @@ namespace loco_rabbits
 using namespace std;
 // using namespace boost;
 
+/* We define this operator+ because in an older version (v.2),
+    this function was defined, but it was removed in v.3. */
+# if defined(BOOST_FILESYSTEM_VERSION) && BOOST_FILESYSTEM_VERSION >= 3
+inline boost::filesystem::path operator+(const boost::filesystem::path &lhs, const std::string &rhs)
+{
+  return ConcatenatePath(lhs,rhs);
+}
+#endif
+//-------------------------------------------------------------------------------------------
 
 /*!\brief low-level access to param_box_config_ (first_access_check is not executed) */
 inline var_space::TVariable& ll_param_box_config(TModuleInterface &m)
@@ -1362,7 +1372,7 @@ void TAgent::Clear()
 void TAgent::AddPath (const std::string &dir_name)
 {
   using namespace boost::filesystem;
-  SetPathList().push_back (complete(path(dir_name,native)));
+  SetPathList().push_back (absolute(path(dir_name/*,native*/)));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1373,7 +1383,7 @@ void TAgent::AddPathList (const std::list<std::string> &dir_list)
   SetPathList();
 
   for (std::list<std::string>::const_iterator itr(dir_list.begin()),last(dir_list.end()); itr!=last; ++itr)
-    path_list_->push_back (complete(path(*itr,native)));
+    path_list_->push_back (absolute(path(*itr/*,native*/)));
 }
 //-------------------------------------------------------------------------------------------
 
@@ -1398,27 +1408,27 @@ bool TAgent::ExecuteFunction(
 std::string TAgent::SearchFileName (const std::string &filename, const std::string &omissible_extension) const
 {
   using namespace boost::filesystem;
-  path  file_path(filename,native), absolute_path;
-  if (file_path.is_complete())
+  path  file_path(filename/*,native*/), absolute_path;
+  if (file_path.is_absolute())
   {
-    if (exists(file_path))  return file_path.file_string();
-    if (exists((absolute_path= file_path.parent_path()/(file_path.filename()+omissible_extension))))  return absolute_path.file_string();
+    if (exists(file_path))  return file_path.string();
+    if (exists((absolute_path= file_path.parent_path()/(file_path.filename()+omissible_extension))))  return absolute_path.string();
     return "";
   }
 
-  if (exists(absolute_path= complete(file_path)))  return absolute_path.file_string();
-  if (exists(absolute_path= complete(file_path.string()+omissible_extension)))  return absolute_path.file_string();
+  if (exists(absolute_path= absolute(file_path)))  return absolute_path.string();
+  if (exists(absolute_path= absolute(file_path.string()+omissible_extension)))  return absolute_path.string();
 
   if (path_list_==NULL)  return "";
 
   path  tmp_path(file_path);
   for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
     if (exists(absolute_path= (*itr)/tmp_path))
-      return absolute_path.file_string();
+      return absolute_path.string();
   tmp_path= file_path.string()+omissible_extension;
   for (std::list<path>::const_iterator itr(path_list_->begin()),last(path_list_->end()); itr!=last; ++itr)
     if (exists(absolute_path= (*itr)/tmp_path))
-      return absolute_path.file_string();
+      return absolute_path.string();
   return "";
 }
 //-------------------------------------------------------------------------------------------
@@ -1427,10 +1437,10 @@ std::string TAgent::SearchFileName (const std::string &filename, const std::stri
 std::string TAgent::GetDataFileName (const std::string &filename) const
 {
   using namespace boost::filesystem;
-  if (filename=="")  return complete(path(conf_.DataDir,native)).file_string();
+  if (filename=="")  return absolute(path(conf_.DataDir/*,native*/)).string();
 
-  path  file_path(filename,native), data_dir_path(conf_.DataDir,native);
-  return complete(data_dir_path/file_path).file_string();
+  path  file_path(filename/*,native*/), data_dir_path(conf_.DataDir/*,native*/);
+  return absolute(data_dir_path/file_path).string();
 }
 //-------------------------------------------------------------------------------------------
 

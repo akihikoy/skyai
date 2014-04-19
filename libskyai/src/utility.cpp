@@ -70,7 +70,7 @@ static bool parse_cmd_line_option_step1 (TAgent &agent, TOptionParser &option)
     path exec_dir(path(GetExecutablePath()).parent_path());
     if(exists(exec_dir/"default.agent"))
     {
-      string agent_file= (exec_dir/"default.agent").file_string();
+      string agent_file= (exec_dir/"default.agent").string();
       if (!agent.LoadFromFile(agent_file))
       {
         LERROR("failed to read "<<agent_file);
@@ -116,7 +116,7 @@ static bool rename_to_old (const boost::filesystem::path &src, int max_old_index
 
   if (!exists(src))  return true;
 
-  string src_ext= src.extension();
+  string src_ext= src.extension().string();
   path  renamed_path;
   for (int i(1); i<max_old_index; ++i)
   {
@@ -138,10 +138,10 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
   bool overwrite(true);
 
   using namespace boost::filesystem;
-  path  included_dir(agent.GetDataFileName("included"),native);
-  path  ext_storage_dir(agent.GetDataFileName(SKYAI_EXT_STORAGE_DIR),native);
+  path  included_dir(agent.GetDataFileName("included")/*,native*/);
+  path  ext_storage_dir(agent.GetDataFileName(SKYAI_EXT_STORAGE_DIR)/*,native*/);
 
-  if (exists(path(agent.GetDataFileName("cmdline"),native))
+  if (exists(path(agent.GetDataFileName("cmdline")/*,native*/))
       || exists(included_dir) || exists(ext_storage_dir))
   {
     cerr<<agent.GetDataFileName("")<<" was already used. Will you overwrite?"<<endl;
@@ -177,7 +177,7 @@ static bool parse_cmd_line_option_step2 (TAgent &agent, TOptionParser &option, s
       create_directory(included_dir);
       for (std::list<std::string>::const_iterator itr(agent.IncludedList().begin()),last(agent.IncludedList().end()); itr!=last; ++itr)
       {
-        path from(*itr,native);
+        path from(*itr/*,native*/);
         copy_file(from, included_dir/(from.filename()));
       }
     }

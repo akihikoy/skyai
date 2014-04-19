@@ -53,12 +53,12 @@ bool TBinExecutor::OnLoadLibrary (const std::string &file_name)
     print_error("load: failed because the library not found");
     return false;
   }
-  if (DLOpen(absolute_path.file_string().c_str())==NULL)
+  if (DLOpen(absolute_path.string().c_str())==NULL)
   {
-    print_error("load: failed to load: "+absolute_path.file_string());
+    print_error("load: failed to load: "+absolute_path.string());
     return false;
   }
-  LMESSAGE("loaded library: "<<absolute_path.file_string());
+  LMESSAGE("loaded library: "<<absolute_path.string());
   if (lib_list_)
   {
     lib_list_->push_back(file_name);
@@ -78,7 +78,7 @@ bool TBinExecutor::OnInclude (const std::string &file_name, std::string &abs_fil
   if (!SearchAgentFile(file_name,absolute_path))
     return false;
 
-  abs_file_name= absolute_path.file_string();
+  abs_file_name= absolute_path.string();
   if (included_list_!=NULL)
   {
     if (std::find(included_list_->begin(),included_list_->end(), abs_file_name)==included_list_->end())
@@ -853,14 +853,14 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule)
 //===========================================================================================
 {
   boost::filesystem::path file_path
-    = boost::filesystem::complete(boost::filesystem::path(cmodule.Agent().SearchFileName(file_name),boost::filesystem::native));
+    = boost::filesystem::absolute(boost::filesystem::path(cmodule.Agent().SearchFileName(file_name)/*,boost::filesystem::native*/));
 
   if (boost::filesystem::exists(file_path) && boost::filesystem::is_empty(file_path))  // if file is empty...
     return true;
 
   std::list<std::string> &included_list(cmodule.Agent().IncludedList());
-  if (std::find(included_list.begin(),included_list.end(),file_path.file_string())==included_list.end())
-    included_list.push_back(file_path.file_string());
+  if (std::find(included_list.begin(),included_list.end(),file_path.string())==included_list.end())
+    included_list.push_back(file_path.string());
 
   TBinExecutor executor;
   TBinaryStack bin_stack;
@@ -870,9 +870,9 @@ bool LoadFromFile (const std::string &file_name, TCompositeModule &cmodule)
   executor.SetCurrentDir(file_path.parent_path());
   executor.SetIgnoreExport(false);
 
-  if(ParseFile(file_path.file_string(),bin_stack,callbacks))
+  if(ParseFile(file_path.string(),bin_stack,callbacks))
   {
-    partially_execute(&executor,&bin_stack,file_path.file_string(),-1,false);
+    partially_execute(&executor,&bin_stack,file_path.string(),-1,false);
       //! this code is needed if there is no newline at the end of file; \todo FIXME: the line number (-1)
     executor.PopCmpModule();
     LASSERT(executor.CmpModuleStackSize()==0);

@@ -29,7 +29,7 @@ if(WITH_BOOST)
   if(NOT Boost_SYSTEM_FOUND)
     message(WARNING, " Boost-system library is not found." )
   endif()
-  add_definitions(-DBOOST_FILESYSTEM_VERSION=2)
+  # add_definitions(-DBOOST_FILESYSTEM_VERSION=2)
 endif()
 
 if(WITH_ODE)

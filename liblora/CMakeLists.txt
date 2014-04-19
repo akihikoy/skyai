@@ -3,6 +3,7 @@ set(lora_std_srcs
     src/common.cpp
     src/binary.cpp
     src/bioloid.cpp
+    src/boost_filesystem_ext.cpp
     src/cast.cpp
     src/file.cpp
     src/math.cpp
